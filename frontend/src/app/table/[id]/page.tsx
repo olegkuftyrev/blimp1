@@ -69,7 +69,40 @@ export default function TableSection() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
       const response = await fetch(`${apiUrl}/api/menu-items`);
       const data = await response.json();
-      setMenuItems(data.data);
+      
+      // Filter menu items based on table ID
+      let filteredItems = data.data;
+      if (tableId === '1') {
+        // Table 1 should only show: C3, F4, B3, M1, R1
+        filteredItems = data.data.filter((item: MenuItem) => 
+          item.itemTitle.includes('C3 Kung Pao Chicken') ||
+          item.itemTitle.includes('F4 Honey Walnut Shrimp') ||
+          item.itemTitle.includes('B3 Black Pepper Sirloin Steak') ||
+          item.itemTitle.includes('M1 Show Mein') ||
+          item.itemTitle.includes('V1 Super Greens') ||
+          item.itemTitle.includes('R1 Fried Rice')
+        );
+      } else if (tableId === '2') {
+        // Table 2 should only show: CB1, C1, C2, B5, B1, CB3
+        filteredItems = data.data.filter((item: MenuItem) => 
+          item.itemTitle.includes('CB1 String Bean Chicken Breast') ||
+          item.itemTitle.includes('C1 Orange Chicken') ||
+          item.itemTitle.includes('C2 Mushroom Chicken') ||
+          item.itemTitle.includes('B5 Beijing Beef') ||
+          item.itemTitle.includes('B1 Broccoli Beef') ||
+          item.itemTitle.includes('CB3 Honey Sesame Chicken Breast')
+        );
+      } else if (tableId === '3') {
+        // Table 3 should only show: E2, E3, E1, C4, V1
+        filteredItems = data.data.filter((item: MenuItem) => 
+          item.itemTitle.includes('E2 Chicken Egg Roll') ||
+          item.itemTitle.includes('E3 Cream Cheese Rangoons') ||
+          item.itemTitle.includes('E1 Veggie Spring Rolls') ||
+          item.itemTitle.includes('C4 Grilled Teriyaki Chicken')
+        );
+      }
+      
+      setMenuItems(filteredItems);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching menu items:', error);
