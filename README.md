@@ -22,33 +22,38 @@ A tablet-based food calling and kitchen management system designed to streamline
 - ✅ **Database**: SQLite configured, migrations executed successfully
 - ✅ **Models**: MenuItem and Order models created with relationships
 - ✅ **API Endpoints**: All REST API endpoints created and working
-- ✅ **Seeders**: 4 Panda Express dishes populated in database
+- ✅ **Seeders**: 5 Panda Express dishes populated in database (including 10-second test item)
 - ✅ **CSRF**: Disabled for API routes, POST requests working
 - ✅ **Frontend**: Next.js 15.5.2 with TypeScript and Tailwind CSS
-- ✅ **Table Interfaces**: 3 table section pages created
-- ✅ **Kitchen Interface**: Kitchen tablet page created
-- ✅ **Polling**: 5-second API synchronization implemented
-- 🔄 **Current Task**: Converting to Chakra UI (Step 9 of 13)
+- ✅ **Table Interfaces**: 3 table section pages with smart batch selection
+- ✅ **Kitchen Interface**: Kitchen tablet with timer management
+- ✅ **WebSocket**: Real-time communication between kitchen and table sections
+- ✅ **Timer System**: Complete timer workflow with countdown displays
+- ✅ **Order Management**: Full order lifecycle from creation to completion
+- ✅ **Smart UI**: Time-based batch recommendations and visual feedback
 
 ### Key Files Created:
 - `backend/app/models/menu_item.ts` - MenuItem model with cooking times
 - `backend/app/models/order.ts` - Order model with timer fields
 - `backend/database/migrations/1756870400000_create_menu_items_table.ts`
 - `backend/database/migrations/1756870400001_create_orders_table.ts`
-- `backend/database/seeders/menu_item_seeder.ts` - 4 Panda Express dishes
+- `backend/database/seeders/menu_item_seeder.ts` - 5 Panda Express dishes (including 10-second test item)
 - `backend/app/controllers/menu_item_controller.ts` - Menu API endpoints
-- `backend/app/controllers/order_controller.ts` - Order API endpoints
+- `backend/app/controllers/order_controller.ts` - Order API endpoints with WebSocket events
 - `backend/app/controllers/kitchen_controller.ts` - Kitchen API endpoints
 - `backend/app/controllers/status_controller.ts` - Status API endpoints
+- `backend/app/services/websocket_service.ts` - Real-time WebSocket communication
 - `backend/start/routes.ts` - All API routes configured
+- `backend/start/ws.ts` - WebSocket server configuration
 - `backend/config/shield.ts` - CSRF disabled for API
 - `backend/tmp/db.sqlite3` - SQLite database with test data
-- `frontend/src/app/page.tsx` - Main navigation page
-- `frontend/src/app/table/[id]/page.tsx` - Table section interfaces
-- `frontend/src/app/kitchen/page.tsx` - Kitchen tablet interface
-- `frontend/package.json` - Next.js 15.5.2 with TypeScript
+- `frontend/src/app/page.tsx` - Main navigation page with section selection
+- `frontend/src/app/table/[id]/page.tsx` - Smart table section interfaces with timers
+- `frontend/src/app/kitchen/page.tsx` - Kitchen tablet with timer management
+- `frontend/src/contexts/WebSocketContext.tsx` - WebSocket connection management
+- `frontend/src/hooks/useWebSocketEvents.ts` - WebSocket event handlers
+- `frontend/package.json` - Next.js 15.5.2 with TypeScript and Socket.IO
 - `frontend/tailwind.config.ts` - Tailwind CSS configuration
-- `.cursor/mcp.json` - Chakra UI MCP server configuration
 
 ### Development Rules:
 1. **One step at a time** - Complete each step before moving to next
@@ -58,29 +63,35 @@ A tablet-based food calling and kitchen management system designed to streamline
 5. **No terminal file operations** - Use direct file tools only
 
 ### Next Steps:
-1. Install and configure Chakra UI
-2. Convert existing interfaces to Chakra UI components
-3. Implement timer logic for kitchen orders
-4. Add real-time timer countdown displays
+1. ✅ ~~Install and configure Chakra UI~~ (Switched to Tailwind CSS)
+2. ✅ ~~Convert existing interfaces to Chakra UI components~~ (Using Tailwind CSS)
+3. ✅ ~~Implement timer logic for kitchen orders~~ (Complete timer system implemented)
+4. ✅ ~~Add real-time timer countdown displays~~ (WebSocket-based real-time updates)
+5. ⏳ **Integration testing** - Test all components together
+6. ⏳ **Deployment setup** - DigitalOcean with Ubuntu
 
 ### Technical Details:
 - **AdonisJS Version**: 6.19.0
 - **Next.js Version**: 15.5.2
 - **Database**: SQLite with Lucid ORM
+- **WebSocket**: Socket.IO for real-time communication
 - **Backend Port**: 3333
-- **Frontend Port**: 3001 (3000 was in use)
+- **Frontend Port**: 3000
 - **Database File**: `backend/tmp/db.sqlite3`
 - **Migration Status**: All 4 migrations completed successfully
-- **API Status**: All endpoints working (GET/POST tested)
-- **Frontend Status**: Running with Tailwind CSS
-- **Test Data**: 4 Panda Express dishes + 1 test order created
+- **API Status**: All endpoints working with WebSocket events
+- **Frontend Status**: Running with Tailwind CSS and WebSocket integration
+- **Test Data**: 5 Panda Express dishes (including 10-second test item)
 
 ### API Testing Results:
-- ✅ **GET /api/menu-items**: Returns 4 Panda Express dishes
-- ✅ **GET /api/orders**: Returns orders (tested with 1 order)
-- ✅ **POST /api/orders**: Creates new orders successfully
-- ✅ **GET /api/status**: Returns system status
-- ✅ **Database**: All data persisted correctly
+- ✅ **GET /api/menu-items**: Returns 5 Panda Express dishes (including 10-second test item)
+- ✅ **GET /api/orders**: Returns orders with real-time updates
+- ✅ **POST /api/orders**: Creates new orders with WebSocket events
+- ✅ **DELETE /api/orders/:id**: Deletes orders with WebSocket events
+- ✅ **POST /api/kitchen/orders/:id/start-timer**: Starts timers with WebSocket events
+- ✅ **POST /api/kitchen/orders/:id/complete**: Completes orders with WebSocket events
+- ✅ **WebSocket Events**: Real-time communication between kitchen and table sections
+- ✅ **Database**: All data persisted correctly with relationships
 
 ### API Endpoints Created:
 - ✅ Menu Items: GET, PUT `/api/menu-items`
@@ -190,20 +201,38 @@ frontend/
 
 ## 🚀 Features
 
-- **Table Management**: 3 tablet interfaces for table sections with touch screen support
-- **Kitchen Integration**: Dedicated kitchen tablet for cooks and help cooks
-- **Timer Management**: Automatic timer setup for food preparation
-- **Real-time Updates**: Data synchronization between all tablets every 5 seconds
-- **Touch-friendly Interface**: Optimized for tablet use with Chakra UI
-- **Manager Control**: Centralized management of all 3 table sections
+### 🍽️ Smart Table Management
+- **3 Tablet Interfaces**: Dedicated interfaces for each table section
+- **Smart Batch Selection**: Time-based recommendations (Breakfast 5-10am, Lunch 11am-1pm, Dinner 5-7pm)
+- **Visual Feedback**: Color-coded buttons with recommended batch highlighting
+- **Real-time Timers**: Live countdown displays showing cooking progress
+
+### 👨‍🍳 Kitchen Integration
+- **Dedicated Kitchen Tablet**: Complete order management interface
+- **Timer Management**: Automatic timer setup based on menu item cooking times
+- **Order Lifecycle**: Full workflow from pending → cooking → timer_expired → ready
+- **Complete & Delete**: Option to complete orders or delete them entirely
+
+### ⚡ Real-time Communication
+- **WebSocket Integration**: Instant updates between kitchen and table sections
+- **Event-driven Updates**: Order creation, timer start/stop, completion events
+- **Synchronized Timers**: Kitchen and table sections show identical countdowns
+- **Live Status Updates**: Real-time order status changes across all devices
+
+### 🎯 Smart UI Features
+- **Time-based Recommendations**: System suggests optimal batch based on current time
+- **Visual States**: Different button colors for available, processing, and waiting states
+- **Touch-optimized**: Large buttons designed for tablet use
+- **Status Indicators**: Clear visual feedback for order progress
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 15.5.2 with Chakra UI 3.26.0 (optimized for tablets)
+- **Frontend**: Next.js 15.5.2 with TypeScript and Tailwind CSS
 - **Backend**: AdonisJS 6.19.0 (Node.js framework)
 - **Database**: SQLite with Lucid ORM (built-in AdonisJS ORM)
-- **Architecture**: API-Driven Development (RESTful API)
-- **Data Synchronization**: Polling every 5 seconds for updates
+- **Real-time Communication**: Socket.IO WebSocket integration
+- **Architecture**: API-Driven Development with WebSocket events
+- **Data Synchronization**: Real-time WebSocket events + 5-second polling fallback
 - **Device Support**: Touch screen optimized for tablets
 - **Deployment**: Automatic deployment from Git repository
 
@@ -631,28 +660,34 @@ If you have any questions or need help, please open an issue in the repository.
 - `completed` - Dish taken from table
 
 ### Data Synchronization:
-- All 4 tablets poll API every 5 seconds for updates
-- Real-time status updates across all devices
+- **WebSocket Events**: Real-time communication between kitchen and table sections
+- **Polling Fallback**: 5-second API polling as backup for updates
+- **Event Types**: order:created, order:updated, timer:started, timer:expired, order:completed, orders:all_deleted
+- **Room-based Updates**: Kitchen and specific table sections receive targeted events
 
 ## 🍜 Menu Items
 
-The system manages 4 core Panda Express dishes:
+The system manages 5 core Panda Express dishes:
 
 ### 1. Fried Rice
 - Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
-- Cooking times: Random 2-5 minutes per batch
+- Cooking times: Random 2-4 minutes per batch
 
 ### 2. Orange Chicken  
 - Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
-- Cooking times: Random 2-5 minutes per batch
+- Cooking times: Random 2-4 minutes per batch
 
 ### 3. Cream Cheese Ragoons
 - Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
-- Cooking times: Random 2-5 minutes per batch
+- Cooking times: Random 2-4 minutes per batch
 
 ### 4. Honey Walnut Shrimp
 - Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
-- Cooking times: Random 2-5 minutes per batch
+- Cooking times: Random 2-4 minutes per batch
+
+### 5. Teriyaki Beef Bowl ⚡
+- Batch sizes: Breakfast(2), Lunch(4), Downtime(1), Dinner(5)
+- Cooking times: **Batch 1: 10 seconds** (for testing), Batch 2: 3-6 minutes, Batch 3: 4-8 minutes
 
 ## 📊 Database Structure
 
@@ -660,7 +695,7 @@ The system manages 4 core Panda Express dishes:
 - `id`, `item_title`, `batch_breakfast`, `batch_lunch`, `batch_downtime`, `batch_dinner`
 - `cooking_time_batch1` (INTEGER), `cooking_time_batch2` (INTEGER), `cooking_time_batch3` (INTEGER)
 - `status`, `created_at`, `updated_at`
-- **Data**: 4 Panda Express dishes with random cooking times (2-4 minutes)
+- **Data**: 5 Panda Express dishes with random cooking times (2-4 minutes) + 10-second test item
 
 ### Orders Table: ✅ CREATED & TESTED
 - `id`, `table_section` (1,2,3), `menu_item_id`, `batch_size`, `status`
