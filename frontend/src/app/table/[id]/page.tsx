@@ -24,6 +24,8 @@ export default function TableSection() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
+  const [processingOrders, setProcessingOrders] = useState<{[key: string]: boolean}>({});
+  const [sentOrders, setSentOrders] = useState<{[key: string]: boolean}>({});
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -97,7 +99,74 @@ export default function TableSection() {
   // Subscribe to WebSocket events
   useOrderEvents(handleOrderCreated, handleOrderUpdated, handleOrderCompleted, handleAllOrdersDeleted);
 
-  const createOrder = async (menuItemId: number, batchSize: number) => {
+  const getRecommendedBatch = () => {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Breakfast: 5:00 - 10:00
+    if (hour >= 5 && hour < 10) {
+      return 1; // Batch 1
+    }
+    // Lunch: 11:00 - 13:00
+    else if (hour >= 11 && hour < 13) {
+      return 2; // Batch 2
+    }
+    // Dinner: 17:00 - 19:00
+    else if (hour >= 17 && hour < 19) {
+      return 3; // Batch 3
+    }
+    // Downtime: all other times
+    else {
+      return 1; // Default to Batch 1
+    }
+  };
+
+  const getBatchSize = (menuItem: MenuItem, batchNumber: number) => {
+    switch (batchNumber) {
+      case 1:
+        return menuItem.batchBreakfast;
+      case 2:
+        return menuItem.batchLunch;
+      case 3:
+        return menuItem.batchDinner;
+      default:
+        return menuItem.batchBreakfast;
+    }
+  };
+
+  const getCurrentPeriod = () => {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour >= 5 && hour < 10) return 'Breakfast';
+    if (hour >= 11 && hour < 13) return 'Lunch';
+    if (hour >= 17 && hour < 19) return 'Dinner';
+    return 'Downtime';
+  };
+
+  const getBatchName = (batchNumber: number) => {
+    switch (batchNumber) {
+      case 1:
+        return 'Breakfast';
+      case 2:
+        return 'Lunch';
+      case 3:
+        return 'Dinner';
+      default:
+        return 'Batch';
+    }
+  };
+
+  const createOrder = async (menuItemId: number, batchNumber: number) => {
+    const menuItem = menuItems.find(item => item.id === menuItemId);
+    if (!menuItem) return;
+    
+    const key = `${menuItemId}-${batchNumber}`;
+    const batchSize = getBatchSize(menuItem, batchNumber);
+    
+    // Set processing state
+    setProcessingOrders(prev => ({ ...prev, [key]: true }));
+    
     try {
       const response = await fetch('http://localhost:3333/api/orders', {
         method: 'POST',
@@ -114,6 +183,8 @@ export default function TableSection() {
       if (response.ok) {
         const newOrder = await response.json();
         console.log('✅ Order created successfully:', newOrder);
+        // Set sent state
+        setSentOrders(prev => ({ ...prev, [key]: true }));
         // Order will be added via WebSocket event
       } else {
         alert('Failed to create order');
@@ -121,6 +192,15 @@ export default function TableSection() {
     } catch (error) {
       console.error('Error creating order:', error);
       alert('Error creating order');
+    } finally {
+      // Remove processing state after a short delay
+      setTimeout(() => {
+        setProcessingOrders(prev => {
+          const newState = { ...prev };
+          delete newState[key];
+          return newState;
+        });
+      }, 1000);
     }
   };
 
@@ -162,9 +242,17 @@ export default function TableSection() {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">
-            Table Section {tableId}
-          </h1>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800">
+              Table Section {tableId}
+            </h1>
+            <div className="mt-2 text-lg text-gray-600">
+              Current Time: {new Date().toLocaleTimeString()}
+              <span className="ml-4 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {getCurrentPeriod()} Period
+              </span>
+            </div>
+          </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
             <span className="text-sm text-gray-600">
@@ -181,41 +269,39 @@ export default function TableSection() {
               </h3>
               
               <div className="space-y-3">
-                <button
-                  onClick={() => createOrder(item.id, item.batchBreakfast)}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg text-lg font-medium transition-colors"
-                >
-                  Breakfast ({item.batchBreakfast})
-                </button>
-                
-                <button
-                  onClick={() => createOrder(item.id, item.batchLunch)}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg text-lg font-medium transition-colors"
-                >
-                  Lunch ({item.batchLunch})
-                </button>
-                
-                <button
-                  onClick={() => createOrder(item.id, item.batchDowntime)}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg text-lg font-medium transition-colors"
-                >
-                  Downtime ({item.batchDowntime})
-                </button>
-                
-                <button
-                  onClick={() => createOrder(item.id, item.batchDinner)}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg text-lg font-medium transition-colors"
-                >
-                  Dinner ({item.batchDinner})
-                </button>
+                {[1, 2, 3].map((batchNumber) => {
+                  const isRecommended = getRecommendedBatch() === batchNumber;
+                  const key = `${item.id}-${batchNumber}`;
+                  const isProcessing = processingOrders[key];
+                  const isSent = sentOrders[key];
+                  
+                  return (
+                    <button
+                      key={batchNumber}
+                      onClick={() => createOrder(item.id, batchNumber)}
+                      disabled={isProcessing || isSent}
+                      className={`w-full py-3 px-4 rounded-lg text-lg font-medium transition-colors ${
+                        isProcessing
+                          ? 'bg-blue-500 text-white cursor-not-allowed'
+                          : isSent
+                            ? 'bg-yellow-500 text-white cursor-not-allowed'
+                            : isRecommended 
+                              ? 'bg-green-500 hover:bg-green-600 text-white ring-2 ring-green-300' 
+                              : 'bg-gray-500 hover:bg-gray-600 text-white'
+                      }`}
+                    >
+                      {isProcessing 
+                        ? '⏳ Sending...' 
+                        : isSent
+                          ? `Batch ${batchNumber} - Waiting`
+                          : `${isRecommended ? '⭐ ' : ''}Batch ${batchNumber}`
+                      }
+                    </button>
+                  );
+                })}
               </div>
               
-              <div className="mt-4 text-sm text-gray-600 text-center">
-                <p>Cooking Times:</p>
-                <p>Batch 1: {item.cookingTimeBatch1}min</p>
-                <p>Batch 2: {item.cookingTimeBatch2}min</p>
-                <p>Batch 3: {item.cookingTimeBatch3}min</p>
-              </div>
+
             </div>
           ))}
         </div>
