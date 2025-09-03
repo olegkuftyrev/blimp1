@@ -2,12 +2,12 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 export default class ApiMiddleware {
-  async handle(ctx: HttpContext, next: NextFn) {
+  async handle(_ctx: HttpContext, next: NextFn) {
     /**
-     * Disable CSRF protection for API routes
+     * API middleware for additional processing if needed
+     * CSRF is already disabled in config/shield.ts
      */
-    ctx.request.csrf = false
-
+    
     /**
      * Call next method in the pipeline and return its output
      */
