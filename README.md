@@ -13,6 +13,8 @@ A tablet-based food calling and kitchen management system designed to streamline
 
 #### Detailed Backend Steps:
 
+**⚠️ IMPORTANT: Always work in /backend directory for backend commands**
+
 **Этап 1: Create AdonisJS backend**
 - Create AdonisJS project: `npm create adonisjs@latest backend`
 - Setup folder structure: controllers, models, services, middleware, validators
