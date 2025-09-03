@@ -124,7 +124,7 @@ export default class OrderController {
       await order.load('menuItem')
       
       // Emit WebSocket event before deleting
-      this.wsService.emitOrderCompleted(order)
+      this.wsService.emitOrderDeleted(order)
       
       await order.delete()
 

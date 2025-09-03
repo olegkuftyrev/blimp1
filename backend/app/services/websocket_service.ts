@@ -103,6 +103,25 @@ export default class WebSocketService {
   }
 
   /**
+   * Emit order deleted event to kitchen and specific table
+   */
+  emitOrderDeleted(order: any) {
+    // Notify kitchen
+    this.io.to('kitchen').emit('order:deleted', {
+      order,
+      timestamp: new Date().toISOString()
+    })
+
+    // Notify specific table
+    this.io.to(`table:${order.table_section}`).emit('order:deleted', {
+      order,
+      timestamp: new Date().toISOString()
+    })
+
+    console.log(`🗑️ Order deleted event sent for order ${order.id}`)
+  }
+
+  /**
    * Emit all orders deleted event to all clients
    */
   emitAllOrdersDeleted() {

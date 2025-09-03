@@ -52,6 +52,7 @@ export function useOrderEvents(
   onOrderCreated?: (event: OrderEvent) => void,
   onOrderUpdated?: (event: OrderEvent) => void,
   onOrderCompleted?: (event: OrderEvent) => void,
+  onOrderDeleted?: (event: OrderEvent) => void,
   onAllOrdersDeleted?: (event: { timestamp: string }) => void
 ) {
   const { socket } = useWebSocket()
@@ -71,6 +72,10 @@ export function useOrderEvents(
       socket.on('order:completed', onOrderCompleted)
     }
 
+    if (onOrderDeleted) {
+      socket.on('order:deleted', onOrderDeleted)
+    }
+
     if (onAllOrdersDeleted) {
       socket.on('orders:all_deleted', onAllOrdersDeleted)
     }
@@ -85,11 +90,14 @@ export function useOrderEvents(
       if (onOrderCompleted) {
         socket.off('order:completed', onOrderCompleted)
       }
+      if (onOrderDeleted) {
+        socket.off('order:deleted', onOrderDeleted)
+      }
       if (onAllOrdersDeleted) {
         socket.off('orders:all_deleted', onAllOrdersDeleted)
       }
     }
-  }, [socket, onOrderCreated, onOrderUpdated, onOrderCompleted, onAllOrdersDeleted])
+  }, [socket, onOrderCreated, onOrderUpdated, onOrderCompleted, onOrderDeleted, onAllOrdersDeleted])
 }
 
 export function useTimerEvents(
