@@ -12,7 +12,7 @@ import router from '@adonisjs/core/services/router'
 // Web routes
 router.on('/').render('pages/home')
 
-// API routes
+// API routes (without CSRF protection)
 router.group(() => {
   // Menu Items
   router.get('/menu-items', '#controllers/menu_item_controller.index')

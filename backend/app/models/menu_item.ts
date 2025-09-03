@@ -20,13 +20,13 @@ export default class MenuItem extends BaseModel {
   @column()
   declare batchDinner: number
 
-  @column()
+  @column({ columnName: 'cooking_time_batch1' })
   declare cookingTimeBatch1: number
 
-  @column()
+  @column({ columnName: 'cooking_time_batch2' })
   declare cookingTimeBatch2: number
 
-  @column()
+  @column({ columnName: 'cooking_time_batch3' })
   declare cookingTimeBatch3: number
 
   @column()
