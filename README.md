@@ -41,7 +41,7 @@ The system consists of **4 tablets total**:
 
 Before you begin, ensure you have the following installed:
 - Node.js (v18 or higher) - required for Next.js 15.5.2
-- npm or yarn
+- npm
 
 ## 🗄️ Database Configuration
 
@@ -80,16 +80,12 @@ NODE_ENV=development
    ```bash
    cd frontend
    npm install
-   # or
-   yarn install
    ```
 
 3. **Install backend dependencies**
    ```bash
    cd ../backend
    npm install
-   # or
-   yarn install
    ```
 
 4. **Set up environment variables**
@@ -108,16 +104,12 @@ NODE_ENV=development
    ```bash
    cd backend
    npm run dev
-   # or
-   yarn dev
    ```
 
 7. **Start the frontend development server**
    ```bash
    cd frontend
    npm run dev
-   # or
-   yarn dev
    ```
 
 8. **Open your browser**
