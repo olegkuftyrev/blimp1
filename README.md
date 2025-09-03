@@ -11,6 +11,37 @@ A tablet-based food calling and kitchen management system designed to streamline
 4. **Create API endpoints** - All REST API for the system `⏳ PENDING`
 5. **Create seeders** - 4 Panda Express dishes with data `⏳ PENDING`
 
+#### Detailed Backend Steps:
+
+**Этап 1: Create AdonisJS backend**
+- Create AdonisJS project: `npm create adonisjs@latest backend`
+- Setup folder structure: controllers, models, services, middleware, validators
+- Configure package.json: dependencies and scripts
+- Create .env file: database configuration
+
+**Этап 2: Setup SQLite database**
+- Configure SQLite: config/database.js
+- Create tmp folder: for SQLite file
+- Setup .env: DB_CONNECTION=sqlite, DB_DATABASE=tmp/db.sqlite3
+- Test connection: verify database setup
+
+**Этап 3: Create models**
+- Create MenuItem model: fields for dishes and cooking times
+- Create Order model: fields for orders and timers
+- Setup relationships: Order belongsTo MenuItem
+- Add validation: field rules and constraints
+
+**Этап 4: Create API endpoints**
+- Create controllers: MenuItemController, OrderController, KitchenController
+- Setup routes: all API endpoints from README
+- Add validators: incoming data validation
+- Setup middleware: CORS, error handling
+
+**Этап 5: Create seeders**
+- Create MenuItem seeder: 4 Panda Express dishes
+- Add test data: correct cooking times
+- Setup seeder execution: command to populate database
+
 ### Frontend Development
 6. **Create Next.js frontend** - Basic structure with TypeScript and native HTML `⏳ PENDING`
 7. **Create table section interfaces** - 3 manager tablets with native HTML `⏳ PENDING`
