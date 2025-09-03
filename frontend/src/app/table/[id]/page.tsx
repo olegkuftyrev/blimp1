@@ -289,14 +289,12 @@ export default function TableSection() {
       console.error('Error creating order:', error);
       alert('Error creating order');
     } finally {
-      // Remove processing state after a short delay
-      setTimeout(() => {
-        setProcessingOrders(prev => {
-          const newState = { ...prev };
-          delete newState[key];
-          return newState;
-        });
-      }, 1000);
+      // Remove processing state immediately
+      setProcessingOrders(prev => {
+        const newState = { ...prev };
+        delete newState[key];
+        return newState;
+      });
     }
   };
 
@@ -381,7 +379,25 @@ export default function TableSection() {
                         isProcessing
                           ? 'bg-blue-500 text-white cursor-not-allowed'
                           : isSent
-                            ? 'bg-yellow-500 text-white cursor-not-allowed'
+                            ? (() => {
+                                // Find the order for this menu item and batch
+                                const order = orders.find(o => 
+                                  o.menuItemId === item.id && 
+                                  o.batchSize === getBatchSize(item, batchNumber)
+                                );
+                                if (order) {
+                                  if (order.status === 'cooking') {
+                                    return 'bg-blue-500 text-white cursor-not-allowed';
+                                  } else if (order.status === 'pending') {
+                                    return 'bg-yellow-500 text-white cursor-not-allowed';
+                                  } else if (order.status === 'timer_expired') {
+                                    return 'bg-red-500 text-white cursor-not-allowed';
+                                  } else if (order.status === 'ready') {
+                                    return 'bg-green-500 text-white cursor-not-allowed';
+                                  }
+                                }
+                                return 'bg-yellow-500 text-white cursor-not-allowed';
+                              })()
                             : isRecommended 
                               ? 'bg-green-500 hover:bg-green-600 text-white ring-2 ring-green-300' 
                               : 'bg-gray-500 hover:bg-gray-600 text-white'
@@ -396,8 +412,16 @@ export default function TableSection() {
                                 o.menuItemId === item.id && 
                                 o.batchSize === getBatchSize(item, batchNumber)
                               );
-                              if (order && orderTimers[order.id]) {
-                                return `⏰ ${formatTime(orderTimers[order.id].remaining)}`;
+                              if (order) {
+                                if (order.status === 'cooking' && orderTimers[order.id]) {
+                                  return `⏰ ${formatTime(orderTimers[order.id].remaining)}`;
+                                } else if (order.status === 'pending') {
+                                  return `⏳ Pending`;
+                                } else if (order.status === 'timer_expired') {
+                                  return `🔴 Timer Expired`;
+                                } else if (order.status === 'ready') {
+                                  return `✅ Ready!`;
+                                }
                               }
                               return `Batch ${batchNumber} - Waiting`;
                             })()

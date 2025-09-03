@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 
 interface Order {
   id: number;
@@ -24,17 +26,64 @@ export default function Kitchen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [timers, setTimers] = useState<{[key: number]: {remaining: number, interval: NodeJS.Timeout}}>({});
+  
+  const { isConnected, joinKitchen, leaveKitchen } = useWebSocket();
 
   useEffect(() => {
     fetchOrders();
-    // Poll every 5 seconds
-    const interval = setInterval(fetchOrders, 5000);
+    // Clear all timers on unmount
     return () => {
-      clearInterval(interval);
-      // Clear all timers on unmount
       Object.values(timers).forEach(timer => clearInterval(timer.interval));
     };
   }, []);
+
+  // WebSocket connection management
+  useEffect(() => {
+    if (isConnected) {
+      joinKitchen();
+    }
+    
+    return () => {
+      leaveKitchen();
+    };
+  }, [isConnected, joinKitchen, leaveKitchen]);
+
+  // WebSocket event handlers
+  useOrderEvents(
+    // onOrderCreated
+    (event) => {
+      console.log('New order created:', event.order);
+      fetchOrders(); // Refresh orders list
+    },
+    // onOrderUpdated
+    (event) => {
+      console.log('Order updated:', event.order);
+      fetchOrders(); // Refresh orders list
+    },
+    // onOrderCompleted
+    (event) => {
+      console.log('Order completed:', event.order);
+      fetchOrders(); // Refresh orders list
+    },
+    // onAllOrdersDeleted
+    (event) => {
+      console.log('All orders deleted');
+      setOrders([]);
+    }
+  );
+
+  useTimerEvents(
+    // onTimerStarted
+    (event) => {
+      console.log('Timer started for order:', event.order.id);
+      fetchOrders(); // Refresh orders list
+    },
+    // onTimerExpired
+    (event) => {
+      console.log('Timer expired for order:', event.order.id);
+      fetchOrders(); // Refresh orders list
+    }
+  );
 
   const fetchOrders = async () => {
     try {
@@ -142,10 +191,6 @@ export default function Kitchen() {
   };
 
   const deleteOrder = async (orderId: number) => {
-    if (!confirm('Are you sure you want to delete this order?')) {
-      return;
-    }
-
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
@@ -156,7 +201,6 @@ export default function Kitchen() {
       });
       
       if (response.ok) {
-        alert('Order deleted!');
         // Clear timer if it exists
         if (timers[orderId]) {
           clearInterval(timers[orderId].interval);
@@ -167,12 +211,9 @@ export default function Kitchen() {
           });
         }
         fetchOrders(); // Refresh orders
-      } else {
-        alert('Failed to delete order');
       }
     } catch (error) {
       console.error('Error deleting order:', error);
-      alert('Error deleting order');
     }
   };
 
@@ -213,83 +254,92 @@ export default function Kitchen() {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-          Kitchen Tablet
-        </h1>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            Kitchen Tablet
+          </h1>
+          <div className="flex items-center justify-center space-x-2">
+            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
         
         {orders.length === 0 ? (
           <div className="text-center text-2xl text-gray-600">
             No orders yet
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    {order.menuItem.itemTitle}
-                  </h3>
-                  <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getStatusColor(order.status)}`}>
-                    {getStatusText(order.status)}
-                  </span>
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  <p><strong>Table Section:</strong> {order.tableSection}</p>
-                  <p><strong>Batch Size:</strong> {order.batchSize}</p>
-                  <p><strong>Order ID:</strong> {order.id}</p>
-                </div>
-                
-                <div className="space-y-2">
-                  {order.status === 'pending' && (
-                    <button
-                      onClick={() => startTimer(order.id)}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                      Start Timer
-                    </button>
-                  )}
-                  
-                  {order.status === 'cooking' && (
-                    <div className="text-center">
-                      {timers[order.id] ? (
-                        <div>
-                          <p className="text-blue-600 font-medium text-lg">
-                            ⏰ {formatTime(timers[order.id].remaining)}
-                          </p>
-                          <p className="text-sm text-gray-600">Time remaining</p>
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Dish</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Batch Size</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Timer</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {orders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                      {order.menuItem.itemTitle}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {order.batchSize}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {order.status === 'cooking' && timers[order.id] ? (
+                        <div className="text-blue-600 font-medium">
+                          ⏰ {formatTime(timers[order.id].remaining)}
                         </div>
+                      ) : order.status === 'cooking' ? (
+                        <div className="text-blue-600 font-medium">Running...</div>
+                      ) : order.status === 'pending' ? (
+                        <span className="text-yellow-600 font-medium">Pending</span>
+                      ) : order.status === 'timer_expired' ? (
+                        <span className="text-red-600 font-medium">Expired!</span>
+                      ) : order.status === 'ready' ? (
+                        <span className="text-green-600 font-medium">Ready!</span>
                       ) : (
-                        <p className="text-blue-600 font-medium">Timer is running...</p>
+                        <span className="text-gray-400">-</span>
                       )}
-                    </div>
-                  )}
-                  
-                  {order.status === 'timer_expired' && (
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => completeOrder(order.id)}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                      >
-                        Mark as Done
-                      </button>
-                      <button
-                        onClick={() => deleteOrder(order.id)}
-                        className="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                      >
-                        Complete & Delete
-                      </button>
-                    </div>
-                  )}
-                  
-                  {order.status === 'ready' && (
-                    <div className="text-center">
-                      <p className="text-green-600 font-medium">Ready for pickup!</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex space-x-2">
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => startTimer(order.id)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                          >
+                            Start Timer
+                          </button>
+                        )}
+                        
+                        {order.status === 'timer_expired' && (
+                          <button
+                            onClick={() => completeOrder(order.id)}
+                            className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                          >
+                            Done
+                          </button>
+                        )}
+                        
+                        {/* Delete button always available */}
+                        <button
+                          onClick={() => deleteOrder(order.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
         
