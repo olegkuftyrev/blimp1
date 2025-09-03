@@ -53,6 +53,17 @@ export default function TableSection() {
     return () => clearInterval(interval);
   }, [tableId]);
 
+  // Ensure timers start automatically for any cooking orders without a local timer yet
+  useEffect(() => {
+    orders.forEach((o) => {
+      if (o.tableSection === parseInt(tableId) && o.status === 'cooking' && !orderTimers[o.id]) {
+        try {
+          startOrderTimer(o);
+        } catch {}
+      }
+    });
+  }, [orders, orderTimers, tableId]);
+
   const fetchMenuItems = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
@@ -281,11 +292,15 @@ export default function TableSection() {
     return 'Downtime';
   };
 
+  // Map batch size count to the correct cooking time (in minutes)
   const getCookingTime = (order: any) => {
     const menuItem = order.menuItem;
-    if (order.batchSize === menuItem.cookingTimeBatch1) return menuItem.cookingTimeBatch1;
-    if (order.batchSize === menuItem.cookingTimeBatch2) return menuItem.cookingTimeBatch2;
-    if (order.batchSize === menuItem.cookingTimeBatch3) return menuItem.cookingTimeBatch3;
+    const count = order.batchSize;
+    if (!menuItem) return 0;
+    if (count === menuItem.batchBreakfast) return menuItem.cookingTimeBatch1;
+    if (count === menuItem.batchLunch) return menuItem.cookingTimeBatch2;
+    if (count === menuItem.batchDinner) return menuItem.cookingTimeBatch3;
+    // Fallback
     return menuItem.cookingTimeBatch1;
   };
 
@@ -297,13 +312,15 @@ export default function TableSection() {
     
     // Calculate remaining time based on timerEnd
     let remainingSeconds = 0;
+    // Always compute locally from batch cooking time if server didn't provide timerEnd
+    const cookingTimeMinutes = getCookingTime(order);
     if (order.timerEnd) {
       const endTime = new Date(order.timerEnd).getTime();
       const now = new Date().getTime();
-      remainingSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
+      const serverRemaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      // Prefer the tighter remaining (server truth) but fall back to local
+      remainingSeconds = serverRemaining > 0 ? serverRemaining : cookingTimeMinutes * 60;
     } else {
-      // Fallback to cooking time if no timerEnd
-      const cookingTimeMinutes = getCookingTime(order);
       remainingSeconds = cookingTimeMinutes * 60;
     }
     
