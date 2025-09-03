@@ -38,7 +38,8 @@ export default function Kitchen() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:3333/api/orders');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/orders`);
       const data = await response.json();
       setOrders(data.data);
       setLoading(false);
@@ -60,7 +61,8 @@ export default function Kitchen() {
 
   const startTimer = async (orderId: number) => {
     try {
-      const response = await fetch(`http://localhost:3333/api/kitchen/orders/${orderId}/start-timer`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/start-timer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +121,8 @@ export default function Kitchen() {
 
   const completeOrder = async (orderId: number) => {
     try {
-      const response = await fetch(`http://localhost:3333/api/kitchen/orders/${orderId}/complete`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +147,8 @@ export default function Kitchen() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3333/api/orders/${orderId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

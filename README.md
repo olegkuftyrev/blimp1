@@ -31,6 +31,8 @@ A tablet-based food calling and kitchen management system designed to streamline
 - ✅ **Timer System**: Complete timer workflow with countdown displays
 - ✅ **Order Management**: Full order lifecycle from creation to completion
 - ✅ **Smart UI**: Time-based batch recommendations and visual feedback
+- ✅ **Deployment**: Live on DigitalOcean server (137.184.15.223)
+- ✅ **Environment Config**: Frontend configured to connect to server backend
 
 ### Key Files Created:
 - `backend/app/models/menu_item.ts` - MenuItem model with cooking times
@@ -54,6 +56,7 @@ A tablet-based food calling and kitchen management system designed to streamline
 - `frontend/src/hooks/useWebSocketEvents.ts` - WebSocket event handlers
 - `frontend/package.json` - Next.js 15.5.2 with TypeScript and Socket.IO
 - `frontend/tailwind.config.ts` - Tailwind CSS configuration
+- `frontend/.env.local` - Environment configuration for server deployment
 
 ### Development Rules:
 1. **One step at a time** - Complete each step before moving to next
@@ -67,8 +70,10 @@ A tablet-based food calling and kitchen management system designed to streamline
 2. ✅ ~~Convert existing interfaces to Chakra UI components~~ (Using Tailwind CSS)
 3. ✅ ~~Implement timer logic for kitchen orders~~ (Complete timer system implemented)
 4. ✅ ~~Add real-time timer countdown displays~~ (WebSocket-based real-time updates)
-5. ⏳ **Integration testing** - Test all components together
-6. ⏳ **Deployment setup** - DigitalOcean with Ubuntu
+5. ✅ ~~Integration testing~~ - All components tested and working together
+6. ✅ ~~Deployment setup~~ - DigitalOcean with Ubuntu (137.184.15.223)
+7. ⏳ **Production optimization** - Performance tuning and monitoring
+8. ⏳ **User testing** - Real-world tablet testing in restaurant environment
 
 ### Technical Details:
 - **AdonisJS Version**: 6.19.0
@@ -77,10 +82,13 @@ A tablet-based food calling and kitchen management system designed to streamline
 - **WebSocket**: Socket.IO for real-time communication
 - **Backend Port**: 3333
 - **Frontend Port**: 3000
+- **Server IP**: 137.184.15.223 (DigitalOcean)
 - **Database File**: `backend/tmp/db.sqlite3`
 - **Migration Status**: All 4 migrations completed successfully
 - **API Status**: All endpoints working with WebSocket events
 - **Frontend Status**: Running with Tailwind CSS and WebSocket integration
+- **Deployment Status**: Live and accessible at http://137.184.15.223:3000
+- **Environment Config**: Frontend configured with server API URLs
 - **Test Data**: 5 Panda Express dishes (including 10-second test item)
 
 ### API Testing Results:
@@ -271,6 +279,8 @@ This project uses **SQLite** with **Lucid ORM** for data storage, which provides
 The SQLite database file will be automatically created at `backend/tmp/db.sqlite3` when you first run the application.
 
 ### Environment Variables
+
+#### Backend Configuration
 Create a `.env` file in the backend directory:
 ```bash
 # Database Configuration
@@ -282,6 +292,16 @@ PORT=3333
 HOST=0.0.0.0
 NODE_ENV=development
 ```
+
+#### Frontend Configuration
+Create a `.env.local` file in the frontend directory:
+```bash
+# Backend API Configuration
+NEXT_PUBLIC_API_URL=http://137.184.15.223:3333
+NEXT_PUBLIC_WS_URL=http://137.184.15.223:3333
+```
+
+**Note**: For local development, the frontend will automatically fall back to `localhost:3333` if environment variables are not set.
 
 ## 🚀 Getting Started
 
@@ -328,7 +348,8 @@ NODE_ENV=development
    ```
 
 8. **Open your browser**
-   Navigate to `http://localhost:3001` to view the application (port 3000 was in use).
+   - **Local Development**: Navigate to `http://localhost:3000` to view the application
+   - **Live Server**: Navigate to `http://137.184.15.223:3000` to view the deployed application
 
 ## 📁 Project Structure
 
@@ -376,10 +397,11 @@ table/
 This project follows **API-Driven Development** approach:
 
 ### API Endpoints Structure
-- **Base URL**: `http://localhost:3333/api` (development)
+- **Base URL**: `http://localhost:3333/api` (development) | `http://137.184.15.223:3333/api` (production)
 - **Authentication**: JWT-based authentication
 - **Data Format**: JSON
 - **Polling**: Frontend polls API every 5 seconds
+- **Environment**: Frontend automatically detects server vs local environment
 
 ### Main API Routes
 
@@ -594,8 +616,13 @@ This project is deployed on a **DigitalOcean Droplet** running **Ubuntu**.
 ### Deployment Environment
 - **Platform**: DigitalOcean Droplet
 - **OS**: Ubuntu
-- **Deployment**: Automatic deployment from Git repository on push
-- **Process**: No manual deployment steps required
+- **Server IP**: 137.184.15.223
+- **Deployment**: Manual deployment with environment configuration
+- **Process**: 
+  1. Code changes pushed to repository
+  2. Files copied to server via SCP
+  3. Environment variables configured
+  4. Services restarted
 
 ### Server Requirements
 - Ubuntu 20.04 LTS or higher

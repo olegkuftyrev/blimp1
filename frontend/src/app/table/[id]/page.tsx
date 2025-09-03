@@ -48,7 +48,8 @@ export default function TableSection() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch('http://localhost:3333/api/menu-items');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/menu-items`);
       const data = await response.json();
       setMenuItems(data.data);
       setLoading(false);
@@ -60,7 +61,8 @@ export default function TableSection() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:3333/api/orders');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/orders`);
       const data = await response.json();
       setOrders(data.data);
     } catch (error) {
@@ -261,7 +263,8 @@ export default function TableSection() {
     setProcessingOrders(prev => ({ ...prev, [key]: true }));
     
     try {
-      const response = await fetch('http://localhost:3333/api/orders', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -303,7 +306,8 @@ export default function TableSection() {
     }
 
     try {
-      const response = await fetch('http://localhost:3333/api/orders', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

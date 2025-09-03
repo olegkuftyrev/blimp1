@@ -24,7 +24,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
   useEffect(() => {
     // Initialize Socket.IO connection
-    const newSocket = io('http://localhost:3333', {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3333'
+    const newSocket = io(wsUrl, {
       transports: ['websocket', 'polling'],
       autoConnect: true
     })
