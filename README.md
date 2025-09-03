@@ -12,17 +12,18 @@ A tablet-based food calling and kitchen management system designed to streamline
 5. **Create seeders** - 4 Panda Express dishes with data `⏳ PENDING`
 
 ### Frontend Development
-6. **Create Next.js frontend** - Basic structure with Chakra UI `⏳ PENDING`
-7. **Create table section interfaces** - 3 manager tablets `⏳ PENDING`
-8. **Create kitchen interface** - Cook tablet `⏳ PENDING`
+6. **Create Next.js frontend** - Basic structure with TypeScript and native HTML `⏳ PENDING`
+7. **Create table section interfaces** - 3 manager tablets with native HTML `⏳ PENDING`
+8. **Create kitchen interface** - Cook tablet with native HTML `⏳ PENDING`
+9. **Convert to Chakra UI** - Redesign all interfaces with Chakra UI `⏳ PENDING`
 
 ### Integration & Logic
-9. **Implement polling** - 5-second synchronization `⏳ PENDING`
-10. **Implement timer logic** - Cooking statuses and timers `⏳ PENDING`
+10. **Implement polling** - 5-second synchronization `⏳ PENDING`
+11. **Implement timer logic** - Cooking statuses and timers `⏳ PENDING`
 
 ### Testing & Deployment
-11. **Integration testing** - All components testing `⏳ PENDING`
-12. **Deployment setup** - DigitalOcean with Ubuntu `⏳ PENDING`
+12. **Integration testing** - All components testing `⏳ PENDING`
+13. **Deployment setup** - DigitalOcean with Ubuntu `⏳ PENDING`
 
 ### Status Legend:
 - `✅ COMPLETED` - Task finished
