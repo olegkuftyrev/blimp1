@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Order from '#models/order'
 import { DateTime } from 'luxon'
+import WebSocketService from '#services/websocket_service'
 
 export default class KitchenController {
+  private wsService = new WebSocketService()
   /**
    * Get all kitchen orders
    */
@@ -90,6 +92,9 @@ export default class KitchenController {
       await order.save()
       await order.load('menuItem')
 
+      // Emit WebSocket event for timer started
+      this.wsService.emitTimerStarted(order)
+
       return response.json({
         data: {
           id: order.id,
@@ -164,6 +169,10 @@ export default class KitchenController {
       order.completedAt = completedAt ? DateTime.fromISO(completedAt) : DateTime.now()
       
       await order.save()
+      await order.load('menuItem')
+
+      // Emit WebSocket event for order completed
+      this.wsService.emitOrderCompleted(order)
 
       return response.json({
         data: {

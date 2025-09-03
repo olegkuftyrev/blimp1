@@ -25,6 +25,7 @@ router.group(() => {
   router.get('/orders/:id', '#controllers/order_controller.show')
   router.put('/orders/:id', '#controllers/order_controller.update')
   router.delete('/orders/:id', '#controllers/order_controller.destroy')
+  router.delete('/orders', '#controllers/order_controller.destroyAll')
 
   // Table Sections
   router.get('/table-sections', '#controllers/status_controller.tableSections')

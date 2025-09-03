@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Order from '#models/order'
 import MenuItem from '#models/menu_item'
+import WebSocketService from '#services/websocket_service'
 
 export default class OrderController {
+  private wsService = new WebSocketService()
   /**
    * Display a list of all orders
    */
@@ -42,6 +44,9 @@ export default class OrderController {
       
       await order.save()
       await order.load('menuItem')
+
+      // Emit WebSocket event for new order
+      this.wsService.emitOrderCreated(order)
 
       return response.status(201).json({
         data: order
@@ -96,6 +101,9 @@ export default class OrderController {
       await order.save()
       await order.load('menuItem')
 
+      // Emit WebSocket event for order update
+      this.wsService.emitOrderUpdated(order)
+
       return response.json({
         data: order
       })
@@ -119,6 +127,28 @@ export default class OrderController {
     } catch (error) {
       return response.status(400).json({
         error: 'Failed to delete order',
+        message: error.message
+      })
+    }
+  }
+
+  /**
+   * Delete all orders
+   */
+  async destroyAll({ response }: HttpContext) {
+    try {
+      const deletedCount = await Order.query().delete()
+      
+      // Emit WebSocket event for all orders deleted
+      this.wsService.emitAllOrdersDeleted()
+
+      return response.json({
+        message: 'All orders deleted successfully',
+        deletedCount: deletedCount
+      })
+    } catch (error) {
+      return response.status(500).json({
+        error: 'Failed to delete all orders',
         message: error.message
       })
     }
