@@ -24,8 +24,7 @@ export default function TableSection() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
-  const [processingOrders, setProcessingOrders] = useState<{[key: string]: boolean}>({});
-  const [sentOrders, setSentOrders] = useState<{[key: string]: boolean}>({});
+  // Table Section is fully event-driven from server truth; no local flags
   const [orderTimers, setOrderTimers] = useState<{[key: number]: {remaining: number, interval: NodeJS.Timeout}}>({});
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
@@ -45,6 +44,14 @@ export default function TableSection() {
       Object.values(orderTimers).forEach(timer => clearInterval(timer.interval));
     };
   }, [tableId, isConnected, joinTable, leaveTable]);
+
+  // Fallback polling: refresh orders every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [tableId]);
 
   const fetchMenuItems = async () => {
     try {
@@ -80,51 +87,60 @@ export default function TableSection() {
   // WebSocket event handlers
   const handleOrderCreated = (event: any) => {
     console.log('📢 Order created event received:', event);
-    if (event.order.tableSection === parseInt(tableId)) {
-      setOrders(prev => [...prev, event.order]);
+    const ord = normalizeOrder(event.order);
+    if (ord.tableSection === parseInt(tableId)) {
+      setOrders(prev => {
+        // avoid duplicates
+        if (prev.some((o) => o.id === ord.id)) return prev.map((o) => (o.id === ord.id ? ord : o));
+        return [...prev, ord];
+      });
+      // Ensure full sync
+      fetchOrders();
     }
   };
 
   const handleOrderUpdated = (event: any) => {
     console.log('📢 Order updated event received:', event);
-    if (event.order.tableSection === parseInt(tableId)) {
-      setOrders(prev => prev.map(order => 
-        order.id === event.order.id ? event.order : order
-      ));
-      
-      // Start timer if order status changed to cooking
-      if (event.order.status === 'cooking') {
-        startOrderTimer(event.order);
+    const ord = normalizeOrder(event.order);
+    if (ord.tableSection === parseInt(tableId)) {
+      setOrders(prev => prev.map(order => (order.id === ord.id ? ord : order)));
+      // Start timer if order moves to cooking
+      if (ord.status === 'cooking') {
+        startOrderTimer(ord);
       }
+      // Ensure full sync
+      fetchOrders();
     }
   };
 
   const handleOrderCompleted = (event: any) => {
     console.log('📢 Order completed event received:', event);
-    if (event.order.tableSection === parseInt(tableId)) {
-      setOrders(prev => prev.map(order => 
-        order.id === event.order.id ? event.order : order
-      ));
+    const ord = normalizeOrder(event.order);
+    if (ord.tableSection === parseInt(tableId)) {
+      setOrders(prev => prev.map(order => (order.id === ord.id ? ord : order)));
       // Clear timer when order is completed
-      if (orderTimers[event.order.id]) {
-        clearInterval(orderTimers[event.order.id].interval);
+      if (orderTimers[ord.id]) {
+        clearInterval(orderTimers[ord.id].interval);
         setOrderTimers(prev => {
           const newTimers = { ...prev };
-          delete newTimers[event.order.id];
+          delete newTimers[ord.id];
           return newTimers;
         });
       }
+      // Ensure full sync
+      fetchOrders();
     }
   };
 
   const handleOrderDeleted = (event: any) => {
     console.log('🗑️ Order deleted event received:', event);
-    if (event.order.tableSection === parseInt(tableId)) {
+    const ord = normalizeOrder(event.order);
+    if (ord.tableSection === parseInt(tableId)) {
       // Remove order from local state
-      setOrders(prev => prev.filter(order => order.id !== event.order.id));
+      setOrders(prev => prev.filter(order => order.id !== ord.id));
       
       // Clear sent state for this order
-      const order = event.order;
+      const order = ord;
       const menuItem = menuItems.find(item => item.id === order.menuItemId);
       if (menuItem) {
         const batchNumber = getBatchNumberFromSize(menuItem, order.batchSize);
@@ -142,36 +158,45 @@ export default function TableSection() {
       }
       
       // Clear timer if exists
-      if (orderTimers[event.order.id]) {
-        clearInterval(orderTimers[event.order.id].interval);
+      if (orderTimers[ord.id]) {
+        clearInterval(orderTimers[ord.id].interval);
         setOrderTimers(prev => {
           const newTimers = { ...prev };
-          delete newTimers[event.order.id];
+          delete newTimers[ord.id];
           return newTimers;
         });
       }
+
+      // Final safeguard: resync from server to ensure full consistency
+      fetchOrders();
     }
   };
 
   const handleTimerStarted = (event: any) => {
     console.log('⏰ Timer started event received:', event);
-    if (event.order.tableSection === parseInt(tableId)) {
-      startOrderTimer(event.order);
+    const ord = normalizeOrder(event.order);
+    if (ord.tableSection === parseInt(tableId)) {
+      startOrderTimer(ord);
+      // Ensure full sync
+      fetchOrders();
     }
   };
 
   const handleTimerExpired = (event: any) => {
     console.log('⏰ Timer expired event received:', event);
-    if (event.order.tableSection === parseInt(tableId)) {
+    const ord = normalizeOrder(event.order);
+    if (ord.tableSection === parseInt(tableId)) {
       // Clear timer when it expires
-      if (orderTimers[event.order.id]) {
-        clearInterval(orderTimers[event.order.id].interval);
+      if (orderTimers[ord.id]) {
+        clearInterval(orderTimers[ord.id].interval);
         setOrderTimers(prev => {
           const newTimers = { ...prev };
-          delete newTimers[event.order.id];
+          delete newTimers[ord.id];
           return newTimers;
         });
       }
+      // Ensure full sync
+      fetchOrders();
     }
   };
 
@@ -181,8 +206,6 @@ export default function TableSection() {
     // Clear all timers
     Object.values(orderTimers).forEach(timer => clearInterval(timer.interval));
     setOrderTimers({});
-    // Reset all sent states so all batch buttons return to default
-    setSentOrders({});
   };
 
   // Subscribe to WebSocket events
@@ -231,6 +254,21 @@ export default function TableSection() {
     if (batchSizeCount === menuItem.batchDinner) return 3;
     // Fallback to 1
     return 1;
+  };
+
+  // Normalize order object from WebSocket events (snake_case vs camelCase)
+  const normalizeOrder = (o: any) => {
+    const menuItem = o.menuItem || o.menu_item || undefined;
+    return {
+      id: o.id,
+      tableSection: o.tableSection ?? o.table_section,
+      menuItemId: o.menuItemId ?? o.menu_item_id ?? (menuItem ? menuItem.id : undefined),
+      batchSize: o.batchSize ?? o.batch_size,
+      status: o.status,
+      timerStart: o.timerStart ?? o.timer_start,
+      timerEnd: o.timerEnd ?? o.timer_end,
+      menuItem,
+    } as any;
   };
 
   const getCurrentPeriod = () => {
@@ -322,46 +360,23 @@ export default function TableSection() {
   const createOrder = async (menuItemId: number, batchNumber: number) => {
     const menuItem = menuItems.find(item => item.id === menuItemId);
     if (!menuItem) return;
-    
-    const key = `${menuItemId}-${batchNumber}`;
     const batchSize = getBatchSize(menuItem, batchNumber);
-    
-    // Set processing state
-    setProcessingOrders(prev => ({ ...prev, [key]: true }));
-    
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
       const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableSection: parseInt(tableId),
           menuItemId: menuItemId,
           batchSize: batchSize,
         }),
       });
-      
-      if (response.ok) {
-        const newOrder = await response.json();
-        console.log('✅ Order created successfully:', newOrder);
-        // Set sent state
-        setSentOrders(prev => ({ ...prev, [key]: true }));
-        // Order will be added via WebSocket event
-      } else {
-        alert('Failed to create order');
-      }
+      if (!response.ok) alert('Failed to create order');
+      // UI will update via WebSocket order:created
     } catch (error) {
       console.error('Error creating order:', error);
       alert('Error creating order');
-    } finally {
-      // Remove processing state immediately
-      setProcessingOrders(prev => {
-        const newState = { ...prev };
-        delete newState[key];
-        return newState;
-      });
     }
   };
 
@@ -508,32 +523,39 @@ export default function TableSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {menuItems.map((item) => (
             <div key={item.id} className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-semibold mb-4 text-center text-gray-800">
+              <h3 className="text-2xl font-semibold mb-2 text-center text-gray-800">
                 {item.itemTitle}
               </h3>
+              {(() => {
+                const cooking = orders.some(
+                  (o) => o.tableSection === parseInt(tableId) && o.menuItemId === item.id && o.status === 'cooking'
+                );
+                return cooking ? (
+                  <div className="mb-2 text-center">
+                    <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                      Timer active
+                    </span>
+                  </div>
+                ) : null;
+              })()}
               
               <div className="space-y-3">
                 {[1, 2, 3].map((batchNumber) => {
                   const isRecommended = getRecommendedBatch() === batchNumber;
-                  const key = `${item.id}-${batchNumber}`;
-                  const isProcessing = processingOrders[key];
-                  const isSent = sentOrders[key];
-                  
                   // Find the order for this menu item and batch
                   const order = orders.find(o => 
                     o.menuItemId === item.id && 
                     o.batchSize === getBatchSize(item, batchNumber)
                   );
+                  const isSent = Boolean(order);
                   
                   return (
                     <div key={batchNumber} className="flex space-x-2">
                       <button
                         onClick={() => createOrder(item.id, batchNumber)}
-                        disabled={isProcessing || isSent}
+                        disabled={isSent}
                         className={`flex-1 py-3 px-4 rounded-lg text-lg font-medium transition-colors ${
-                          isProcessing
-                            ? 'bg-blue-500 text-white cursor-not-allowed'
-                            : isSent
+                          isSent
                               ? (() => {
                                   if (order) {
                                     if (order.status === 'cooking') {
@@ -553,13 +575,13 @@ export default function TableSection() {
                                 : 'bg-gray-500 hover:bg-gray-600 text-white'
                         }`}
                       >
-                        {isProcessing 
-                          ? '⏳ Sending...' 
-                          : isSent
+                        {isSent
                             ? (() => {
                                 if (order) {
                                   if (order.status === 'cooking' && orderTimers[order.id]) {
                                     return `⏰ ${formatTime(orderTimers[order.id].remaining)}`;
+                                  } else if (order.status === 'cooking') {
+                                    return `Timer activated`;
                                   } else if (order.status === 'pending') {
                                     return `⏳ Pending`;
                                   } else if (order.status === 'timer_expired') {
@@ -574,10 +596,10 @@ export default function TableSection() {
                         }
                       </button>
                       
-                      {/* Delete button - show whenever we've sent an order for this batch; enable once order is synced */}
-                      {isSent && (
+                      {/* Delete button - show when server has an order for this batch */}
+                      {order && (
                         <button
-                          onClick={() => deleteOrderByBatch(item, batchNumber)}
+                          onClick={() => deleteOrder(order.id, item.id, order.batchSize)}
                           className={`py-3 px-3 rounded-lg font-medium transition-colors bg-red-500 hover:bg-red-600 text-white`}
                           title="Delete order"
                         >
@@ -612,30 +634,71 @@ export default function TableSection() {
               <p className="text-gray-600 text-lg">No orders yet</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {orders.map((order) => (
-                <div key={order.id} className="bg-white rounded-lg shadow-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-800">{order.menuItem.itemTitle}</h3>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'cooking' ? 'bg-blue-100 text-blue-800' :
-                      order.status === 'timer_expired' ? 'bg-red-100 text-red-800' :
-                      order.status === 'ready' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">Batch Size: {order.batchSize}</p>
-                  <p className="text-sm text-gray-600">Order ID: {order.id}</p>
-                  {order.timerStart && (
-                    <p className="text-sm text-gray-600">
-                      Started: {new Date(order.timerStart).toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
-              ))}
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Dish</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Batch Size</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Timer</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {orders
+                    .filter((o) => o.tableSection === parseInt(tableId))
+                    .map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                          {order.menuItem.itemTitle}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {order.batchSize}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${
+                            order.status === 'pending' ? 'bg-yellow-500' :
+                            order.status === 'cooking' ? 'bg-blue-500' :
+                            order.status === 'timer_expired' ? 'bg-red-500' :
+                            order.status === 'ready' ? 'bg-green-500' : 'bg-gray-500'
+                          }`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {order.status === 'cooking' && orderTimers[order.id] ? (
+                            <div className="text-blue-600 font-medium">
+                              ⏰ {formatTime(orderTimers[order.id].remaining)}
+                            </div>
+                          ) : order.status === 'cooking' ? (
+                            <div className="text-blue-600 font-medium">Running...</div>
+                          ) : order.status === 'pending' ? (
+                            <span className="text-yellow-600 font-medium">Pending</span>
+                          ) : order.status === 'timer_expired' ? (
+                            <span className="text-red-600 font-medium">Expired!</span>
+                          ) : order.status === 'ready' ? (
+                            <span className="text-green-600 font-medium">Ready!</span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex space-x-2">
+                            {order.status === 'timer_expired' && (
+                              <button
+                                onClick={() => deleteOrder(order.id, order.menuItem.id, order.batchSize)}
+                                className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
