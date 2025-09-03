@@ -5,15 +5,69 @@ A tablet-based food calling and kitchen management system designed to streamline
 ## 🚀 Pipeline of Development
 
 ### Backend Development
-1. **Create AdonisJS backend** - Basic project structure `🔄 IN PROGRESS`
-2. **Setup SQLite database** - Configuration and migrations `⏳ PENDING`
-3. **Create models** - MenuItem and Order with Lucid ORM `⏳ PENDING`
-4. **Create API endpoints** - All REST API for the system `⏳ PENDING`
+1. **Create AdonisJS backend** - Basic project structure `✅ COMPLETED`
+2. **Setup SQLite database** - Configuration and migrations `✅ COMPLETED`
+3. **Create models** - MenuItem and Order with Lucid ORM `✅ COMPLETED`
+4. **Create API endpoints** - All REST API for the system `🔄 IN PROGRESS`
 5. **Create seeders** - 4 Panda Express dishes with data `⏳ PENDING`
 
 #### Detailed Backend Steps:
 
 **⚠️ IMPORTANT: Always work in /backend directory for backend commands**
+
+## 📝 Development Notes
+
+### Current Status (Last Updated: Sep 2, 2024)
+- ✅ **Backend**: AdonisJS 6.19.0 project created and working
+- ✅ **Database**: SQLite configured, migrations executed successfully
+- ✅ **Models**: MenuItem and Order models created with relationships
+- 🔄 **Current Task**: Creating API endpoints (Step 4 of 13)
+
+### Key Files Created:
+- `backend/app/models/menu_item.ts` - MenuItem model with cooking times
+- `backend/app/models/order.ts` - Order model with timer fields
+- `backend/database/migrations/1756870400000_create_menu_items_table.ts`
+- `backend/database/migrations/1756870400001_create_orders_table.ts`
+- `backend/tmp/db.sqlite3` - SQLite database (36KB)
+
+### Development Rules:
+1. **One step at a time** - Complete each step before moving to next
+2. **Test after each step** - Verify everything works before proceeding
+3. **Never edit working code** - Don't break existing functionality
+4. **Always work in /backend** - For all backend terminal commands
+5. **No terminal file operations** - Use direct file tools only
+
+### Next Steps:
+1. Create API controllers (MenuItemController, OrderController, KitchenController)
+2. Setup routes for all endpoints from API documentation
+3. Add request validators
+4. Test API endpoints with curl
+
+### Technical Details:
+- **AdonisJS Version**: 6.19.0
+- **Database**: SQLite with Lucid ORM
+- **Server Port**: 3333
+- **Database File**: `backend/tmp/db.sqlite3`
+- **Migration Status**: All 4 migrations completed successfully
+
+### API Endpoints to Create:
+- Menu Items: GET, POST, PUT `/api/menu-items`
+- Orders: GET, POST, PUT, DELETE `/api/orders`
+- Table Sections: GET `/api/table-sections`
+- Kitchen: GET, POST `/api/kitchen/orders`
+- System Status: GET `/api/status`
+
+### Project Structure:
+```
+backend/
+├── app/models/          # MenuItem, Order models ✅
+├── database/migrations/ # menu_items, orders tables ✅
+├── tmp/db.sqlite3      # SQLite database ✅
+└── [need to create]
+    ├── app/controllers/ # API controllers
+    ├── start/routes.ts  # API routes
+    └── app/validators/  # Request validation
+```
 
 **Этап 1: Create AdonisJS backend**
 - Create AdonisJS project: `npm create adonisjs@latest backend`
@@ -27,11 +81,12 @@ A tablet-based food calling and kitchen management system designed to streamline
 - Setup .env: DB_CONNECTION=sqlite, DB_DATABASE=tmp/db.sqlite3
 - Test connection: verify database setup
 
-**Этап 3: Create models**
-- Create MenuItem model: fields for dishes and cooking times
-- Create Order model: fields for orders and timers
-- Setup relationships: Order belongsTo MenuItem
-- Add validation: field rules and constraints
+**Этап 3: Create models** ✅ COMPLETED
+- ✅ Create MenuItem model: fields for dishes and cooking times
+- ✅ Create Order model: fields for orders and timers
+- ✅ Setup relationships: Order belongsTo MenuItem
+- ✅ Create migrations: menu_items and orders tables
+- ✅ Test database: migrations executed successfully
 
 **Этап 4: Create API endpoints**
 - Create controllers: MenuItemController, OrderController, KitchenController
@@ -532,14 +587,19 @@ The system manages 4 core Panda Express dishes:
 
 ## 📊 Database Structure
 
-### Menu Items Table:
+### Menu Items Table: ✅ CREATED
 - `id`, `item_title`, `batch_breakfast`, `batch_lunch`, `batch_downtime`, `batch_dinner`
 - `cooking_time_batch1` (INTEGER), `cooking_time_batch2` (INTEGER), `cooking_time_batch3` (INTEGER)
 - `status`, `created_at`, `updated_at`
 
-### Orders Table:
+### Orders Table: ✅ CREATED
 - `id`, `table_section` (1,2,3), `menu_item_id`, `batch_size`, `status`
-- `timer_start`, `timer_end`, `created_at`, `updated_at`
+- `timer_start`, `timer_end`, `completed_at`, `created_at`, `updated_at`
+
+### Models Created:
+- **MenuItem Model** - with all dish fields and cooking times
+- **Order Model** - with order fields, timers, and relationship to MenuItem
+- **Database Migrations** - executed successfully, tables created
 
 ---
 
