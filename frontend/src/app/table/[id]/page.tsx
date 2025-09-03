@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useOrderEvents } from '@/hooks/useWebSocketEvents';
+import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 
 interface MenuItem {
   id: number;
@@ -26,6 +26,7 @@ export default function TableSection() {
   const [orders, setOrders] = useState<any[]>([]);
   const [processingOrders, setProcessingOrders] = useState<{[key: string]: boolean}>({});
   const [sentOrders, setSentOrders] = useState<{[key: string]: boolean}>({});
+  const [orderTimers, setOrderTimers] = useState<{[key: number]: {remaining: number, interval: NodeJS.Timeout}}>({});
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -40,6 +41,8 @@ export default function TableSection() {
     // Cleanup: leave table room when component unmounts
     return () => {
       leaveTable(parseInt(tableId));
+      // Clear all timers on unmount
+      Object.values(orderTimers).forEach(timer => clearInterval(timer.interval));
     };
   }, [tableId, isConnected, joinTable, leaveTable]);
 
@@ -79,6 +82,11 @@ export default function TableSection() {
       setOrders(prev => prev.map(order => 
         order.id === event.order.id ? event.order : order
       ));
+      
+      // Start timer if order status changed to cooking
+      if (event.order.status === 'cooking') {
+        startOrderTimer(event.order);
+      }
     }
   };
 
@@ -88,16 +96,51 @@ export default function TableSection() {
       setOrders(prev => prev.map(order => 
         order.id === event.order.id ? event.order : order
       ));
+      // Clear timer when order is completed
+      if (orderTimers[event.order.id]) {
+        clearInterval(orderTimers[event.order.id].interval);
+        setOrderTimers(prev => {
+          const newTimers = { ...prev };
+          delete newTimers[event.order.id];
+          return newTimers;
+        });
+      }
+    }
+  };
+
+  const handleTimerStarted = (event: any) => {
+    console.log('⏰ Timer started event received:', event);
+    if (event.order.tableSection === parseInt(tableId)) {
+      startOrderTimer(event.order);
+    }
+  };
+
+  const handleTimerExpired = (event: any) => {
+    console.log('⏰ Timer expired event received:', event);
+    if (event.order.tableSection === parseInt(tableId)) {
+      // Clear timer when it expires
+      if (orderTimers[event.order.id]) {
+        clearInterval(orderTimers[event.order.id].interval);
+        setOrderTimers(prev => {
+          const newTimers = { ...prev };
+          delete newTimers[event.order.id];
+          return newTimers;
+        });
+      }
     }
   };
 
   const handleAllOrdersDeleted = (event: any) => {
     console.log('🗑️ All orders deleted event received:', event);
     setOrders([]);
+    // Clear all timers
+    Object.values(orderTimers).forEach(timer => clearInterval(timer.interval));
+    setOrderTimers({});
   };
 
   // Subscribe to WebSocket events
   useOrderEvents(handleOrderCreated, handleOrderUpdated, handleOrderCompleted, handleAllOrdersDeleted);
+  useTimerEvents(handleTimerStarted, handleTimerExpired);
 
   const getRecommendedBatch = () => {
     const now = new Date();
@@ -142,6 +185,56 @@ export default function TableSection() {
     if (hour >= 11 && hour < 13) return 'Lunch';
     if (hour >= 17 && hour < 19) return 'Dinner';
     return 'Downtime';
+  };
+
+  const getCookingTime = (order: any) => {
+    const menuItem = order.menuItem;
+    if (order.batchSize === menuItem.cookingTimeBatch1) return menuItem.cookingTimeBatch1;
+    if (order.batchSize === menuItem.cookingTimeBatch2) return menuItem.cookingTimeBatch2;
+    if (order.batchSize === menuItem.cookingTimeBatch3) return menuItem.cookingTimeBatch3;
+    return menuItem.cookingTimeBatch1;
+  };
+
+  const startOrderTimer = (order: any) => {
+    const cookingTimeMinutes = getCookingTime(order);
+    const remainingSeconds = cookingTimeMinutes * 60;
+    
+    // Clear existing timer if any
+    if (orderTimers[order.id]) {
+      clearInterval(orderTimers[order.id].interval);
+    }
+    
+    // Start new timer
+    const interval = setInterval(() => {
+      setOrderTimers(prev => {
+        const current = prev[order.id];
+        if (!current) return prev;
+        
+        const newRemaining = current.remaining - 1;
+        if (newRemaining <= 0) {
+          clearInterval(interval);
+          const newTimers = { ...prev };
+          delete newTimers[order.id];
+          return newTimers;
+        }
+        
+        return {
+          ...prev,
+          [order.id]: { ...current, remaining: newRemaining }
+        };
+      });
+    }, 1000);
+    
+    setOrderTimers(prev => ({
+      ...prev,
+      [order.id]: { remaining: remainingSeconds, interval }
+    }));
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const getBatchName = (batchNumber: number) => {
@@ -293,7 +386,17 @@ export default function TableSection() {
                       {isProcessing 
                         ? '⏳ Sending...' 
                         : isSent
-                          ? `Batch ${batchNumber} - Waiting`
+                          ? (() => {
+                              // Find the order for this menu item and batch
+                              const order = orders.find(o => 
+                                o.menuItemId === item.id && 
+                                o.batchSize === getBatchSize(item, batchNumber)
+                              );
+                              if (order && orderTimers[order.id]) {
+                                return `⏰ ${formatTime(orderTimers[order.id].remaining)}`;
+                              }
+                              return `Batch ${batchNumber} - Waiting`;
+                            })()
                           : `${isRecommended ? '⭐ ' : ''}Batch ${batchNumber}`
                       }
                     </button>

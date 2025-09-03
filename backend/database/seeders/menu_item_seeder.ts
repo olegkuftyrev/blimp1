@@ -51,6 +51,17 @@ export default class extends BaseSeeder {
         cookingTimeBatch2: Math.floor(Math.random() * 3) + 2, // 2-4 minutes
         cookingTimeBatch3: Math.floor(Math.random() * 3) + 2, // 2-4 minutes
         status: 'available'
+      },
+      {
+        itemTitle: 'Teriyaki Beef Bowl',
+        batchBreakfast: 2,
+        batchLunch: 4,
+        batchDowntime: 1,
+        batchDinner: 5,
+        cookingTimeBatch1: 0.17, // 10 seconds
+        cookingTimeBatch2: Math.floor(Math.random() * 4) + 3, // 3-6 minutes
+        cookingTimeBatch3: Math.floor(Math.random() * 5) + 4, // 4-8 minutes
+        status: 'available'
       }
     ]
     

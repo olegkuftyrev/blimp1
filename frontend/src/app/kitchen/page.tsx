@@ -23,12 +23,17 @@ interface Order {
 export default function Kitchen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timers, setTimers] = useState<{[key: number]: {remaining: number, interval: NodeJS.Timeout}}>({});
 
   useEffect(() => {
     fetchOrders();
     // Poll every 5 seconds
     const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      // Clear all timers on unmount
+      Object.values(timers).forEach(timer => clearInterval(timer.interval));
+    };
   }, []);
 
   const fetchOrders = async () => {
@@ -43,6 +48,16 @@ export default function Kitchen() {
     }
   };
 
+  const getCookingTime = (order: Order) => {
+    // Determine which batch this order belongs to based on batch size
+    const menuItem = order.menuItem;
+    if (order.batchSize === menuItem.cookingTimeBatch1) return menuItem.cookingTimeBatch1;
+    if (order.batchSize === menuItem.cookingTimeBatch2) return menuItem.cookingTimeBatch2;
+    if (order.batchSize === menuItem.cookingTimeBatch3) return menuItem.cookingTimeBatch3;
+    // Default to batch 1 if no match
+    return menuItem.cookingTimeBatch1;
+  };
+
   const startTimer = async (orderId: number) => {
     try {
       const response = await fetch(`http://localhost:3333/api/kitchen/orders/${orderId}/start-timer`, {
@@ -53,7 +68,45 @@ export default function Kitchen() {
       });
       
       if (response.ok) {
-        alert('Timer started!');
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          const cookingTimeMinutes = getCookingTime(order);
+          const remainingSeconds = cookingTimeMinutes * 60;
+          
+          // Clear existing timer if any
+          if (timers[orderId]) {
+            clearInterval(timers[orderId].interval);
+          }
+          
+          // Start new timer
+          const interval = setInterval(() => {
+            setTimers(prev => {
+              const current = prev[orderId];
+              if (!current) return prev;
+              
+              const newRemaining = current.remaining - 1;
+              if (newRemaining <= 0) {
+                clearInterval(interval);
+                // Timer expired - update order status
+                fetchOrders();
+                const newTimers = { ...prev };
+                delete newTimers[orderId];
+                return newTimers;
+              }
+              
+              return {
+                ...prev,
+                [orderId]: { ...current, remaining: newRemaining }
+              };
+            });
+          }, 1000);
+          
+          setTimers(prev => ({
+            ...prev,
+            [orderId]: { remaining: remainingSeconds, interval }
+          }));
+        }
+        
         fetchOrders(); // Refresh orders
       } else {
         alert('Failed to start timer');
@@ -85,6 +138,40 @@ export default function Kitchen() {
     }
   };
 
+  const deleteOrder = async (orderId: number) => {
+    if (!confirm('Are you sure you want to delete this order?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3333/api/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        alert('Order deleted!');
+        // Clear timer if it exists
+        if (timers[orderId]) {
+          clearInterval(timers[orderId].interval);
+          setTimers(prev => {
+            const newTimers = { ...prev };
+            delete newTimers[orderId];
+            return newTimers;
+          });
+        }
+        fetchOrders(); // Refresh orders
+      } else {
+        alert('Failed to delete order');
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Error deleting order');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500';
@@ -103,6 +190,12 @@ export default function Kitchen() {
       case 'ready': return 'Ready';
       default: return status;
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
@@ -155,17 +248,34 @@ export default function Kitchen() {
                   
                   {order.status === 'cooking' && (
                     <div className="text-center">
-                      <p className="text-blue-600 font-medium">Timer is running...</p>
+                      {timers[order.id] ? (
+                        <div>
+                          <p className="text-blue-600 font-medium text-lg">
+                            ⏰ {formatTime(timers[order.id].remaining)}
+                          </p>
+                          <p className="text-sm text-gray-600">Time remaining</p>
+                        </div>
+                      ) : (
+                        <p className="text-blue-600 font-medium">Timer is running...</p>
+                      )}
                     </div>
                   )}
                   
                   {order.status === 'timer_expired' && (
-                    <button
-                      onClick={() => completeOrder(order.id)}
-                      className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                      Mark as Done
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => completeOrder(order.id)}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        Mark as Done
+                      </button>
+                      <button
+                        onClick={() => deleteOrder(order.id)}
+                        className="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        Complete & Delete
+                      </button>
+                    </div>
                   )}
                   
                   {order.status === 'ready' && (

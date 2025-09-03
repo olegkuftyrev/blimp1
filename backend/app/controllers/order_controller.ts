@@ -121,6 +121,11 @@ export default class OrderController {
   async destroy({ params, response }: HttpContext) {
     try {
       const order = await Order.findOrFail(params.id)
+      await order.load('menuItem')
+      
+      // Emit WebSocket event before deleting
+      this.wsService.emitOrderCompleted(order)
+      
       await order.delete()
 
       return response.status(204).send()

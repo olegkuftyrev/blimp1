@@ -46,10 +46,17 @@ export default class WebSocketService {
   }
 
   /**
-   * Emit timer started event to kitchen
+   * Emit timer started event to kitchen and specific table
    */
   emitTimerStarted(order: any) {
+    // Notify kitchen
     this.io.to('kitchen').emit('timer:started', {
+      order,
+      timestamp: new Date().toISOString()
+    })
+
+    // Notify specific table
+    this.io.to(`table:${order.table_section}`).emit('timer:started', {
       order,
       timestamp: new Date().toISOString()
     })
@@ -58,10 +65,17 @@ export default class WebSocketService {
   }
 
   /**
-   * Emit timer expired event to kitchen
+   * Emit timer expired event to kitchen and specific table
    */
   emitTimerExpired(order: any) {
+    // Notify kitchen
     this.io.to('kitchen').emit('timer:expired', {
+      order,
+      timestamp: new Date().toISOString()
+    })
+
+    // Notify specific table
+    this.io.to(`table:${order.table_section}`).emit('timer:expired', {
       order,
       timestamp: new Date().toISOString()
     })
