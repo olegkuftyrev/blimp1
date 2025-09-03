@@ -11,6 +11,7 @@
 
 import 'reflect-metadata'
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
+import { killPort } from './kill-port.js'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -29,17 +30,27 @@ const IMPORTER = (filePath: string) => {
   return import(filePath)
 }
 
-new Ignitor(APP_ROOT, { importer: IMPORTER })
-  .tap((app) => {
-    app.booting(async () => {
-      await import('#start/env')
-    })
-    app.listen('SIGTERM', () => app.terminate())
-    app.listenIf(app.managedByPm2, 'SIGINT', () => app.terminate())
+// Kill any existing process on port 3333 before starting
+killPort(3333)
+  .then(() => {
+    console.log('Starting server on port 3333...')
+    
+    new Ignitor(APP_ROOT, { importer: IMPORTER })
+      .tap((app) => {
+        app.booting(async () => {
+          await import('#start/env')
+        })
+        app.listen('SIGTERM', () => app.terminate())
+        app.listenIf(app.managedByPm2, 'SIGINT', () => app.terminate())
+      })
+      .httpServer()
+      .start()
+      .catch((error) => {
+        process.exitCode = 1
+        prettyPrintError(error)
+      })
   })
-  .httpServer()
-  .start()
   .catch((error) => {
-    process.exitCode = 1
-    prettyPrintError(error)
+    console.error('Failed to clear port 3333:', error)
+    process.exit(1)
   })
