@@ -167,13 +167,79 @@ This project follows **API-Driven Development** approach:
 - **Polling**: Frontend polls API every 5 seconds
 
 ### Main API Routes
+
+#### Menu Items
 ```
-GET    /api/orders           # Get all orders
-POST   /api/orders           # Create new order
-PUT    /api/orders/:id       # Update order status
-GET    /api/table-sections   # Get table sections data
-GET    /api/kitchen          # Get kitchen orders
-POST   /api/kitchen/timers   # Set up kitchen timers
+GET    /api/menu-items              # Get all menu items
+GET    /api/menu-items/:id          # Get specific menu item
+PUT    /api/menu-items/:id          # Update menu item status
+```
+
+#### Orders
+```
+GET    /api/orders                  # Get all orders
+POST   /api/orders                  # Create new order
+GET    /api/orders/:id              # Get specific order
+PUT    /api/orders/:id              # Update order status
+DELETE /api/orders/:id              # Delete order
+```
+
+#### Table Sections
+```
+GET    /api/table-sections          # Get all table sections data
+GET    /api/table-sections/:id      # Get specific table section
+GET    /api/table-sections/:id/orders # Get orders for specific table section
+```
+
+#### Kitchen
+```
+GET    /api/kitchen/orders          # Get all kitchen orders
+GET    /api/kitchen/orders/pending  # Get pending orders
+GET    /api/kitchen/orders/cooking  # Get cooking orders
+POST   /api/kitchen/orders/:id/start-timer    # Start cooking timer
+POST   /api/kitchen/orders/:id/cancel-timer   # Cancel cooking timer
+POST   /api/kitchen/orders/:id/complete       # Mark order as done
+```
+
+#### System Status
+```
+GET    /api/status                  # Get system status
+GET    /api/status/table-sections   # Get all table sections status
+GET    /api/status/kitchen          # Get kitchen status
+```
+
+### API Examples
+
+#### Create Order
+```bash
+POST /api/orders
+Content-Type: application/json
+
+{
+  "table_section": 1,
+  "menu_item_id": 1,
+  "batch_size": 2
+}
+```
+
+#### Start Timer
+```bash
+POST /api/kitchen/orders/1/start-timer
+Content-Type: application/json
+
+{
+  "cooking_time": 3
+}
+```
+
+#### Complete Order
+```bash
+POST /api/kitchen/orders/1/complete
+Content-Type: application/json
+
+{
+  "completed_at": "2024-01-01T12:00:00Z"
+}
 ```
 
 ### Frontend-Backend Communication
@@ -225,11 +291,76 @@ If you have any questions or need help, please open an issue in the repository.
 
 ## 🎯 Workflow
 
-1. **Manager** uses any of the 3 table section tablets to manage food calling
-2. **Table Section** staff call food using their dedicated tablet
-3. **Kitchen Tablet** receives the order within 5 seconds and sets up timers
-4. **Kitchen Staff** (cooks and help cooks) see the order and timer information
-5. **Data Polling** keeps all tablets synchronized every 5 seconds
+### Complete Order Process:
+
+1. **Table Section Tablets (3 tablets)**
+   - Display 4 menu items that should always be available on the table
+   - Manager sees current status of each dish
+   - Manager clicks on dish + selects batch size (1, 2, or 3)
+   - System creates order with status `pending`
+
+2. **Kitchen Tablet**
+   - Cook sees new order with status `pending`
+   - **Cook Actions:**
+     - `"Start Timer"` - start cooking timer
+     - `"Cancel Timer"` - cancel timer (if not expired yet)
+
+3. **Timer Active**
+   - Order status: `cooking`
+   - Kitchen screen: shows countdown timer
+   - Table section: shows "Cooking" + remaining time
+
+4. **Timer Expired**
+   - Order status: `timer_expired`
+   - Kitchen screen: shows "Timer Expired!"
+   - **Cook Action:** `"Done"` - confirm completion
+
+5. **Completion**
+   - Cook clicks `"Done"`
+   - Order status: `ready`
+   - Table section: shows "Ready"
+
+### Order Statuses:
+- `pending` - Order created, waiting for cook
+- `cooking` - Timer is running
+- `timer_expired` - Timer expired, waiting for cook confirmation
+- `ready` - Dish is ready
+- `completed` - Dish taken from table
+
+### Data Synchronization:
+- All 4 tablets poll API every 5 seconds for updates
+- Real-time status updates across all devices
+
+## 🍜 Menu Items
+
+The system manages 4 core Panda Express dishes:
+
+### 1. Fried Rice
+- Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
+- Cooking times: Random 2-5 minutes per batch
+
+### 2. Orange Chicken  
+- Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
+- Cooking times: Random 2-5 minutes per batch
+
+### 3. Cream Cheese Ragoons
+- Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
+- Cooking times: Random 2-5 minutes per batch
+
+### 4. Honey Walnut Shrimp
+- Batch sizes: Breakfast(1), Lunch(2), Downtime(1), Dinner(3)
+- Cooking times: Random 2-5 minutes per batch
+
+## 📊 Database Structure
+
+### Menu Items Table:
+- `id`, `item_title`, `batch_breakfast`, `batch_lunch`, `batch_downtime`, `batch_dinner`
+- `cooking_time_batch1` (INTEGER), `cooking_time_batch2` (INTEGER), `cooking_time_batch3` (INTEGER)
+- `status`, `created_at`, `updated_at`
+
+### Orders Table:
+- `id`, `table_section` (1,2,3), `menu_item_id`, `batch_size`, `status`
+- `timer_start`, `timer_end`, `created_at`, `updated_at`
 
 ---
 
