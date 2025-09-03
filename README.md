@@ -2,6 +2,34 @@
 
 A tablet-based food calling and kitchen management system designed to streamline operations at Panda Express restaurants. This system automates the food calling process and helps coordinate between table sections and kitchen staff.
 
+## 🚀 Pipeline of Development
+
+### Backend Development
+1. **Create AdonisJS backend** - Basic project structure `🔄 IN PROGRESS`
+2. **Setup SQLite database** - Configuration and migrations `⏳ PENDING`
+3. **Create models** - MenuItem and Order with Lucid ORM `⏳ PENDING`
+4. **Create API endpoints** - All REST API for the system `⏳ PENDING`
+5. **Create seeders** - 4 Panda Express dishes with data `⏳ PENDING`
+
+### Frontend Development
+6. **Create Next.js frontend** - Basic structure with Chakra UI `⏳ PENDING`
+7. **Create table section interfaces** - 3 manager tablets `⏳ PENDING`
+8. **Create kitchen interface** - Cook tablet `⏳ PENDING`
+
+### Integration & Logic
+9. **Implement polling** - 5-second synchronization `⏳ PENDING`
+10. **Implement timer logic** - Cooking statuses and timers `⏳ PENDING`
+
+### Testing & Deployment
+11. **Integration testing** - All components testing `⏳ PENDING`
+12. **Deployment setup** - DigitalOcean with Ubuntu `⏳ PENDING`
+
+### Status Legend:
+- `✅ COMPLETED` - Task finished
+- `🔄 IN PROGRESS` - Currently working on
+- `⏳ PENDING` - Not started yet
+- `❌ BLOCKED` - Waiting for dependencies
+
 ## 🚀 Features
 
 - **Table Management**: 3 tablet interfaces for table sections with touch screen support
@@ -210,6 +238,31 @@ GET    /api/status/kitchen          # Get kitchen status
 
 ### API Examples
 
+#### Get All Menu Items
+```bash
+GET /api/menu-items
+
+Response:
+{
+  "data": [
+    {
+      "id": 1,
+      "item_title": "Fried Rice",
+      "batch_breakfast": 1,
+      "batch_lunch": 2,
+      "batch_downtime": 1,
+      "batch_dinner": 3,
+      "cooking_time_batch1": 3,
+      "cooking_time_batch2": 4,
+      "cooking_time_batch3": 2,
+      "status": "available",
+      "created_at": "2024-01-01T10:00:00Z",
+      "updated_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
 #### Create Order
 ```bash
 POST /api/orders
@@ -219,6 +272,49 @@ Content-Type: application/json
   "table_section": 1,
   "menu_item_id": 1,
   "batch_size": 2
+}
+
+Response:
+{
+  "data": {
+    "id": 1,
+    "table_section": 1,
+    "menu_item_id": 1,
+    "batch_size": 2,
+    "status": "pending",
+    "timer_start": null,
+    "timer_end": null,
+    "created_at": "2024-01-01T12:00:00Z",
+    "updated_at": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+#### Get Kitchen Orders
+```bash
+GET /api/kitchen/orders
+
+Response:
+{
+  "data": [
+    {
+      "id": 1,
+      "table_section": 1,
+      "menu_item": {
+        "id": 1,
+        "item_title": "Fried Rice",
+        "cooking_time_batch1": 3,
+        "cooking_time_batch2": 4,
+        "cooking_time_batch3": 2
+      },
+      "batch_size": 2,
+      "status": "pending",
+      "timer_start": null,
+      "timer_end": null,
+      "created_at": "2024-01-01T12:00:00Z",
+      "updated_at": "2024-01-01T12:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -230,6 +326,17 @@ Content-Type: application/json
 {
   "cooking_time": 3
 }
+
+Response:
+{
+  "data": {
+    "id": 1,
+    "status": "cooking",
+    "timer_start": "2024-01-01T12:00:00Z",
+    "timer_end": "2024-01-01T12:03:00Z",
+    "updated_at": "2024-01-01T12:00:00Z"
+  }
+}
 ```
 
 #### Complete Order
@@ -238,7 +345,45 @@ POST /api/kitchen/orders/1/complete
 Content-Type: application/json
 
 {
-  "completed_at": "2024-01-01T12:00:00Z"
+  "completed_at": "2024-01-01T12:05:00Z"
+}
+
+Response:
+{
+  "data": {
+    "id": 1,
+    "status": "ready",
+    "completed_at": "2024-01-01T12:05:00Z",
+    "updated_at": "2024-01-01T12:05:00Z"
+  }
+}
+```
+
+#### Get Table Section Status
+```bash
+GET /api/status/table-sections
+
+Response:
+{
+  "data": {
+    "table_sections": [
+      {
+        "id": 1,
+        "orders": [
+          {
+            "id": 1,
+            "menu_item": {
+              "id": 1,
+              "item_title": "Fried Rice"
+            },
+            "status": "cooking",
+            "timer_end": "2024-01-01T12:03:00Z",
+            "remaining_time": 120
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
