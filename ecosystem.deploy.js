@@ -42,7 +42,7 @@ module.exports = {
       user: 'root',
       host: '64.23.169.176',
       ref: 'origin/main',
-      repo: 'git@github.com:YOUR_USERNAME/blimp1.git', // Замени на свой репозиторий
+      repo: 'https://github.com/olegkuftyrev/blimp1.git', // Замени на свой репозиторий
       path: '/opt/blimp1',
       'pre-deploy-local': '',
       'post-deploy': 'cd /opt/blimp1 && chmod +x scripts/prod-build.sh && ./scripts/prod-build.sh && pm2 reload ecosystem.config.cjs --update-env && pm2 save',
