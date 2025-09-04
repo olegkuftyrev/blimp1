@@ -32,7 +32,10 @@ module.exports = {
       exec_mode: 'fork',
       watch: false,
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        NEXT_PUBLIC_API_URL: 'http://64.23.169.176:3333',
+        NEXT_PUBLIC_WS_URL: 'http://64.23.169.176:3333',
+        NEXT_PUBLIC_BACKEND_URL: 'http://64.23.169.176:3333'
       },
       kill_timeout: 5000,
     }

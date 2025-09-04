@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3333";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     return [
       {
         source: "/api/:path*",

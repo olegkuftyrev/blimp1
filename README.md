@@ -314,13 +314,20 @@ Notes:
 - When switching to Postgres, set `DB_CLIENT=pg` and provide all `PG_*` values.
 
 #### Frontend (`frontend/.env.local`)
-Copy `frontend/.env.example` to `frontend/.env.local` and adjust as needed.
+Create `frontend/.env.local` with the following variables:
 
 ```env
+# API URL for backend requests
+NEXT_PUBLIC_API_URL=http://localhost:3333
+
+# WebSocket URL for real-time connections  
+NEXT_PUBLIC_WS_URL=http://localhost:3333
+
+# Backend URL for Next.js rewrites
 NEXT_PUBLIC_BACKEND_URL=http://localhost:3333
 ```
 
-The Next.js rewrites use `NEXT_PUBLIC_BACKEND_URL` for both REST (`/api/*`) and Socket.IO (`/socket.io/*`).
+**Important**: All URLs must be configured via environment variables. No hardcoded localhost URLs are used in the code.
 
 ## 🚀 Getting Started
 

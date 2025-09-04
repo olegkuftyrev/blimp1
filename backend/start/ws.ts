@@ -1,11 +1,16 @@
 import app from '@adonisjs/core/services/app'
 import { Server } from 'socket.io'
 import server from '@adonisjs/core/services/server'
+import env from '#start/env'
 
 app.ready(() => {
+  const corsOrigins = env.get('WS_CORS_ORIGIN') === '*' 
+    ? true 
+    : env.get('WS_CORS_ORIGIN')?.split(',').map(origin => origin.trim()) || ['http://localhost:3000']
+  
   const io = new Server(server.getNodeServer(), {
     cors: {
-      origin: ['http://localhost:3000', 'http://localhost:3001'],
+      origin: corsOrigins,
       methods: ['GET', 'POST'],
       credentials: true
     },

@@ -168,7 +168,7 @@ export default function Kitchen() {
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const response = await fetch(`${apiUrl}/api/orders`);
       const data = await response.json();
       setOrders(data.data);
@@ -202,7 +202,7 @@ export default function Kitchen() {
 
   const startTimer = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const order = orders.find(o => o.id === orderId);
       if (!order) return;
 
@@ -231,7 +231,7 @@ export default function Kitchen() {
 
   const completeOrder = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/complete`, {
         method: 'POST',
         headers: {
@@ -253,7 +253,7 @@ export default function Kitchen() {
 
   const deleteOrder = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
         headers: {
