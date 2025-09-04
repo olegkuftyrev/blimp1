@@ -387,6 +387,89 @@ This will:
 - Run database migrations and seed data
 - Start backend (port 3333) and frontend (port 3000)
 
+## 🛫 Deploying to DigitalOcean (Ubuntu + PM2 + Nginx)
+
+1) SSH to server and install requirements
+```bash
+sudo apt update && sudo apt install -y nginx git build-essential
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm i -g pm2
+```
+
+2) Clone repo and prepare env files
+```bash
+git clone <repo-url> blimp1 && cd blimp1
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+# Edit backend/.env (set APP_KEY, APP_URL, HOST, PORT) and frontend/.env.local
+```
+
+3) Build for production and run migrations
+```bash
+chmod +x scripts/prod-build.sh
+./scripts/prod-build.sh
+```
+
+4) Start processes with PM2
+```bash
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup  # follow the printed instructions to enable boot on startup
+```
+
+5) Configure Nginx (reverse proxy)
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3333;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3333;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Enable site and reload Nginx:
+```bash
+sudo tee /etc/nginx/sites-available/blimp1 >/dev/null <<'CONF'
+# paste the server block above
+CONF
+sudo ln -sf /etc/nginx/sites-available/blimp1 /etc/nginx/sites-enabled/blimp1
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+6) Update deployments
+```bash
+cd /path/to/blimp1
+git pull
+./scripts/prod-build.sh
+pm2 restart all && pm2 save
+```
+
 ## 📁 Project Structure
 
 ```
