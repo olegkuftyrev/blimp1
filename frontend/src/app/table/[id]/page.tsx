@@ -70,8 +70,7 @@ export default function TableSection() {
 
   const fetchMenuItems = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/menu-items`);
+      const response = await fetch(`/api/menu-items`);
       const data = await response.json();
 
       // Filter menu items based on table ID
@@ -120,8 +119,7 @@ export default function TableSection() {
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders`);
+      const response = await fetch(`/api/orders`);
       const data = await response.json();
       setOrders(data.data);
       // Timer management is handled by backend
@@ -313,8 +311,7 @@ export default function TableSection() {
     if (!menuItem) return;
     const batchSize = getBatchSize(menuItem, batchNumber);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders`, {
+      const response = await fetch(`/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -334,8 +331,7 @@ export default function TableSection() {
 
   const deleteOrder = async (orderId: number, menuItemId: number, batchNumber: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+      const response = await fetch(`/api/orders/${orderId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -375,11 +371,10 @@ export default function TableSection() {
   const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   const findOrderFor = async (menuItemId: number, batchSizeCount: number): Promise<Order | null> => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
     const table = parseInt(tableId);
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const resp = await fetch(`${apiUrl}/api/orders`);
+        const resp = await fetch(`/api/orders`);
         const json = await resp.json();
         const list: BackendOrder[] = Array.isArray(json.data) ? (json.data as BackendOrder[]) : [];
         const normalized: Order[] = list.map(normalizeOrder);
@@ -397,8 +392,7 @@ export default function TableSection() {
     if (!confirm('Are you sure you want to delete ALL orders? This action cannot be undone.')) return;
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders`, {
+      const response = await fetch(`/api/orders`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
