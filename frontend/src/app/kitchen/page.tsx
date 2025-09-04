@@ -25,16 +25,11 @@ interface Order {
 export default function Kitchen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timers, setTimers] = useState<{[key: number]: {remaining: number, interval: NodeJS.Timeout}}>({});
   
   const { isConnected, joinKitchen, leaveKitchen } = useWebSocket();
 
   useEffect(() => {
     fetchOrders();
-    // Clear all timers on unmount
-    return () => {
-      Object.values(timers).forEach(timer => clearInterval(timer.interval));
-    };
   }, []);
 
   // WebSocket connection management
@@ -108,57 +103,36 @@ export default function Kitchen() {
     return menuItem.cookingTimeBatch1;
   };
 
+  const getRemainingTime = (order: Order) => {
+    if (order.status !== 'cooking' || !order.timerEnd) return null;
+    
+    const now = new Date().getTime();
+    const endTime = new Date(order.timerEnd).getTime();
+    const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+    
+    return remaining;
+  };
+
   const startTimer = async (orderId: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const cookingTimeMinutes = getCookingTime(order);
+      
       const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/start-timer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          cookingTime: cookingTimeMinutes
+        })
       });
       
       if (response.ok) {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
-          const cookingTimeMinutes = getCookingTime(order);
-          const remainingSeconds = cookingTimeMinutes * 60;
-          
-          // Clear existing timer if any
-          if (timers[orderId]) {
-            clearInterval(timers[orderId].interval);
-          }
-          
-          // Start new timer
-          const interval = setInterval(() => {
-            setTimers(prev => {
-              const current = prev[orderId];
-              if (!current) return prev;
-              
-              const newRemaining = current.remaining - 1;
-              if (newRemaining <= 0) {
-                clearInterval(interval);
-                // Timer expired - update order status
-                fetchOrders();
-                const newTimers = { ...prev };
-                delete newTimers[orderId];
-                return newTimers;
-              }
-              
-              return {
-                ...prev,
-                [orderId]: { ...current, remaining: newRemaining }
-              };
-            });
-          }, 1000);
-          
-          setTimers(prev => ({
-            ...prev,
-            [orderId]: { remaining: remainingSeconds, interval }
-          }));
-        }
-        
-        fetchOrders(); // Refresh orders
+        fetchOrders(); // Refresh orders to get updated status
       } else {
         alert('Failed to start timer');
       }
@@ -201,15 +175,6 @@ export default function Kitchen() {
       });
       
       if (response.ok) {
-        // Clear timer if it exists
-        if (timers[orderId]) {
-          clearInterval(timers[orderId].interval);
-          setTimers(prev => {
-            const newTimers = { ...prev };
-            delete newTimers[orderId];
-            return newTimers;
-          });
-        }
         fetchOrders(); // Refresh orders
       }
     } catch (error) {
@@ -291,12 +256,17 @@ export default function Kitchen() {
                       {order.batchSize}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {order.status === 'cooking' && timers[order.id] ? (
-                        <div className="text-blue-600 font-medium">
-                          ⏰ {formatTime(timers[order.id].remaining)}
-                        </div>
-                      ) : order.status === 'cooking' ? (
-                        <div className="text-blue-600 font-medium">Running...</div>
+                      {order.status === 'cooking' ? (
+                        (() => {
+                          const remaining = getRemainingTime(order);
+                          return remaining !== null ? (
+                            <div className="text-blue-600 font-medium">
+                              ⏰ {formatTime(remaining)}
+                            </div>
+                          ) : (
+                            <div className="text-blue-600 font-medium">Running...</div>
+                          );
+                        })()
                       ) : order.status === 'pending' ? (
                         <span className="text-yellow-600 font-medium">Pending</span>
                       ) : order.status === 'timer_expired' ? (

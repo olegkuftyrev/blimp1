@@ -64,7 +64,8 @@
     "edge.js": "^6.2.1",
     "luxon": "^3.7.1",
     "reflect-metadata": "^0.2.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "timer-node": "^5.0.9"
   },
   "hotHook": {
     "boundaries": [

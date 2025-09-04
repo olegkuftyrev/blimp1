@@ -2,9 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Order from '#models/order'
 import { DateTime } from 'luxon'
 import WebSocketService from '#services/websocket_service'
+import TimerService from '#services/timer_service'
 
 export default class KitchenController {
   private wsService = new WebSocketService()
+  private timerService = new TimerService()
   /**
    * Get all kitchen orders
    */
@@ -92,6 +94,9 @@ export default class KitchenController {
       await order.save()
       await order.load('menuItem')
 
+      // Start backend timer
+      await this.timerService.startTimer(order.id, cookingTime)
+
       // Emit WebSocket event for timer started
       this.wsService.emitTimerStarted(order)
 
@@ -126,6 +131,9 @@ export default class KitchenController {
         })
       }
 
+      // Clear backend timer
+      this.timerService.clearTimer(order.id)
+
       order.status = 'pending'
       order.timerStart = null
       order.timerEnd = null
@@ -150,6 +158,42 @@ export default class KitchenController {
   }
 
   /**
+   * Get timer status for an order
+   */
+  async getTimerStatus({ params, response }: HttpContext) {
+    try {
+      const order = await Order.findOrFail(params.id)
+      
+      if (order.status !== 'cooking') {
+        return response.status(400).json({
+          error: 'Order is not cooking',
+          message: 'Only cooking orders have active timers'
+        })
+      }
+
+      const timerStatus = this.timerService.getTimerStatus(order.id)
+      const remainingTime = this.timerService.getRemainingTime(order.id, order.timerEnd ? 
+        Math.ceil((order.timerEnd.diffNow('minutes').minutes)) : 0)
+
+      return response.json({
+        data: {
+          orderId: order.id,
+          status: order.status,
+          timerStatus,
+          remainingTime,
+          timerStart: order.timerStart,
+          timerEnd: order.timerEnd
+        }
+      })
+    } catch (error) {
+      return response.status(400).json({
+        error: 'Failed to get timer status',
+        message: error.message
+      })
+    }
+  }
+
+  /**
    * Complete order
    */
   async complete({ params, request, response }: HttpContext) {
@@ -162,6 +206,9 @@ export default class KitchenController {
           message: 'Only cooking or timer_expired orders can be completed'
         })
       }
+
+      // Clear backend timer if still running
+      this.timerService.clearTimer(order.id)
 
       const { completedAt } = request.only(['completedAt'])
       

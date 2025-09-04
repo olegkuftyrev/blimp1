@@ -36,6 +36,7 @@ router.group(() => {
   router.get('/kitchen/orders/cooking', '#controllers/kitchen_controller.cookingOrders')
   router.post('/kitchen/orders/:id/start-timer', '#controllers/kitchen_controller.startTimer')
   router.post('/kitchen/orders/:id/cancel-timer', '#controllers/kitchen_controller.cancelTimer')
+  router.get('/kitchen/orders/:id/timer-status', '#controllers/kitchen_controller.getTimerStatus')
   router.post('/kitchen/orders/:id/complete', '#controllers/kitchen_controller.complete')
 
   // System Status

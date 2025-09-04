@@ -24,8 +24,6 @@ export default function TableSection() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
-  // Table Section is fully event-driven from server truth; no local flags
-  const [orderTimers, setOrderTimers] = useState<{[key: number]: {remaining: number, interval: NodeJS.Timeout}}>({});
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -40,8 +38,6 @@ export default function TableSection() {
     // Cleanup: leave table room when component unmounts
     return () => {
       leaveTable(parseInt(tableId));
-      // Clear all timers on unmount
-      Object.values(orderTimers).forEach(timer => clearInterval(timer.interval));
     };
   }, [tableId, isConnected, joinTable, leaveTable]);
 
@@ -53,16 +49,6 @@ export default function TableSection() {
     return () => clearInterval(interval);
   }, [tableId]);
 
-  // Ensure timers start automatically for any cooking orders without a local timer yet
-  useEffect(() => {
-    orders.forEach((o) => {
-      if (o.tableSection === parseInt(tableId) && o.status === 'cooking' && !orderTimers[o.id]) {
-        try {
-          startOrderTimer(o);
-        } catch {}
-      }
-    });
-  }, [orders, orderTimers, tableId]);
 
   const fetchMenuItems = async () => {
     try {
@@ -117,12 +103,7 @@ export default function TableSection() {
       const data = await response.json();
       setOrders(data.data);
       
-      // Start timers for cooking orders
-      data.data.forEach((order: any) => {
-        if (order.status === 'cooking' && order.tableSection === parseInt(tableId)) {
-          startOrderTimer(order);
-        }
-      });
+      // Timer management is now handled by backend
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
@@ -148,10 +129,7 @@ export default function TableSection() {
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
       setOrders(prev => prev.map(order => (order.id === ord.id ? ord : order)));
-      // Start timer if order moves to cooking
-      if (ord.status === 'cooking') {
-        startOrderTimer(ord);
-      }
+      // Timer management is now handled by backend
       // Ensure full sync
       fetchOrders();
     }
@@ -162,15 +140,7 @@ export default function TableSection() {
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
       setOrders(prev => prev.map(order => (order.id === ord.id ? ord : order)));
-      // Clear timer when order is completed
-      if (orderTimers[ord.id]) {
-        clearInterval(orderTimers[ord.id].interval);
-        setOrderTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[ord.id];
-          return newTimers;
-        });
-      }
+      // Timer management is now handled by backend
       // Ensure full sync
       fetchOrders();
     }
@@ -201,15 +171,7 @@ export default function TableSection() {
         });
       }
       
-      // Clear timer if exists
-      if (orderTimers[ord.id]) {
-        clearInterval(orderTimers[ord.id].interval);
-        setOrderTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[ord.id];
-          return newTimers;
-        });
-      }
+      // Timer management is now handled by backend
 
       // Final safeguard: resync from server to ensure full consistency
       fetchOrders();
@@ -220,7 +182,7 @@ export default function TableSection() {
     console.log('⏰ Timer started event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      startOrderTimer(ord);
+      // Timer management is now handled by backend
       // Ensure full sync
       fetchOrders();
     }
@@ -230,15 +192,7 @@ export default function TableSection() {
     console.log('⏰ Timer expired event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      // Clear timer when it expires
-      if (orderTimers[ord.id]) {
-        clearInterval(orderTimers[ord.id].interval);
-        setOrderTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[ord.id];
-          return newTimers;
-        });
-      }
+      // Timer management is now handled by backend
       // Ensure full sync
       fetchOrders();
     }
@@ -247,9 +201,7 @@ export default function TableSection() {
   const handleAllOrdersDeleted = (event: any) => {
     console.log('🗑️ All orders deleted event received:', event);
     setOrders([]);
-    // Clear all timers
-    Object.values(orderTimers).forEach(timer => clearInterval(timer.interval));
-    setOrderTimers({});
+    // Timer management is now handled by backend
   };
 
   // Subscribe to WebSocket events
@@ -337,56 +289,16 @@ export default function TableSection() {
     return menuItem.cookingTimeBatch1;
   };
 
-  const startOrderTimer = (order: any) => {
-    // Clear existing timer if any
-    if (orderTimers[order.id]) {
-      clearInterval(orderTimers[order.id].interval);
-    }
+  const getRemainingTime = (order: any) => {
+    if (order.status !== 'cooking' || !order.timerEnd) return null;
     
-    // Calculate remaining time based on timerEnd
-    let remainingSeconds = 0;
-    // Always compute locally from batch cooking time if server didn't provide timerEnd
-    const cookingTimeMinutes = getCookingTime(order);
-    if (order.timerEnd) {
-      const endTime = new Date(order.timerEnd).getTime();
-      const now = new Date().getTime();
-      const serverRemaining = Math.max(0, Math.floor((endTime - now) / 1000));
-      // Prefer the tighter remaining (server truth) but fall back to local
-      remainingSeconds = serverRemaining > 0 ? serverRemaining : cookingTimeMinutes * 60;
-    } else {
-      remainingSeconds = cookingTimeMinutes * 60;
-    }
+    const now = new Date().getTime();
+    const endTime = new Date(order.timerEnd).getTime();
+    const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
     
-    if (remainingSeconds <= 0) {
-      return; // Timer already expired
-    }
-    
-    // Start new timer
-    const interval = setInterval(() => {
-      setOrderTimers(prev => {
-        const current = prev[order.id];
-        if (!current) return prev;
-        
-        const newRemaining = current.remaining - 1;
-        if (newRemaining <= 0) {
-          clearInterval(interval);
-          const newTimers = { ...prev };
-          delete newTimers[order.id];
-          return newTimers;
-        }
-        
-        return {
-          ...prev,
-          [order.id]: { ...current, remaining: newRemaining }
-        };
-      });
-    }, 1000);
-    
-    setOrderTimers(prev => ({
-      ...prev,
-      [order.id]: { remaining: remainingSeconds, interval }
-    }));
+    return remaining;
   };
+
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -454,15 +366,7 @@ export default function TableSection() {
         // Optimistically remove order from local list so the delete icon disappears immediately
         setOrders(prev => prev.filter(o => o.id !== orderId));
 
-        // Clear timer if exists
-        if (orderTimers[orderId]) {
-          clearInterval(orderTimers[orderId].interval);
-          setOrderTimers(prev => {
-            const newTimers = { ...prev };
-            delete newTimers[orderId];
-            return newTimers;
-          });
-        }
+        // Timer management is now handled by backend
         
         console.log('🗑️ Order deleted successfully');
       }
@@ -628,9 +532,11 @@ export default function TableSection() {
                         {isSent
                             ? (() => {
                                 if (order) {
-                                  if (order.status === 'cooking' && orderTimers[order.id]) {
-                                    return `⏰ ${formatTime(orderTimers[order.id].remaining)}`;
-                                  } else if (order.status === 'cooking') {
+                                  if (order.status === 'cooking') {
+                                    const remaining = getRemainingTime(order);
+                                    if (remaining !== null) {
+                                      return `⏰ ${formatTime(remaining)}`;
+                                    }
                                     return `Timer activated`;
                                   } else if (order.status === 'pending') {
                                     return `⏳ Pending`;
@@ -717,12 +623,17 @@ export default function TableSection() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
-                          {order.status === 'cooking' && orderTimers[order.id] ? (
-                            <div className="text-blue-600 font-medium">
-                              ⏰ {formatTime(orderTimers[order.id].remaining)}
-                            </div>
-                          ) : order.status === 'cooking' ? (
-                            <div className="text-blue-600 font-medium">Running...</div>
+                          {order.status === 'cooking' ? (
+                            (() => {
+                              const remaining = getRemainingTime(order);
+                              return remaining !== null ? (
+                                <div className="text-blue-600 font-medium">
+                                  ⏰ {formatTime(remaining)}
+                                </div>
+                              ) : (
+                                <div className="text-blue-600 font-medium">Running...</div>
+                              );
+                            })()
                           ) : order.status === 'pending' ? (
                             <span className="text-yellow-600 font-medium">Pending</span>
                           ) : order.status === 'timer_expired' ? (
