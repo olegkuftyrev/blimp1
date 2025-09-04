@@ -1,0 +1,52 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to DigitalOcean
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DROPLET_HOST }}
+        username: ${{ secrets.DROPLET_USER }}
+        key: ${{ secrets.DROPLET_SSH_KEY }}
+        script: |
+          set -e
+          echo "🚀 Starting deployment..."
+          
+          cd /opt/blimp1
+          
+          # Pull latest changes
+          echo "📁 Pulling latest changes..."
+          git pull origin main
+          
+          # Install dependencies
+          echo "📦 Installing dependencies..."
+          cd backend && npm ci
+          cd ../frontend && npm ci
+          
+          # Build and migrate
+          echo "🔨 Building and migrating..."
+          cd .. && chmod +x scripts/prod-build.sh
+          ./scripts/prod-build.sh
+          
+          # Restart PM2 processes
+          echo "🔄 Restarting PM2 processes..."
+          pm2 reload ecosystem.config.cjs --update-env
+          pm2 save
+          
+          # Reload Nginx
+          echo "🌐 Reloading Nginx..."
+          nginx -t && systemctl reload nginx
+          
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 App: http://64.23.169.176"
+          echo "🔌 API: http://64.23.169.176/api/menu-items"
