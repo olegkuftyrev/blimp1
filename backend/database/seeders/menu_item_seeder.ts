@@ -20,6 +20,17 @@ export default class extends BaseSeeder {
         status: 'available'
       },
       {
+        itemTitle: 'test',
+        batchBreakfast: 1,
+        batchLunch: 0.5,
+        batchDowntime: 2,
+        batchDinner: 4,
+        cookingTimeBatch1: 0.1,
+        cookingTimeBatch2: 0.5,
+        cookingTimeBatch3: 1.0,
+        status: 'available'
+      },
+      {
         itemTitle: 'E3 Cream Cheese Rangoons',
         batchBreakfast: 1,
         batchLunch: 3,

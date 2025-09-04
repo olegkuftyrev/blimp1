@@ -194,6 +194,52 @@ export default class KitchenController {
   }
 
   /**
+   * Extend timer by 10 seconds
+   */
+  async extendTimer({ params, response }: HttpContext) {
+    try {
+      const order = await Order.findOrFail(params.id)
+      
+      if (order.status !== 'timer_expired') {
+        return response.status(400).json({
+          error: 'Order timer cannot be extended',
+          message: 'Only timer_expired orders can have their timer extended'
+        })
+      }
+
+      // Extend the timer by 10 seconds
+      const now = DateTime.now()
+      const newTimerEnd = now.plus({ seconds: 10 })
+
+      order.status = 'cooking'
+      order.timerEnd = newTimerEnd
+      
+      await order.save()
+      await order.load('menuItem')
+
+      // Restart the backend timer for 10 seconds
+      await this.timerService.startTimer(order.id, 10/60) // Convert seconds to minutes
+
+      // Emit WebSocket event for timer started
+      this.wsService.emitTimerStarted(order)
+
+      return response.json({
+        data: {
+          id: order.id,
+          status: order.status,
+          timerEnd: order.timerEnd,
+          updatedAt: order.updatedAt
+        }
+      })
+    } catch (error) {
+      return response.status(400).json({
+        error: 'Failed to extend timer',
+        message: error.message
+      })
+    }
+  }
+
+  /**
    * Complete order
    */
   async complete({ params, request, response }: HttpContext) {

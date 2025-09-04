@@ -67,7 +67,8 @@ export default function TableSection() {
             item.itemTitle.includes('B3 Black Pepper Sirloin Steak') ||
             item.itemTitle.includes('M1 Chow Mein') || // 🛠️ “Chow” not “Show”
             item.itemTitle.includes('V1 Super Greens') ||
-            item.itemTitle.includes('R1 Fried Rice')
+            item.itemTitle.includes('R1 Fried Rice') ||
+            item.itemTitle.includes('test')
         );
       } else if (tableId === '2') {
         // Table 2 should only show: CB1, C1, C2, B5, B1, CB3
@@ -401,7 +402,9 @@ export default function TableSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {menuItems.map((item) => (
             <div key={item.id} className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-semibold mb-2 text-center text-gray-800">{item.itemTitle}</h3>
+              <div className="h-16 flex items-center justify-center mb-2">
+                <h3 className="text-2xl font-semibold text-center text-gray-800 leading-tight">{item.itemTitle}</h3>
+              </div>
               {(() => {
                 const cooking = orders.some(
                   (o) => o.tableSection === parseInt(tableId) && o.menuItemId === item.id && o.status === 'cooking'

@@ -196,6 +196,26 @@ export default function BOHPage() {
     }
   };
 
+  const extendTimer = async (orderId: number) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/extend-timer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to extend timer: ${error.message || 'Unknown error'}`);
+      } else {
+        console.log('⏰ Timer extended by 10 seconds');
+      }
+    } catch (error) {
+      console.error('Error extending timer:', error);
+      alert('Error extending timer');
+    }
+  };
+
   const completeOrder = async (orderId: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
@@ -219,6 +239,8 @@ export default function BOHPage() {
   const handleAction = (orderId: number, action: string) => {
     if (action === 'start timer') {
       startTimer(orderId);
+    } else if (action === 'extend timer') {
+      extendTimer(orderId);
     } else if (action === 'complete') {
       completeOrder(orderId);
     }
@@ -301,7 +323,22 @@ export default function BOHPage() {
                             >
                               Start Timer
                             </button>
-                          ) : (order.status === 'cooking' || order.status === 'timer_expired') ? (
+                          ) : order.status === 'timer_expired' ? (
+                            <>
+                              <button
+                                onClick={() => handleAction(order.id, 'extend timer')}
+                                className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                              >
+                                +10s
+                              </button>
+                              <button
+                                onClick={() => handleAction(order.id, 'complete')}
+                                className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                              >
+                                Complete
+                              </button>
+                            </>
+                          ) : order.status === 'cooking' ? (
                             <button
                               onClick={() => handleAction(order.id, 'complete')}
                               className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
