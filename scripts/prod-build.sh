@@ -17,6 +17,9 @@ printf "\n==> Running migrations...\n"
 mkdir -p "$BACKEND_DIR/tmp"
 (cd "$BACKEND_DIR" && node ace migration:run)
 
+printf "\n==> Seeding database...\n"
+(cd "$BACKEND_DIR" && node ace db:seed)
+
 printf "\n==> Building frontend...\n"
 (cd "$FRONTEND_DIR" && npm run build)
 
