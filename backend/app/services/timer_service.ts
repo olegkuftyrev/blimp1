@@ -1,9 +1,14 @@
-import Timer from 'timer-node'
 import Order from '#models/order'
 import WebSocketService from '#services/websocket_service'
 
+interface TimerData {
+  timeoutId: NodeJS.Timeout
+  startTime: number
+  duration: number
+}
+
 export default class TimerService {
-  private timers: Map<number, Timer> = new Map()
+  private timers: Map<number, TimerData> = new Map()
   private wsService = new WebSocketService()
 
   /**
@@ -14,27 +19,22 @@ export default class TimerService {
       // Clear existing timer if any
       this.clearTimer(orderId)
 
-      // Create new timer
-      const timer = new Timer({
-        label: `order-${orderId}`,
-        startTimestamp: Date.now()
-      })
-
-      // Store timer reference
-      this.timers.set(orderId, timer)
-
-      // Start the timer
-      timer.start()
-
-      console.log(`⏰ Started timer for order ${orderId} (${durationMinutes} minutes)`)
+      const startTime = Date.now()
+      const durationMs = durationMinutes * 60 * 1000
 
       // Set timeout to handle timer expiration
       const timeoutId = setTimeout(async () => {
         await this.handleTimerExpiration(orderId)
-      }, durationMinutes * 60 * 1000) // Convert minutes to milliseconds
-      
-      // Store timeout reference for potential cleanup
-      timer.setData('timeoutId', timeoutId)
+      }, durationMs)
+
+      // Store timer data
+      this.timers.set(orderId, {
+        timeoutId,
+        startTime,
+        duration: durationMs
+      })
+
+      console.log(`⏰ Started timer for order ${orderId} (${durationMinutes} minutes)`)
 
     } catch (error) {
       console.error(`Failed to start timer for order ${orderId}:`, error)
@@ -46,15 +46,10 @@ export default class TimerService {
    * Clear a timer for an order
    */
   clearTimer(orderId: number): void {
-    const timer = this.timers.get(orderId)
-    if (timer) {
-      timer.stop()
-      
-      // Clear the timeout if it exists
-      const timeoutId = timer.getData('timeoutId')
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
+    const timerData = this.timers.get(orderId)
+    if (timerData) {
+      // Clear the timeout
+      clearTimeout(timerData.timeoutId)
       
       this.timers.delete(orderId)
       console.log(`⏹️ Cleared timer for order ${orderId}`)
@@ -65,14 +60,15 @@ export default class TimerService {
    * Get timer status for an order
    */
   getTimerStatus(orderId: number): { isRunning: boolean; elapsed: number } | null {
-    const timer = this.timers.get(orderId)
-    if (!timer) {
+    const timerData = this.timers.get(orderId)
+    if (!timerData) {
       return null
     }
 
+    const elapsed = Date.now() - timerData.startTime
     return {
-      isRunning: timer.isRunning(),
-      elapsed: timer.time()
+      isRunning: true,
+      elapsed: elapsed
     }
   }
 
@@ -122,12 +118,13 @@ export default class TimerService {
    * Get remaining time for an order (in seconds)
    */
   getRemainingTime(orderId: number, totalDurationMinutes: number): number {
-    const timer = this.timers.get(orderId)
-    if (!timer || !timer.isRunning()) {
+    const timerData = this.timers.get(orderId)
+    if (!timerData) {
       return 0
     }
 
-    const elapsedSeconds = Math.floor(timer.time() / 1000)
+    const elapsedMs = Date.now() - timerData.startTime
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
     const totalSeconds = totalDurationMinutes * 60
     const remaining = Math.max(0, totalSeconds - elapsedSeconds)
     
