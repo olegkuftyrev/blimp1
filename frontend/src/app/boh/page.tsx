@@ -33,7 +33,7 @@ interface Order {
 export default function BOHPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState<number>(Date.now());
+  const [, setNow] = useState<number>(Date.now());
   const { joinKitchen, leaveKitchen, isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -83,7 +83,10 @@ export default function BOHPage() {
   };
 
   // WebSocket event handlers
-  const handleOrderCreated = (event: any) => {
+  type OrderEventT = { order: BackendOrder };
+  type TimerEventT = { order: BackendOrder };
+
+  const handleOrderCreated = (event: OrderEventT) => {
     console.log('📢 Order created event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => {
@@ -93,40 +96,40 @@ export default function BOHPage() {
     fetchOrders();
   };
 
-  const handleOrderUpdated = (event: any) => {
+  const handleOrderUpdated = (event: OrderEventT) => {
     console.log('📢 Order updated event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
     fetchOrders();
   };
 
-  const handleOrderCompleted = (event: any) => {
+  const handleOrderCompleted = (event: OrderEventT) => {
     console.log('📢 Order completed event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
     fetchOrders();
   };
 
-  const handleOrderDeleted = (event: any) => {
+  const handleOrderDeleted = (event: OrderEventT) => {
     console.log('🗑️ Order deleted event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.filter((o) => o.id !== order.id));
     fetchOrders();
   };
 
-  const handleAllOrdersDeleted = (_event: any) => {
+  const handleAllOrdersDeleted = () => {
     console.log('🗑️ All orders deleted event received');
     setOrders([]);
   };
 
-  const handleTimerStarted = (event: any) => {
+  const handleTimerStarted = (event: TimerEventT) => {
     console.log('⏰ Timer started event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
     fetchOrders();
   };
 
-  const handleTimerExpired = (event: any) => {
+  const handleTimerExpired = (event: TimerEventT) => {
     console.log('⏰ Timer expired event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
@@ -143,7 +146,23 @@ export default function BOHPage() {
   );
   useTimerEvents(handleTimerStarted, handleTimerExpired);
 
-  const normalizeOrder = (o: any) => {
+  type BackendOrder = {
+    id: number;
+    tableSection?: number; table_section?: number;
+    menuItemId?: number; menu_item_id?: number;
+    batchSize?: number; batch_size?: number;
+    batchNumber?: number; batch_number?: number;
+    status: string;
+    timerStart?: string; timer_start?: string;
+    timerEnd?: string; timer_end?: string;
+    completedAt?: string; completed_at?: string;
+    createdAt?: string; created_at?: string;
+    updatedAt?: string; updated_at?: string;
+    menuItem?: Order['menuItem'];
+    menu_item?: Order['menuItem'];
+  };
+
+  const normalizeOrder = (o: BackendOrder) => {
     const menuItem = o.menuItem || o.menu_item || undefined;
     return {
       id: o.id,

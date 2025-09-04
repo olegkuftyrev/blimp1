@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
+import Link from 'next/link'
 
 interface MenuItem {
   id: number;
@@ -18,14 +19,29 @@ interface MenuItem {
   status: string;
 }
 
+interface Order {
+  id: number;
+  tableSection: number;
+  menuItemId: number | undefined;
+  batchSize: number;
+  batchNumber: number;
+  status: string;
+  timerStart?: string;
+  timerEnd?: string;
+  completedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  menuItem?: MenuItem;
+}
+
 export default function TableSection() {
   const params = useParams();
   const tableId = params.id as string;
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [sentOrders, setSentOrders] = useState<Record<string, boolean>>({}); // ✅ FIX: add missing state
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [, setSentOrders] = useState<Record<string, boolean>>({});
 
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
@@ -115,7 +131,24 @@ export default function TableSection() {
   };
 
   // WebSocket event handlers
-  const handleOrderCreated = (event: any) => {
+  type BackendOrder = {
+    id: number;
+    tableSection?: number; table_section?: number;
+    menuItemId?: number; menu_item_id?: number;
+    batchSize?: number; batch_size?: number;
+    batchNumber?: number; batch_number?: number;
+    status: string;
+    timerStart?: string; timer_start?: string;
+    timerEnd?: string; timer_end?: string;
+    completedAt?: string; completed_at?: string;
+    createdAt?: string; created_at?: string;
+    updatedAt?: string; updated_at?: string;
+    menuItem?: MenuItem; menu_item?: MenuItem;
+  };
+  type OrderEventT = { order: BackendOrder };
+  type TimerEventT = { order: BackendOrder };
+
+  const handleOrderCreated = (event: OrderEventT) => {
     console.log('📢 Order created event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
@@ -127,7 +160,7 @@ export default function TableSection() {
     }
   };
 
-  const handleOrderUpdated = (event: any) => {
+  const handleOrderUpdated = (event: OrderEventT) => {
     console.log('📢 Order updated event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
@@ -136,7 +169,7 @@ export default function TableSection() {
     }
   };
 
-  const handleOrderCompleted = (event: any) => {
+  const handleOrderCompleted = (event: OrderEventT) => {
     console.log('📢 Order completed event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
@@ -145,7 +178,7 @@ export default function TableSection() {
     }
   };
 
-  const handleOrderDeleted = (event: any) => {
+  const handleOrderDeleted = (event: OrderEventT) => {
     console.log('🗑️ Order deleted event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
@@ -168,13 +201,13 @@ export default function TableSection() {
     fetchOrders();
   };
 
-  const handleAllOrdersDeleted = (_event: any) => {
+  const handleAllOrdersDeleted = () => {
     console.log('🗑️ All orders deleted event received');
     setOrders([]);
     // Timer management handled by backend
   };
 
-  const handleTimerStarted = (event: any) => {
+  const handleTimerStarted = (event: TimerEventT) => {
     console.log('⏰ Timer started event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
@@ -182,7 +215,7 @@ export default function TableSection() {
     }
   };
 
-  const handleTimerExpired = (event: any) => {
+  const handleTimerExpired = (event: TimerEventT) => {
     console.log('⏰ Timer expired event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
@@ -220,19 +253,22 @@ export default function TableSection() {
     return 1;
   };
 
-  const normalizeOrder = (o: any) => {
-    const menuItem = o.menuItem || o.menu_item || undefined;
+  const normalizeOrder = (o: BackendOrder) => {
+    const menuItem = o.menuItem || (o as any).menu_item || undefined;
     return {
       id: o.id,
-      tableSection: o.tableSection ?? o.table_section,
-      menuItemId: o.menuItemId ?? o.menu_item_id ?? (menuItem ? menuItem.id : undefined),
-      batchSize: o.batchSize ?? o.batch_size,
+      tableSection: o.tableSection ?? o.table_section!,
+      menuItemId: o.menuItemId ?? o.menu_item_id ?? (menuItem ? (menuItem as MenuItem).id : undefined),
+      batchSize: o.batchSize ?? o.batch_size!,
       batchNumber: o.batchNumber ?? o.batch_number ?? 1,
       status: o.status,
       timerStart: o.timerStart ?? o.timer_start,
       timerEnd: o.timerEnd ?? o.timer_end,
+      completedAt: o.completedAt ?? o.completed_at,
+      createdAt: o.createdAt ?? o.created_at,
+      updatedAt: o.updatedAt ?? o.updated_at,
       menuItem,
-    } as any;
+    } as Order;
   };
 
   const getCookingTime = (order: any) => {
@@ -562,12 +598,12 @@ export default function TableSection() {
         </div>
 
         <div className="mt-8 text-center">
-          <a
+          <Link
             href="/"
             className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg text-lg font-medium transition-colors"
           >
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>
