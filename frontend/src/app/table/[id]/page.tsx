@@ -254,7 +254,7 @@ export default function TableSection() {
   };
 
   const normalizeOrder = (o: BackendOrder) => {
-    const menuItem = o.menuItem || (o as any).menu_item || undefined;
+    const menuItem = o.menuItem || o.menu_item || undefined;
     return {
       id: o.id,
       tableSection: o.tableSection ?? o.table_section!,
@@ -271,7 +271,7 @@ export default function TableSection() {
     } as Order;
   };
 
-  const getCookingTime = (order: any) => {
+  const getCookingTime = (order: Order) => {
     const menuItem = order.menuItem;
     const batchNumber = order.batchNumber;
     if (!menuItem) return 0;
@@ -281,7 +281,7 @@ export default function TableSection() {
     return menuItem.cookingTimeBatch1;
   };
 
-  const getRemainingTime = (order: any) => {
+  const getRemainingTime = (order: Order) => {
     if (order.status !== 'cooking' || !order.timerEnd) return null;
     const now = new Date().getTime();
     const endTime = new Date(order.timerEnd).getTime();
@@ -374,22 +374,23 @@ export default function TableSection() {
 
   const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-  const findOrderFor = async (menuItemId: number, batchSizeCount: number) => {
+  const findOrderFor = async (menuItemId: number, batchSizeCount: number): Promise<Order | null> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
     const table = parseInt(tableId);
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const resp = await fetch(`${apiUrl}/api/orders`);
         const json = await resp.json();
-        const list = Array.isArray(json.data) ? json.data : [];
-        const found = list.find(
-          (o: any) => o.tableSection === table && o.menuItemId === menuItemId && o.batchSize === batchSizeCount
+        const list: BackendOrder[] = Array.isArray(json.data) ? (json.data as BackendOrder[]) : [];
+        const normalized: Order[] = list.map(normalizeOrder);
+        const found = normalized.find(
+          (o) => o.tableSection === table && o.menuItemId === menuItemId && o.batchSize === batchSizeCount
         );
         if (found) return found;
       } catch {}
       await sleep(250);
     }
-    return null as any;
+    return null;
   };
 
   const deleteAllOrders = async () => {

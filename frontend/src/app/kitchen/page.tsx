@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
+import Link from 'next/link'
 
 interface Order {
   id: number;
@@ -316,12 +317,12 @@ export default function Kitchen() {
         )}
         
         <div className="mt-8 text-center">
-          <a 
+          <Link 
             href="/" 
             className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg text-lg font-medium transition-colors"
           >
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>
