@@ -10,11 +10,13 @@ interface Order {
   tableSection: number;
   menuItemId: number;
   batchSize: number;
-  batchNumber: number;
+  batchNumber?: number;
   status: string;
-  timerStart: string | null;
-  timerEnd: string | null;
-  completedAt: string | null;
+  timerStart?: string | null;
+  timerEnd?: string | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   menuItem: {
     id: number;
     itemTitle: string;
@@ -27,6 +29,7 @@ interface Order {
 export default function Kitchen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [, setNow] = useState<number>(Date.now());
   
   const { isConnected, joinKitchen, leaveKitchen } = useWebSocket();
 
@@ -45,6 +48,15 @@ export default function Kitchen() {
     };
   }, [isConnected, joinKitchen, leaveKitchen]);
 
+  // Live tick to update remaining time while any order is cooking
+  useEffect(() => {
+    const hasCooking = orders.some((o) => o.status === 'cooking' && o.timerEnd);
+    if (!hasCooking) return;
+
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [orders]);
+
   // WebSocket event handlers
   useOrderEvents(
     // onOrderCreated
@@ -55,7 +67,7 @@ export default function Kitchen() {
         tableSection: event.order.tableSection,
         menuItemId: event.order.menuItemId,
         batchSize: event.order.batchSize,
-        batchNumber: event.order.batchNumber || 1,
+        batchNumber: (event.order as any).batchNumber || 1,
         status: event.order.status,
         timerStart: event.order.timerStart || null,
         timerEnd: event.order.timerEnd || null,
@@ -80,7 +92,7 @@ export default function Kitchen() {
         tableSection: event.order.tableSection,
         menuItemId: event.order.menuItemId,
         batchSize: event.order.batchSize,
-        batchNumber: event.order.batchNumber || 1,
+        batchNumber: (event.order as any).batchNumber || 1,
         status: event.order.status,
         timerStart: event.order.timerStart || null,
         timerEnd: event.order.timerEnd || null,
@@ -105,7 +117,7 @@ export default function Kitchen() {
         tableSection: event.order.tableSection,
         menuItemId: event.order.menuItemId,
         batchSize: event.order.batchSize,
-        batchNumber: event.order.batchNumber || 1,
+        batchNumber: (event.order as any).batchNumber || 1,
         status: event.order.status,
         timerStart: event.order.timerStart || null,
         timerEnd: event.order.timerEnd || null,
@@ -219,7 +231,8 @@ export default function Kitchen() {
       });
       
       if (response.ok) {
-        fetchOrders(); // Refresh orders to get updated status
+        // Timer will be updated via WebSocket events
+        console.log('Timer started successfully');
       } else {
         alert('Failed to start timer');
       }
@@ -241,7 +254,7 @@ export default function Kitchen() {
       
       if (response.ok) {
         alert('Order completed!');
-        fetchOrders(); // Refresh orders
+        // Order will be updated via WebSocket events
       } else {
         alert('Failed to complete order');
       }
@@ -262,7 +275,8 @@ export default function Kitchen() {
       });
       
       if (response.ok) {
-        fetchOrders(); // Refresh orders
+        // Order will be updated via WebSocket events
+        console.log('Order deleted successfully');
       }
     } catch (error) {
       console.error('Error deleting order:', error);
