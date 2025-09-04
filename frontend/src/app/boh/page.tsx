@@ -84,7 +84,29 @@ export default function BOHPage() {
 
   // WebSocket event handlers
   type OrderEventT = { order: BackendOrder };
-  type TimerEventT = { order: BackendOrder };
+  type TimerEventT = { 
+    order: {
+      id: number;
+      tableSection?: number; table_section?: number;
+      menuItemId?: number; menu_item_id?: number;
+      batchSize?: number; batch_size?: number;
+      batchNumber?: number; batch_number?: number;
+      status: string;
+      timerStart?: string; timer_start?: string;
+      timerEnd?: string; timer_end?: string;
+      completedAt?: string; completed_at?: string;
+      createdAt?: string; created_at?: string;
+      updatedAt?: string; updated_at?: string;
+      menuItem?: {
+        id: number;
+        itemTitle: string;
+      };
+      menu_item?: {
+        id: number;
+        itemTitle: string;
+      };
+    }
+  };
 
   const handleOrderCreated = (event: OrderEventT) => {
     console.log('📢 Order created event received:', event);
@@ -93,28 +115,24 @@ export default function BOHPage() {
       if (prev.some((o) => o.id === order.id)) return prev.map((o) => (o.id === order.id ? order : o));
       return [...prev, order];
     });
-    fetchOrders();
   };
 
   const handleOrderUpdated = (event: OrderEventT) => {
     console.log('📢 Order updated event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
-    fetchOrders();
   };
 
   const handleOrderCompleted = (event: OrderEventT) => {
     console.log('📢 Order completed event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
-    fetchOrders();
   };
 
   const handleOrderDeleted = (event: OrderEventT) => {
     console.log('🗑️ Order deleted event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.filter((o) => o.id !== order.id));
-    fetchOrders();
   };
 
   const handleAllOrdersDeleted = () => {
@@ -126,14 +144,12 @@ export default function BOHPage() {
     console.log('⏰ Timer started event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
-    fetchOrders();
   };
 
   const handleTimerExpired = (event: TimerEventT) => {
     console.log('⏰ Timer expired event received:', event);
     const order = normalizeOrder(event.order);
     setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
-    fetchOrders();
   };
 
   // Subscribe to WebSocket events
@@ -162,7 +178,7 @@ export default function BOHPage() {
     menu_item?: Order['menuItem'];
   };
 
-  const normalizeOrder = (o: BackendOrder) => {
+  const normalizeOrder = (o: BackendOrder | TimerEventT['order']) => {
     const menuItem = o.menuItem || o.menu_item || undefined;
     return {
       id: o.id,
@@ -176,7 +192,18 @@ export default function BOHPage() {
       completedAt: o.completedAt ?? o.completed_at,
       createdAt: o.createdAt ?? o.created_at,
       updatedAt: o.updatedAt ?? o.updated_at,
-      menuItem,
+      menuItem: menuItem || {
+        id: 0,
+        itemTitle: 'Unknown Item',
+        batchBreakfast: 0,
+        batchLunch: 0,
+        batchDowntime: 0,
+        batchDinner: 0,
+        cookingTimeBatch1: 0,
+        cookingTimeBatch2: 0,
+        cookingTimeBatch3: 0,
+        status: 'active'
+      },
     } as Order;
   };
 

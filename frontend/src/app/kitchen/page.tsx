@@ -50,17 +50,77 @@ export default function Kitchen() {
     // onOrderCreated
     (event) => {
       console.log('New order created:', event.order);
-      fetchOrders(); // Refresh orders list
+      const newOrder: Order = {
+        id: event.order.id,
+        tableSection: event.order.tableSection,
+        menuItemId: event.order.menuItemId,
+        batchSize: event.order.batchSize,
+        batchNumber: event.order.batchNumber || 1,
+        status: event.order.status,
+        timerStart: event.order.timerStart || null,
+        timerEnd: event.order.timerEnd || null,
+        completedAt: event.order.completedAt || null,
+        createdAt: event.order.createdAt,
+        updatedAt: event.order.updatedAt,
+        menuItem: {
+          id: event.order.menuItem.id,
+          itemTitle: event.order.menuItem.itemTitle,
+          cookingTimeBatch1: event.order.menuItem.cookingTimeBatch1,
+          cookingTimeBatch2: event.order.menuItem.cookingTimeBatch2,
+          cookingTimeBatch3: event.order.menuItem.cookingTimeBatch3,
+        }
+      };
+      setOrders(prev => [...prev, newOrder]);
     },
     // onOrderUpdated
     (event) => {
       console.log('Order updated:', event.order);
-      fetchOrders(); // Refresh orders list
+      const updatedOrder: Order = {
+        id: event.order.id,
+        tableSection: event.order.tableSection,
+        menuItemId: event.order.menuItemId,
+        batchSize: event.order.batchSize,
+        batchNumber: event.order.batchNumber || 1,
+        status: event.order.status,
+        timerStart: event.order.timerStart || null,
+        timerEnd: event.order.timerEnd || null,
+        completedAt: event.order.completedAt || null,
+        createdAt: event.order.createdAt,
+        updatedAt: event.order.updatedAt,
+        menuItem: {
+          id: event.order.menuItem.id,
+          itemTitle: event.order.menuItem.itemTitle,
+          cookingTimeBatch1: event.order.menuItem.cookingTimeBatch1,
+          cookingTimeBatch2: event.order.menuItem.cookingTimeBatch2,
+          cookingTimeBatch3: event.order.menuItem.cookingTimeBatch3,
+        }
+      };
+      setOrders(prev => prev.map(order => order.id === updatedOrder.id ? updatedOrder : order));
     },
     // onOrderCompleted
     (event) => {
       console.log('Order completed:', event.order);
-      fetchOrders(); // Refresh orders list
+      const completedOrder: Order = {
+        id: event.order.id,
+        tableSection: event.order.tableSection,
+        menuItemId: event.order.menuItemId,
+        batchSize: event.order.batchSize,
+        batchNumber: event.order.batchNumber || 1,
+        status: event.order.status,
+        timerStart: event.order.timerStart || null,
+        timerEnd: event.order.timerEnd || null,
+        completedAt: event.order.completedAt || null,
+        createdAt: event.order.createdAt,
+        updatedAt: event.order.updatedAt,
+        menuItem: {
+          id: event.order.menuItem.id,
+          itemTitle: event.order.menuItem.itemTitle,
+          cookingTimeBatch1: event.order.menuItem.cookingTimeBatch1,
+          cookingTimeBatch2: event.order.menuItem.cookingTimeBatch2,
+          cookingTimeBatch3: event.order.menuItem.cookingTimeBatch3,
+        }
+      };
+      setOrders(prev => prev.map(order => order.id === completedOrder.id ? completedOrder : order));
     },
     // onAllOrdersDeleted
     (event) => {
@@ -73,12 +133,36 @@ export default function Kitchen() {
     // onTimerStarted
     (event) => {
       console.log('Timer started for order:', event.order.id);
-      fetchOrders(); // Refresh orders list
+      const updatedOrder: Order = {
+        id: event.order.id,
+        tableSection: event.order.tableSection,
+        menuItemId: event.order.menuItemId,
+        batchSize: event.order.batchSize,
+        batchNumber: 1, // Timer events don't include batchNumber, default to 1
+        status: event.order.status,
+        timerStart: event.order.timerStart || null,
+        timerEnd: event.order.timerEnd || null,
+        completedAt: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        menuItem: {
+          id: event.order.menuItem.id,
+          itemTitle: event.order.menuItem.itemTitle,
+          cookingTimeBatch1: 0,
+          cookingTimeBatch2: 0,
+          cookingTimeBatch3: 0,
+        }
+      };
+      setOrders(prev => prev.map(order => order.id === updatedOrder.id ? updatedOrder : order));
     },
     // onTimerExpired
     (event) => {
       console.log('Timer expired for order:', event.order.id);
-      fetchOrders(); // Refresh orders list
+      setOrders(prev => prev.map(order => 
+        order.id === event.order.id 
+          ? { ...order, status: 'timer_expired' }
+          : order
+      ));
     }
   );
 
