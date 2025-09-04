@@ -199,14 +199,16 @@ export default function BOHPage() {
   const completeOrder = async (orderId: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/complete`, {
-        method: 'POST',
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
         const error = await response.json();
         alert(`Failed to complete order: ${error.message || 'Unknown error'}`);
+      } else {
+        console.log('✅ Order completed and deleted successfully');
       }
     } catch (error) {
       console.error('Error completing order:', error);
@@ -282,8 +284,7 @@ export default function BOHPage() {
                         <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${
                           order.status === 'pending' ? 'bg-yellow-500' :
                           order.status === 'cooking' ? 'bg-blue-500' :
-                          order.status === 'timer_expired' ? 'bg-red-500' :
-                          order.status === 'ready' ? 'bg-green-500' : 'bg-gray-500'
+                          order.status === 'timer_expired' ? 'bg-red-500' : 'bg-gray-500'
                         }`}>
                           {order.status}
                         </span>
