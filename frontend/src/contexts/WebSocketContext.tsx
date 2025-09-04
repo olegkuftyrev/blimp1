@@ -23,11 +23,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
-    // Initialize Socket.IO connection
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3333'
+    // Use same-origin so Next.js rewrites can proxy to backend
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || '/'
     const newSocket = io(wsUrl, {
+      path: '/socket.io',
       transports: ['websocket', 'polling'],
-      autoConnect: true
+      autoConnect: true,
     })
 
     newSocket.on('connect', () => {
@@ -47,7 +48,6 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
     setSocket(newSocket)
 
-    // Cleanup on unmount
     return () => {
       newSocket.close()
     }
@@ -87,14 +87,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     joinTable,
     joinKitchen,
     leaveTable,
-    leaveKitchen
+    leaveKitchen,
   }
 
-  return (
-    <WebSocketContext.Provider value={value}>
-      {children}
-    </WebSocketContext.Provider>
-  )
+  return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>
 }
 
 export function useWebSocket() {
