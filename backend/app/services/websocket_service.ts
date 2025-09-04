@@ -18,7 +18,8 @@ export default class WebSocketService {
     })
 
     // Notify specific table
-    this.io.to(`table:${order.table_section}`).emit('order:created', {
+    const table = (order as any).table_section ?? (order as any).tableSection
+    this.io.to(`table:${table}`).emit('order:created', {
       order,
       timestamp: new Date().toISOString()
     })
@@ -37,7 +38,8 @@ export default class WebSocketService {
     })
 
     // Notify specific table
-    this.io.to(`table:${order.table_section}`).emit('order:updated', {
+    const table = (order as any).table_section ?? (order as any).tableSection
+    this.io.to(`table:${table}`).emit('order:updated', {
       order,
       timestamp: new Date().toISOString()
     })
@@ -56,7 +58,8 @@ export default class WebSocketService {
     })
 
     // Notify specific table
-    this.io.to(`table:${order.table_section}`).emit('timer:started', {
+    const table = (order as any).table_section ?? (order as any).tableSection
+    this.io.to(`table:${table}`).emit('timer:started', {
       order,
       timestamp: new Date().toISOString()
     })
@@ -75,7 +78,8 @@ export default class WebSocketService {
     })
 
     // Notify specific table
-    this.io.to(`table:${order.table_section}`).emit('timer:expired', {
+    const table = (order as any).table_section ?? (order as any).tableSection
+    this.io.to(`table:${table}`).emit('timer:expired', {
       order,
       timestamp: new Date().toISOString()
     })
@@ -94,7 +98,8 @@ export default class WebSocketService {
     })
 
     // Notify specific table
-    this.io.to(`table:${order.table_section}`).emit('order:completed', {
+    const table = (order as any).table_section ?? (order as any).tableSection
+    this.io.to(`table:${table}`).emit('order:completed', {
       order,
       timestamp: new Date().toISOString()
     })
@@ -113,7 +118,8 @@ export default class WebSocketService {
     })
 
     // Notify specific table
-    this.io.to(`table:${order.table_section}`).emit('order:deleted', {
+    const table = (order as any).table_section ?? (order as any).tableSection
+    this.io.to(`table:${table}`).emit('order:deleted', {
       order,
       timestamp: new Date().toISOString()
     })

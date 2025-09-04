@@ -33,6 +33,7 @@ interface Order {
 export default function BOHPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState<number>(Date.now());
   const { joinKitchen, leaveKitchen, isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -49,13 +50,24 @@ export default function BOHPage() {
     };
   }, [isConnected, joinKitchen, leaveKitchen]);
 
-  // Fallback polling: refresh orders every 2 seconds
+  // Fallback polling: refresh orders every 2 seconds only if WebSocket is not connected
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!isConnected) {
+      const interval = setInterval(() => {
+        fetchOrders();
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isConnected]);
+
+  // Live tick to update remaining time while any order is cooking
+  useEffect(() => {
+    const hasCooking = orders.some((o) => o.status === 'cooking' && o.timerEnd);
+    if (!hasCooking) return;
+
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [orders]);
 
   const fetchOrders = async () => {
     try {
@@ -308,7 +320,7 @@ export default function BOHPage() {
                           order.status === 'cooking' ? 'bg-blue-500' :
                           order.status === 'timer_expired' ? 'bg-red-500' : 'bg-gray-500'
                         }`}>
-                          {order.status}
+                          {order.status === 'timer_expired' ? 'Saucing!' : order.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 font-mono">
