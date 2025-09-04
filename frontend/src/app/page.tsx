@@ -37,6 +37,12 @@ export default function Home() {
           >
             BoH Screen
           </Link>
+          <Link 
+            href="/boh" 
+            className="block bg-purple-500 hover:bg-purple-600 text-white text-center py-4 px-6 rounded-lg text-xl font-medium transition-colors"
+          >
+            BOH Page
+          </Link>
         </div>
 
         <div className="mt-12 text-center">

@@ -21,21 +21,22 @@ interface MenuItem {
 export default function TableSection() {
   const params = useParams();
   const tableId = params.id as string;
+
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
+  const [sentOrders, setSentOrders] = useState<Record<string, boolean>>({}); // ✅ FIX: add missing state
+
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
   useEffect(() => {
     fetchMenuItems();
     fetchOrders();
-    
-    // Join table room when component mounts
+
     if (isConnected) {
       joinTable(parseInt(tableId));
     }
-    
-    // Cleanup: leave table room when component unmounts
+
     return () => {
       leaveTable(parseInt(tableId));
     };
@@ -49,45 +50,47 @@ export default function TableSection() {
     return () => clearInterval(interval);
   }, [tableId]);
 
-
   const fetchMenuItems = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/menu-items`);
       const data = await response.json();
-      
+
       // Filter menu items based on table ID
       let filteredItems = data.data;
       if (tableId === '1') {
-        // Table 1 should only show: C3, F4, B3, M1, R1
-        filteredItems = data.data.filter((item: MenuItem) => 
-          item.itemTitle.includes('C3 Kung Pao Chicken') ||
-          item.itemTitle.includes('F4 Honey Walnut Shrimp') ||
-          item.itemTitle.includes('B3 Black Pepper Sirloin Steak') ||
-          item.itemTitle.includes('M1 Show Mein') ||
-          item.itemTitle.includes('V1 Super Greens') ||
-          item.itemTitle.includes('R1 Fried Rice')
+        // Table 1 should only show: C3, F4, B3, M1, R1 (and V1 if you intended it)
+        filteredItems = data.data.filter(
+          (item: MenuItem) =>
+            item.itemTitle.includes('C3 Kung Pao Chicken') ||
+            item.itemTitle.includes('F4 Honey Walnut Shrimp') ||
+            item.itemTitle.includes('B3 Black Pepper Sirloin Steak') ||
+            item.itemTitle.includes('M1 Chow Mein') || // 🛠️ “Chow” not “Show”
+            item.itemTitle.includes('V1 Super Greens') ||
+            item.itemTitle.includes('R1 Fried Rice')
         );
       } else if (tableId === '2') {
         // Table 2 should only show: CB1, C1, C2, B5, B1, CB3
-        filteredItems = data.data.filter((item: MenuItem) => 
-          item.itemTitle.includes('CB1 String Bean Chicken Breast') ||
-          item.itemTitle.includes('C1 Orange Chicken') ||
-          item.itemTitle.includes('C2 Mushroom Chicken') ||
-          item.itemTitle.includes('B5 Beijing Beef') ||
-          item.itemTitle.includes('B1 Broccoli Beef') ||
-          item.itemTitle.includes('CB3 Honey Sesame Chicken Breast')
+        filteredItems = data.data.filter(
+          (item: MenuItem) =>
+            item.itemTitle.includes('CB1 String Bean Chicken Breast') ||
+            item.itemTitle.includes('C1 Orange Chicken') ||
+            item.itemTitle.includes('C2 Mushroom Chicken') ||
+            item.itemTitle.includes('B5 Beijing Beef') ||
+            item.itemTitle.includes('B1 Broccoli Beef') ||
+            item.itemTitle.includes('CB3 Honey Sesame Chicken Breast')
         );
       } else if (tableId === '3') {
-        // Table 3 should only show: E2, E3, E1, C4, V1
-        filteredItems = data.data.filter((item: MenuItem) => 
-          item.itemTitle.includes('E2 Chicken Egg Roll') ||
-          item.itemTitle.includes('E3 Cream Cheese Rangoons') ||
-          item.itemTitle.includes('E1 Veggie Spring Rolls') ||
-          item.itemTitle.includes('C4 Grilled Teriyaki Chicken')
+        // Table 3 should only show: E2, E3, E1, C4
+        filteredItems = data.data.filter(
+          (item: MenuItem) =>
+            item.itemTitle.includes('E2 Chicken Egg Roll') ||
+            item.itemTitle.includes('E3 Cream Cheese Rangoons') ||
+            item.itemTitle.includes('E1 Veggie Spring Rolls') ||
+            item.itemTitle.includes('C4 Grilled Teriyaki Chicken')
         );
       }
-      
+
       setMenuItems(filteredItems);
       setLoading(false);
     } catch (error) {
@@ -98,12 +101,11 @@ export default function TableSection() {
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/orders`);
       const data = await response.json();
       setOrders(data.data);
-      
-      // Timer management is now handled by backend
+      // Timer management is handled by backend
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
@@ -114,12 +116,10 @@ export default function TableSection() {
     console.log('📢 Order created event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      setOrders(prev => {
-        // avoid duplicates
+      setOrders((prev) => {
         if (prev.some((o) => o.id === ord.id)) return prev.map((o) => (o.id === ord.id ? ord : o));
         return [...prev, ord];
       });
-      // Ensure full sync
       fetchOrders();
     }
   };
@@ -128,9 +128,7 @@ export default function TableSection() {
     console.log('📢 Order updated event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      setOrders(prev => prev.map(order => (order.id === ord.id ? ord : order)));
-      // Timer management is now handled by backend
-      // Ensure full sync
+      setOrders((prev) => prev.map((order) => (order.id === ord.id ? ord : order)));
       fetchOrders();
     }
   };
@@ -139,9 +137,7 @@ export default function TableSection() {
     console.log('📢 Order completed event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      setOrders(prev => prev.map(order => (order.id === ord.id ? ord : order)));
-      // Timer management is now handled by backend
-      // Ensure full sync
+      setOrders((prev) => prev.map((order) => (order.id === ord.id ? ord : order)));
       fetchOrders();
     }
   };
@@ -150,40 +146,35 @@ export default function TableSection() {
     console.log('🗑️ Order deleted event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      // Remove order from local state
-      setOrders(prev => prev.filter(order => order.id !== ord.id));
-      
-      // Clear sent state for this order
-      const order = ord;
-      const menuItem = menuItems.find(item => item.id === order.menuItemId);
-      if (menuItem) {
-        const batchNumber = getBatchNumberFromSize(menuItem, order.batchSize);
-        const key = `${order.menuItemId}-${batchNumber}`;
-        setSentOrders(prev => {
-          const newState = { ...prev };
-          // Clear precise key
-          delete newState[key];
-          // Extra safety: clear all batch keys for this menu item to ensure reset
-          delete newState[`${order.menuItemId}-1`];
-          delete newState[`${order.menuItemId}-2`];
-          delete newState[`${order.menuItemId}-3`];
-          return newState;
-        });
-      }
-      
-      // Timer management is now handled by backend
+      setOrders((prev) => prev.filter((order) => order.id !== ord.id));
 
-      // Final safeguard: resync from server to ensure full consistency
-      fetchOrders();
+      // Clear sent state for this order/batches
+      const order = ord;
+      const batchNumber = order.batchNumber || 1;
+      const key = `${order.menuItemId}-${batchNumber}`;
+      setSentOrders((prev) => {
+        const newState = { ...prev };
+        delete newState[key];
+        delete newState[`${order.menuItemId}-1`];
+        delete newState[`${order.menuItemId}-2`];
+        delete newState[`${order.menuItemId}-3`];
+        return newState;
+      });
     }
+    // Final safeguard
+    fetchOrders();
+  };
+
+  const handleAllOrdersDeleted = (_event: any) => {
+    console.log('🗑️ All orders deleted event received');
+    setOrders([]);
+    // Timer management handled by backend
   };
 
   const handleTimerStarted = (event: any) => {
     console.log('⏰ Timer started event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      // Timer management is now handled by backend
-      // Ensure full sync
       fetchOrders();
     }
   };
@@ -192,22 +183,19 @@ export default function TableSection() {
     console.log('⏰ Timer expired event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      // Timer management is now handled by backend
-      // Ensure full sync
       fetchOrders();
     }
   };
 
-  const handleAllOrdersDeleted = (event: any) => {
-    console.log('🗑️ All orders deleted event received:', event);
-    setOrders([]);
-    // Timer management is now handled by backend
-  };
-
   // Subscribe to WebSocket events
-  useOrderEvents(handleOrderCreated, handleOrderUpdated, handleOrderCompleted, handleOrderDeleted, handleAllOrdersDeleted);
+  useOrderEvents(
+    handleOrderCreated,
+    handleOrderUpdated,
+    handleOrderCompleted,
+    handleOrderDeleted,
+    handleAllOrdersDeleted
+  );
   useTimerEvents(handleTimerStarted, handleTimerExpired);
-
 
   const getBatchSize = (menuItem: MenuItem, batchNumber: number) => {
     switch (batchNumber) {
@@ -222,16 +210,13 @@ export default function TableSection() {
     }
   };
 
-  // Derive batchNumber (1|2|3) from an order's batchSize count for a given menu item
   const getBatchNumberFromSize = (menuItem: MenuItem, batchSizeCount: number) => {
     if (batchSizeCount === menuItem.batchBreakfast) return 1;
     if (batchSizeCount === menuItem.batchLunch) return 2;
     if (batchSizeCount === menuItem.batchDinner) return 3;
-    // Fallback to 1
     return 1;
   };
 
-  // Normalize order object from WebSocket events (snake_case vs camelCase)
   const normalizeOrder = (o: any) => {
     const menuItem = o.menuItem || o.menu_item || undefined;
     return {
@@ -239,6 +224,7 @@ export default function TableSection() {
       tableSection: o.tableSection ?? o.table_section,
       menuItemId: o.menuItemId ?? o.menu_item_id ?? (menuItem ? menuItem.id : undefined),
       batchSize: o.batchSize ?? o.batch_size,
+      batchNumber: o.batchNumber ?? o.batch_number ?? 1,
       status: o.status,
       timerStart: o.timerStart ?? o.timer_start,
       timerEnd: o.timerEnd ?? o.timer_end,
@@ -246,29 +232,23 @@ export default function TableSection() {
     } as any;
   };
 
-
-  // Map batch size count to the correct cooking time (in minutes)
   const getCookingTime = (order: any) => {
     const menuItem = order.menuItem;
-    const count = order.batchSize;
+    const batchNumber = order.batchNumber;
     if (!menuItem) return 0;
-    if (count === menuItem.batchBreakfast) return menuItem.cookingTimeBatch1;
-    if (count === menuItem.batchLunch) return menuItem.cookingTimeBatch2;
-    if (count === menuItem.batchDinner) return menuItem.cookingTimeBatch3;
-    // Fallback
+    if (batchNumber === 1) return menuItem.cookingTimeBatch1;
+    if (batchNumber === 2) return menuItem.cookingTimeBatch2;
+    if (batchNumber === 3) return menuItem.cookingTimeBatch3;
     return menuItem.cookingTimeBatch1;
   };
 
   const getRemainingTime = (order: any) => {
     if (order.status !== 'cooking' || !order.timerEnd) return null;
-    
     const now = new Date().getTime();
     const endTime = new Date(order.timerEnd).getTime();
     const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-    
     return remaining;
   };
-
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -290,11 +270,11 @@ export default function TableSection() {
   };
 
   const createOrder = async (menuItemId: number, batchNumber: number) => {
-    const menuItem = menuItems.find(item => item.id === menuItemId);
+    const menuItem = menuItems.find((item) => item.id === menuItemId);
     if (!menuItem) return;
     const batchSize = getBatchSize(menuItem, batchNumber);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -302,42 +282,34 @@ export default function TableSection() {
           tableSection: parseInt(tableId),
           menuItemId: menuItemId,
           batchSize: batchSize,
+          batchNumber: batchNumber,
         }),
       });
       if (!response.ok) alert('Failed to create order');
-      // UI will update via WebSocket order:created
+      // UI updates via WebSocket
     } catch (error) {
       console.error('Error creating order:', error);
       alert('Error creating order');
     }
   };
 
-  const deleteOrder = async (orderId: number, menuItemId: number, batchSizeCount: number) => {
+  const deleteOrder = async (orderId: number, menuItemId: number, batchNumber: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (response.ok) {
-        // Clear sent state for this specific order using derived batchNumber key
-        const menuItem = menuItems.find((m) => m.id === menuItemId);
-        const batchNumber = menuItem ? getBatchNumberFromSize(menuItem, batchSizeCount) : 1;
         const key = `${menuItemId}-${batchNumber}`;
-        setSentOrders(prev => {
+        setSentOrders((prev) => {
           const newState = { ...prev };
           delete newState[key];
           return newState;
         });
-        
-        // Optimistically remove order from local list so the delete icon disappears immediately
-        setOrders(prev => prev.filter(o => o.id !== orderId));
 
-        // Timer management is now handled by backend
-        
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
         console.log('🗑️ Order deleted successfully');
       }
     } catch (error) {
@@ -345,29 +317,24 @@ export default function TableSection() {
     }
   };
 
-  // Delete by batch when we might not yet have the order in local state
   const deleteOrderByBatch = async (menuItem: MenuItem, batchNumber: number) => {
     const batchSizeCount = getBatchSize(menuItem, batchNumber);
     const key = `${menuItem.id}-${batchNumber}`;
 
-    // Optimistically clear "Waiting" immediately
     setSentOrders((prev) => {
       const next = { ...prev };
       delete next[key];
       return next;
     });
 
-    // Resolve order id by querying server with retries to handle race with create
     const current = await findOrderFor(menuItem.id, batchSizeCount);
     if (current) {
-      await deleteOrder(current.id, menuItem.id, batchSizeCount);
+      await deleteOrder(current.id, menuItem.id, current.batchNumber || 1);
     }
   };
 
-  // Utility: small delay
   const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-  // Find order by criteria with short retry loop to handle eventual sync
   const findOrderFor = async (menuItemId: number, batchSizeCount: number) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
     const table = parseInt(tableId);
@@ -387,19 +354,15 @@ export default function TableSection() {
   };
 
   const deleteAllOrders = async () => {
-    if (!confirm('Are you sure you want to delete ALL orders? This action cannot be undone.')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete ALL orders? This action cannot be undone.')) return;
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         console.log('🗑️ All orders deleted successfully:', result);
@@ -426,27 +389,19 @@ export default function TableSection() {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800">
-              Table Section {tableId}
-            </h1>
-            <div className="mt-2 text-lg text-gray-600">
-              Current Time: {new Date().toLocaleTimeString()}
-            </div>
+            <h1 className="text-4xl font-bold text-gray-800">Table Section {tableId}</h1>
+            <div className="mt-2 text-lg text-gray-600">Current Time: {new Date().toLocaleTimeString()}</div>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-sm text-gray-600">
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
+            <span className="text-sm text-gray-600">{isConnected ? 'Connected' : 'Disconnected'}</span>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {menuItems.map((item) => (
             <div key={item.id} className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-semibold mb-2 text-center text-gray-800">
-                {item.itemTitle}
-              </h3>
+              <h3 className="text-2xl font-semibold mb-2 text-center text-gray-800">{item.itemTitle}</h3>
               {(() => {
                 const cooking = orders.some(
                   (o) => o.tableSection === parseInt(tableId) && o.menuItemId === item.id && o.status === 'cooking'
@@ -459,16 +414,12 @@ export default function TableSection() {
                   </div>
                 ) : null;
               })()}
-              
+
               <div className="space-y-3">
                 {[1, 2, 3].map((batchNumber) => {
-                  // Find the order for this menu item and batch
-                  const order = orders.find(o => 
-                    o.menuItemId === item.id && 
-                    o.batchSize === getBatchSize(item, batchNumber)
-                  );
+                  const order = orders.find((o) => o.menuItemId === item.id && o.batchNumber === batchNumber);
                   const isSent = Boolean(order);
-                  
+
                   return (
                     <div key={batchNumber} className="flex space-x-2">
                       <button
@@ -476,51 +427,39 @@ export default function TableSection() {
                         disabled={isSent}
                         className={`flex-1 py-3 px-4 rounded-lg text-lg font-medium transition-colors ${
                           isSent
-                              ? (() => {
-                                  if (order) {
-                                    if (order.status === 'cooking') {
-                                      return 'bg-blue-500 text-white cursor-not-allowed';
-                                    } else if (order.status === 'pending') {
-                                      return 'bg-yellow-500 text-white cursor-not-allowed';
-                                    } else if (order.status === 'timer_expired') {
-                                      return 'bg-red-500 text-white cursor-not-allowed';
-                                    } else if (order.status === 'ready') {
-                                      return 'bg-green-500 text-white cursor-not-allowed';
-                                    }
-                                  }
-                                  return 'bg-yellow-500 text-white cursor-not-allowed';
-                                })()
-                              : 'bg-gray-500 hover:bg-gray-600 text-white'
+                            ? (() => {
+                                if (order) {
+                                  if (order.status === 'cooking') return 'bg-blue-500 text-white cursor-not-allowed';
+                                  if (order.status === 'pending') return 'bg-yellow-500 text-white cursor-not-allowed';
+                                  if (order.status === 'timer_expired') return 'bg-red-500 text-white cursor-not-allowed';
+                                  if (order.status === 'ready') return 'bg-green-500 text-white cursor-not-allowed';
+                                }
+                                return 'bg-yellow-500 text-white cursor-not-allowed';
+                              })()
+                            : 'bg-gray-500 hover:bg-gray-600 text-white'
                         }`}
                       >
                         {isSent
-                            ? (() => {
-                                if (order) {
-                                  if (order.status === 'cooking') {
-                                    const remaining = getRemainingTime(order);
-                                    if (remaining !== null) {
-                                      return `⏰ ${formatTime(remaining)}`;
-                                    }
-                                    return `Timer activated`;
-                                  } else if (order.status === 'pending') {
-                                    return `⏳ Pending`;
-                                  } else if (order.status === 'timer_expired') {
-                                    return `🔴 Timer Expired`;
-                                  } else if (order.status === 'ready') {
-                                    return `✅ Ready!`;
-                                  }
+                          ? (() => {
+                              if (order) {
+                                if (order.status === 'cooking') {
+                                  const remaining = getRemainingTime(order);
+                                  if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
+                                  return `Timer activated`;
                                 }
-                                return `Batch ${batchNumber} - Waiting`;
-                              })()
-                            : `Batch ${batchNumber}`
-                        }
+                                if (order.status === 'pending') return `⏳ Pending`;
+                                if (order.status === 'timer_expired') return `🔴 Timer Expired`;
+                                if (order.status === 'ready') return `✅ Ready!`;
+                              }
+                              return `Batch ${batchNumber} - Waiting`;
+                            })()
+                          : `Batch ${batchNumber}`}
                       </button>
-                      
-                      {/* Delete button - show when server has an order for this batch */}
+
                       {order && (
                         <button
-                          onClick={() => deleteOrder(order.id, item.id, order.batchSize)}
-                          className={`py-3 px-3 rounded-lg font-medium transition-colors bg-red-500 hover:bg-red-600 text-white`}
+                          onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
+                          className="py-3 px-3 rounded-lg font-medium transition-colors bg-red-500 hover:bg-red-600 text-white"
                           title="Delete order"
                         >
                           🗑️
@@ -530,8 +469,6 @@ export default function TableSection() {
                   );
                 })}
               </div>
-              
-
             </div>
           ))}
         </div>
@@ -571,18 +508,23 @@ export default function TableSection() {
                     .map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                          {order.menuItem.itemTitle}
+                          {order?.menuItem?.itemTitle ?? '—'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {order.batchSize}
-                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{order.batchSize}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${
-                            order.status === 'pending' ? 'bg-yellow-500' :
-                            order.status === 'cooking' ? 'bg-blue-500' :
-                            order.status === 'timer_expired' ? 'bg-red-500' :
-                            order.status === 'ready' ? 'bg-green-500' : 'bg-gray-500'
-                          }`}>
+                          <span
+                            className={`px-3 py-1 rounded-full text-white text-sm font-medium ${
+                              order.status === 'pending'
+                                ? 'bg-yellow-500'
+                                : order.status === 'cooking'
+                                ? 'bg-blue-500'
+                                : order.status === 'timer_expired'
+                                ? 'bg-red-500'
+                                : order.status === 'ready'
+                                ? 'bg-green-500'
+                                : 'bg-gray-500'
+                            }`}
+                          >
                             {order.status}
                           </span>
                         </td>
@@ -591,9 +533,7 @@ export default function TableSection() {
                             (() => {
                               const remaining = getRemainingTime(order);
                               return remaining !== null ? (
-                                <div className="text-blue-600 font-medium">
-                                  ⏰ {formatTime(remaining)}
-                                </div>
+                                <div className="text-blue-600 font-medium">⏰ {formatTime(remaining)}</div>
                               ) : (
                                 <div className="text-blue-600 font-medium">Running...</div>
                               );
@@ -612,7 +552,7 @@ export default function TableSection() {
                           <div className="flex space-x-2">
                             {order.status === 'timer_expired' && (
                               <button
-                                onClick={() => deleteOrder(order.id, order.menuItem.id, order.batchSize)}
+                                onClick={() => deleteOrder(order.id, order.menuItem.id, order.batchNumber || 1)}
                                 className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
                               >
                                 Delete
@@ -627,10 +567,10 @@ export default function TableSection() {
             </div>
           )}
         </div>
-        
+
         <div className="mt-8 text-center">
-          <a 
-            href="/" 
+          <a
+            href="/"
             className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg text-lg font-medium transition-colors"
           >
             Back to Home

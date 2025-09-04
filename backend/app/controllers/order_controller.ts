@@ -30,7 +30,8 @@ export default class OrderController {
       const data = request.only([
         'tableSection',
         'menuItemId',
-        'batchSize'
+        'batchSize',
+        'batchNumber'
       ])
 
       // Validate that menu item exists
@@ -40,6 +41,7 @@ export default class OrderController {
       order.tableSection = data.tableSection
       order.menuItemId = data.menuItemId
       order.batchSize = data.batchSize
+      order.batchNumber = data.batchNumber || 1
       order.status = 'pending'
       
       await order.save()
@@ -91,6 +93,7 @@ export default class OrderController {
         'tableSection',
         'menuItemId',
         'batchSize',
+        'batchNumber',
         'status',
         'timerStart',
         'timerEnd',

@@ -9,6 +9,7 @@ interface Order {
   tableSection: number;
   menuItemId: number;
   batchSize: number;
+  batchNumber: number;
   status: string;
   timerStart: string | null;
   timerEnd: string | null;
@@ -94,11 +95,12 @@ export default function Kitchen() {
   };
 
   const getCookingTime = (order: Order) => {
-    // Determine which batch this order belongs to based on batch size
+    // Determine which batch this order belongs to based on batch number
     const menuItem = order.menuItem;
-    if (order.batchSize === menuItem.cookingTimeBatch1) return menuItem.cookingTimeBatch1;
-    if (order.batchSize === menuItem.cookingTimeBatch2) return menuItem.cookingTimeBatch2;
-    if (order.batchSize === menuItem.cookingTimeBatch3) return menuItem.cookingTimeBatch3;
+    const batchNumber = order.batchNumber || 1;
+    if (batchNumber === 1) return menuItem.cookingTimeBatch1;
+    if (batchNumber === 2) return menuItem.cookingTimeBatch2;
+    if (batchNumber === 3) return menuItem.cookingTimeBatch3;
     // Default to batch 1 if no match
     return menuItem.cookingTimeBatch1;
   };

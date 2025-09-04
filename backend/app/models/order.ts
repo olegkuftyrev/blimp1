@@ -17,6 +17,9 @@ export default class Order extends BaseModel {
   declare batchSize: number
 
   @column()
+  declare batchNumber: number
+
+  @column()
   declare status: string
 
   @column.dateTime()
