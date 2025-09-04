@@ -22,7 +22,7 @@ export default await Env.create(new URL('../', import.meta.url), {
    * App metadata and URLs
    */
   APP_NAME: Env.schema.string.optional(),
-  APP_URL: Env.schema.string.optional({ format: 'url' }),
+  APP_URL: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

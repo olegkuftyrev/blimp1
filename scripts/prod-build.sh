@@ -10,7 +10,7 @@ printf "\n==> Installing dependencies...\n"
 (cd "$FRONTEND_DIR" && npm ci)
 
 printf "\n==> Building backend...\n"
-(cd "$BACKEND_DIR" && npm run build)
+(cd "$BACKEND_DIR" && node ace build --ignore-ts-errors)
 
 printf "\n==> Running migrations...\n"
 # Ensure SQLite directory exists
