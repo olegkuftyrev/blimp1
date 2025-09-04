@@ -208,27 +208,6 @@ export default function TableSection() {
   useOrderEvents(handleOrderCreated, handleOrderUpdated, handleOrderCompleted, handleOrderDeleted, handleAllOrdersDeleted);
   useTimerEvents(handleTimerStarted, handleTimerExpired);
 
-  const getRecommendedBatch = () => {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    // Breakfast: 5:00 - 10:00
-    if (hour >= 5 && hour < 10) {
-      return 1; // Batch 1
-    }
-    // Lunch: 11:00 - 13:00
-    else if (hour >= 11 && hour < 13) {
-      return 2; // Batch 2
-    }
-    // Dinner: 17:00 - 19:00
-    else if (hour >= 17 && hour < 19) {
-      return 3; // Batch 3
-    }
-    // Downtime: all other times
-    else {
-      return 1; // Default to Batch 1
-    }
-  };
 
   const getBatchSize = (menuItem: MenuItem, batchNumber: number) => {
     switch (batchNumber) {
@@ -267,15 +246,6 @@ export default function TableSection() {
     } as any;
   };
 
-  const getCurrentPeriod = () => {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    if (hour >= 5 && hour < 10) return 'Breakfast';
-    if (hour >= 11 && hour < 13) return 'Lunch';
-    if (hour >= 17 && hour < 19) return 'Dinner';
-    return 'Downtime';
-  };
 
   // Map batch size count to the correct cooking time (in minutes)
   const getCookingTime = (order: any) => {
@@ -461,9 +431,6 @@ export default function TableSection() {
             </h1>
             <div className="mt-2 text-lg text-gray-600">
               Current Time: {new Date().toLocaleTimeString()}
-              <span className="ml-4 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                {getCurrentPeriod()} Period
-              </span>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -495,7 +462,6 @@ export default function TableSection() {
               
               <div className="space-y-3">
                 {[1, 2, 3].map((batchNumber) => {
-                  const isRecommended = getRecommendedBatch() === batchNumber;
                   // Find the order for this menu item and batch
                   const order = orders.find(o => 
                     o.menuItemId === item.id && 
@@ -524,9 +490,7 @@ export default function TableSection() {
                                   }
                                   return 'bg-yellow-500 text-white cursor-not-allowed';
                                 })()
-                              : isRecommended 
-                                ? 'bg-green-500 hover:bg-green-600 text-white ring-2 ring-green-300' 
-                                : 'bg-gray-500 hover:bg-gray-600 text-white'
+                              : 'bg-gray-500 hover:bg-gray-600 text-white'
                         }`}
                       >
                         {isSent
@@ -548,7 +512,7 @@ export default function TableSection() {
                                 }
                                 return `Batch ${batchNumber} - Waiting`;
                               })()
-                            : `${isRecommended ? '⭐ ' : ''}Batch ${batchNumber}`
+                            : `Batch ${batchNumber}`
                         }
                       </button>
                       
