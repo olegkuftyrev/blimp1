@@ -71,7 +71,7 @@ export default function BOHPage() {
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/orders`);
       const data = await response.json();
       setOrders(data.data);
@@ -237,7 +237,7 @@ export default function BOHPage() {
       if (!order) return;
 
       const cookingTime = getCookingTime(order);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/start-timer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -256,7 +256,7 @@ export default function BOHPage() {
 
   const extendTimer = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/extend-timer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,7 +276,7 @@ export default function BOHPage() {
 
   const completeOrder = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
