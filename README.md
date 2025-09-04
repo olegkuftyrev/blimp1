@@ -280,28 +280,47 @@ The SQLite database file will be automatically created at `backend/tmp/db.sqlite
 
 ### Environment Variables
 
-#### Backend Configuration
-Create a `.env` file in the backend directory:
-```bash
-# Database Configuration
-DB_CONNECTION=sqlite
-DB_DATABASE=tmp/db.sqlite3
+This project uses strict runtime validation for backend environment variables and env-driven rewrites in the frontend.
 
+#### Backend (`backend/.env`)
+Copy `backend/.env.example` to `backend/.env` and adjust as needed.
+
+Required variables:
+```env
 # Application
-PORT=3333
-HOST=0.0.0.0
 NODE_ENV=development
+HOST=0.0.0.0
+PORT=3333
+APP_NAME=blimp-backend
+APP_URL=http://localhost:3333
+APP_KEY=change-me-in-production
+LOG_LEVEL=debug
+
+# Sessions
+SESSION_DRIVER=cookie
+
+# CORS
+CORS_ORIGIN=*
+
+# Database (SQLite only)
+SQLITE_DB_PATH=./tmp/db.sqlite3
+
+# Websocket / Realtime
+WS_CORS_ORIGIN=*
 ```
 
-#### Frontend Configuration
-Create a `.env.local` file in the frontend directory:
-```bash
-# Backend API Configuration
-NEXT_PUBLIC_API_URL=http://137.184.15.223:3333
-NEXT_PUBLIC_WS_URL=http://137.184.15.223:3333
+Notes:
+- Use a strong, random `APP_KEY` in production.
+- When switching to Postgres, set `DB_CLIENT=pg` and provide all `PG_*` values.
+
+#### Frontend (`frontend/.env.local`)
+Copy `frontend/.env.example` to `frontend/.env.local` and adjust as needed.
+
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3333
 ```
 
-**Note**: For local development, the frontend will automatically fall back to `localhost:3333` if environment variables are not set.
+The Next.js rewrites use `NEXT_PUBLIC_BACKEND_URL` for both REST (`/api/*`) and Socket.IO (`/socket.io/*`).
 
 ## 🚀 Getting Started
 
@@ -341,6 +360,8 @@ NEXT_PUBLIC_WS_URL=http://137.184.15.223:3333
    npm run dev
    ```
 
+   Note: On first run, the backend will automatically apply pending migrations and seed initial data (via `predev`). For production runs, `npm start` will auto-apply migrations (via `prestart`) but will not seed.
+
 7. **Start the frontend development server**
    ```bash
    cd frontend
@@ -350,6 +371,21 @@ NEXT_PUBLIC_WS_URL=http://137.184.15.223:3333
 8. **Open your browser**
    - **Local Development**: Navigate to `http://localhost:3000` to view the application
    - **Live Server**: Navigate to `http://137.184.15.223:3000` to view the deployed application
+
+### One-command Bootstrap (Local Dev)
+
+From the repository root:
+
+```bash
+chmod +x scripts/bootstrap.sh
+./scripts/bootstrap.sh
+```
+
+This will:
+- Install dependencies for backend and frontend
+- Create `.env` files if missing (using examples or minimal defaults)
+- Run database migrations and seed data
+- Start backend (port 3333) and frontend (port 3000)
 
 ## 📁 Project Structure
 

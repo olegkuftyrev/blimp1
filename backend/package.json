@@ -5,9 +5,11 @@
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
+    "predev": "node ace migration:run && node ace db:seed",
     "start": "node bin/server.js",
     "build": "node ace build",
     "dev": "node ace serve --hmr",
+    "prestart": "node ace migration:run",
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",

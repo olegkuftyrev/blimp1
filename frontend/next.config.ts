@@ -8,14 +8,15 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3333";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:3333/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: "/socket.io/:path*",
-        destination: "http://localhost:3333/socket.io/:path*",
+        destination: `${backendUrl}/socket.io/:path*`,
       },
     ];
   },

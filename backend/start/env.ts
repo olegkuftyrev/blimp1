@@ -16,7 +16,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   PORT: Env.schema.number(),
   APP_KEY: Env.schema.string(),
   HOST: Env.schema.string({ format: 'host' }),
-  LOG_LEVEL: Env.schema.string(),
+  LOG_LEVEL: Env.schema.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const),
+
+  /**
+   * App metadata and URLs
+   */
+  APP_NAME: Env.schema.string.optional(),
+  APP_URL: Env.schema.string.optional({ format: 'url' }),
 
   /*
   |----------------------------------------------------------
@@ -24,4 +30,25 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   SESSION_DRIVER: Env.schema.enum(['cookie', 'memory'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | CORS and security
+  |----------------------------------------------------------
+  */
+  CORS_ORIGIN: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Database configuration (SQLite only)
+  |----------------------------------------------------------
+  */
+  SQLITE_DB_PATH: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Websocket / Realtime
+  |----------------------------------------------------------
+  */
+  WS_CORS_ORIGIN: Env.schema.string.optional(),
 })
