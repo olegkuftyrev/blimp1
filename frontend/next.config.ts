@@ -11,11 +11,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "http://137.184.15.223:3333/api/:path*",
+        destination: "http://localhost:3333/api/:path*",
       },
       {
         source: "/socket.io/:path*",
-        destination: "http://137.184.15.223:3333/socket.io/:path*",
+        destination: "http://localhost:3333/socket.io/:path*",
       },
     ];
   },
