@@ -42,6 +42,7 @@ export default function TableSection() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [, setSentOrders] = useState<Record<string, boolean>>({});
+  const [, setNow] = useState<number>(Date.now());
 
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
@@ -67,6 +68,15 @@ export default function TableSection() {
       return () => clearInterval(interval);
     }
   }, [isConnected]);
+
+  // Live tick to update remaining time while any order is cooking
+  useEffect(() => {
+    const hasCooking = orders.some((o) => o.status === 'cooking' && o.timerEnd);
+    if (!hasCooking) return;
+
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [orders]);
 
   const fetchMenuItems = async () => {
     try {
@@ -144,7 +154,29 @@ export default function TableSection() {
     menuItem?: MenuItem; menu_item?: MenuItem;
   };
   type OrderEventT = { order: BackendOrder };
-  type TimerEventT = { order: BackendOrder };
+  type TimerEventT = { 
+    order: {
+      id: number;
+      tableSection?: number; table_section?: number;
+      menuItemId?: number; menu_item_id?: number;
+      batchSize?: number; batch_size?: number;
+      batchNumber?: number; batch_number?: number;
+      status: string;
+      timerStart?: string; timer_start?: string;
+      timerEnd?: string; timer_end?: string;
+      completedAt?: string; completed_at?: string;
+      createdAt?: string; created_at?: string;
+      updatedAt?: string; updated_at?: string;
+      menuItem?: {
+        id: number;
+        itemTitle: string;
+      };
+      menu_item?: {
+        id: number;
+        itemTitle: string;
+      };
+    }
+  };
 
   const handleOrderCreated = (event: OrderEventT) => {
     console.log('📢 Order created event received:', event);
@@ -251,7 +283,7 @@ export default function TableSection() {
     return 1;
   };
 
-  const normalizeOrder = (o: BackendOrder) => {
+  const normalizeOrder = (o: BackendOrder | TimerEventT['order']) => {
     const menuItem = o.menuItem || o.menu_item || undefined;
     return {
       id: o.id,
@@ -265,7 +297,18 @@ export default function TableSection() {
       completedAt: o.completedAt ?? o.completed_at,
       createdAt: o.createdAt ?? o.created_at,
       updatedAt: o.updatedAt ?? o.updated_at,
-      menuItem,
+      menuItem: menuItem || {
+        id: 0,
+        itemTitle: 'Unknown Item',
+        batchBreakfast: 0,
+        batchLunch: 0,
+        batchDowntime: 0,
+        batchDinner: 0,
+        cookingTimeBatch1: 0,
+        cookingTimeBatch2: 0,
+        cookingTimeBatch3: 0,
+        status: 'active'
+      },
     } as Order;
   };
 
@@ -576,7 +619,7 @@ export default function TableSection() {
                           <div className="flex space-x-2">
                             {order.status === 'timer_expired' && (
                               <button
-                                onClick={() => deleteOrder(order.id, order.menuItem.id, order.batchNumber || 1)}
+                                onClick={() => deleteOrder(order.id, order.menuItem?.id || 0, order.batchNumber || 1)}
                                 className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
                               >
                                 Delete
