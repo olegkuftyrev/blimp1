@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
+import { Box, Heading, HStack, Status, Badge, Table, Button,  Text, VStack } from "@chakra-ui/react";
 
 interface Order {
   id: number;
@@ -306,116 +307,143 @@ export default function BOHPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-2xl text-gray-600">Loading...</div>
-      </div>
+      <Box 
+        minH="100vh" 
+        bg="gray.50" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        className="min-h-screen bg-gray-50 flex items-center justify-center"
+      >
+        <Text fontSize="2xl" color="gray.600">Loading...</Text>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">
+    <Box minH="100vh" bg="gray.50" p={8} className="min-h-screen bg-gray-50 p-8">
+      <Box maxW="6xl" mx="auto" className="max-w-6xl mx-auto">
+        <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
+          <Heading as="h1" size="3xl" color="gray.800" className="text-4xl font-bold text-gray-800">
             Back of House (BOH)
-          </h1>
-          <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-sm text-gray-600">
+          </Heading>
+          <HStack gap={2} className="flex items-center space-x-2">
+            <Status.Root colorPalette={isConnected ? "green" : "red"}>
+              <Status.Indicator />
+            </Status.Root>
+            <Text fontSize="sm" color="gray.600" className="text-sm text-gray-600">
               {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
-          </div>
-        </div>
+            </Text>
+          </HStack>
+        </HStack>
         
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Item</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Table</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Batch Size</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Time Remaining</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+        <Box bg="white" borderRadius="lg" shadow="lg" overflow="hidden" className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <Table.Root size="sm" striped>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Item</Table.ColumnHeader>
+                <Table.ColumnHeader>Table</Table.ColumnHeader>
+                <Table.ColumnHeader>Batch Size</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Time Remaining</Table.ColumnHeader>
+                <Table.ColumnHeader>Action</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    No orders available
-                  </td>
-                </tr>
+                <Table.Row>
+                  <Table.Cell colSpan={6} textAlign="center" py={8}>
+                    <Text color="gray.500">No orders available</Text>
+                  </Table.Cell>
+                </Table.Row>
               ) : (
                 orders.map((order) => {
                   const remaining = getRemainingTime(order);
                   return (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                        {order.menuItem?.itemTitle || 'Unknown Item'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        Table {order.tableSection}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {order.batchSize}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${
-                          order.status === 'pending' ? 'bg-yellow-500' :
-                          order.status === 'cooking' ? 'bg-blue-500' :
-                          order.status === 'timer_expired' ? 'bg-red-500' : 'bg-gray-500'
-                        }`}>
+                    <Table.Row key={order.id} _hover={{ bg: "gray.50" }}>
+                      <Table.Cell>
+                        <Text fontSize="sm" fontWeight="medium" color="gray.900">
+                          {order.menuItem?.itemTitle || 'Unknown Item'}
+                        </Text>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Text fontSize="sm" color="gray.900">
+                          Table {order.tableSection}
+                        </Text>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Text fontSize="sm" color="gray.900">
+                          {order.batchSize}
+                        </Text>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge 
+                          colorScheme={
+                            order.status === 'pending' ? 'yellow' :
+                            order.status === 'cooking' ? 'blue' :
+                            order.status === 'timer_expired' ? 'red' : 'gray'
+                          }
+                          size="sm"
+                        >
                           {order.status === 'timer_expired' ? 'Saucing!' : order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 font-mono">
-                        {remaining !== null ? formatTime(remaining) : '-'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex space-x-2">
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Text fontSize="sm" color="gray.900" fontFamily="mono">
+                          {remaining !== null ? formatTime(remaining) : '-'}
+                        </Text>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <HStack gap={2}>
                           {order.status === 'pending' ? (
-                            <button
-                              onClick={() => handleAction(order.id, 'start timer')}
-                              className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
-                            >
+                             <Badge 
+                                    variant="solid"  
+                                     size="lg"
+                                    onClick={() => handleAction(order.id, 'start timer')} 
+                                    colorPalette="green"
+                              >
                               Start Timer
-                            </button>
+                            </Badge>
                           ) : order.status === 'timer_expired' ? (
                             <>
-                              <button
+                              <Badge
+                                size="sm"
+                                colorScheme="orange"
                                 onClick={() => handleAction(order.id, 'extend timer')}
-                                className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
                               >
                                 +10s
-                              </button>
-                              <button
+                              </Badge>
+                              <Badge
+                                 variant="solid"  
+                                  size="lg"
+                                 colorScheme="green"
                                 onClick={() => handleAction(order.id, 'complete')}
-                                className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
                               >
                                 Complete
-                              </button>
+                              </Badge>
                             </>
                           ) : order.status === 'cooking' ? (
-                            <button
+                            <Badge
+                            variant="solid"  
+                              size="lg"
+                              colorScheme="green"
                               onClick={() => handleAction(order.id, 'complete')}
-                              className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
                             >
                               Complete
-                            </button>
+                            </Badge>
                           ) : (
-                            <span className="text-gray-400 text-sm">No action</span>
+                            <Text fontSize="sm" color="gray.400">No action</Text>
                           )}
-                        </div>
-                      </td>
-                    </tr>
+                        </HStack>
+                      </Table.Cell>
+                    </Table.Row>
                   );
                 })
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+            </Table.Body>
+          </Table.Root>
+        </Box>
+      </Box>
+    </Box>
   );
 }
