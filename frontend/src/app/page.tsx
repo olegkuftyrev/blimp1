@@ -1,56 +1,249 @@
-import Link from "next/link";
+'use client';
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Box, Grid, Heading, Text, Button, HStack, Status, VStack, SimpleGrid, Badge } from "@chakra-ui/react";
+import { useState, useEffect } from "react";
+
+interface Order {
+  id: number;
+  tableSection: number;
+  menuItemId: number;
+  batchSize: number;
+  status: string;
+  timerStart?: string;
+  timerEnd?: string;
+  completedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export default function Home() {
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
-      <div className="max-w-4xl w-full">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-          Blimp Smart Table
-        </h1>
-        <p className="text-center text-gray-600 mb-12 text-lg">
-          Please select your on what screen you would like to use blimp system
-        </p>
-        
-        <div className="max-w-md mx-auto space-y-4">
-          <Link 
-            href="/table/1" 
-            className="block bg-blue-500 hover:bg-blue-600 text-white text-center py-4 px-6 rounded-lg text-xl font-medium transition-colors"
-          >
-            ST Section 1
-          </Link>
-          <Link 
-            href="/table/2" 
-            className="block bg-blue-500 hover:bg-blue-600 text-white text-center py-4 px-6 rounded-lg text-xl font-medium transition-colors"
-          >
-            ST Section 2
-          </Link>
-          <Link 
-            href="/table/3" 
-            className="block bg-blue-500 hover:bg-blue-600 text-white text-center py-4 px-6 rounded-lg text-xl font-medium transition-colors"
-          >
-            ST Section 3
-          </Link>
-          <Link 
-            href="/kitchen" 
-            className="block bg-green-500 hover:bg-green-600 text-white text-center py-4 px-6 rounded-lg text-xl font-medium transition-colors"
-          >
-            BoH Screen
-          </Link>
-          <Link 
-            href="/boh" 
-            className="block bg-purple-500 hover:bg-purple-600 text-white text-center py-4 px-6 rounded-lg text-xl font-medium transition-colors"
-          >
-            BOH Page
-          </Link>
-        </div>
+  const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-        <div className="mt-12 text-center">
-          <p className="text-gray-500 text-sm">
-            System Status: <span className="text-green-600 font-medium">Online</span>
-          </p>
-        </div>
-      </div>
-    </div>
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
+
+  // Fetch orders from API
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await fetch('/api/orders');
+        const data = await response.json();
+        setOrders(data.data || []);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+    
+    // Refresh orders every 5 seconds
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Count active orders for each section
+  const getActiveOrderCount = (tableSection: number) => {
+    return orders.filter(order => 
+      order.tableSection === tableSection && 
+      ['pending', 'cooking', 'timer_expired', 'ready'].includes(order.status)
+    ).length;
+  };
+
+  // Count total active orders for BOH
+  const getTotalActiveOrders = () => {
+    return orders.filter(order => 
+      ['pending', 'cooking', 'timer_expired', 'ready'].includes(order.status)
+    ).length;
+  };
+
+  if (loading) {
+    return (
+      <Box 
+        minH="100vh" 
+        bg="gray.50" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        className="min-h-screen bg-gray-50 flex items-center justify-center"
+      >
+        <Text fontSize="xl" color="gray.600">Loading dashboard...</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Box 
+      minH="100vh" 
+      bg="gray.50" 
+      p={8}
+      className="min-h-screen bg-gray-50 p-8"
+    >
+      <Box maxW="6xl" mx="auto" className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <VStack gap={6} mb={12} className="mb-12">
+          <Heading 
+            as="h1" 
+            size="3xl" 
+            textAlign="center" 
+            color="gray.800"
+            className="text-3xl font-bold text-center text-gray-800"
+          >
+            Blimp Smart Table
+          </Heading>
+          <Text 
+            textAlign="center" 
+            color="gray.600" 
+            fontSize="lg"
+            maxW="2xl"
+            className="text-center text-gray-600 text-lg max-w-2xl"
+          >
+            Restaurant Management Dashboard - Select your section to manage orders and operations
+          </Text>
+          
+          {/* System Status */}
+          <HStack gap={4}>
+            <Text color="gray.500" fontSize="sm" className="text-gray-500 text-sm">
+              System Status:
+            </Text>
+            <HStack gap={2}>
+              <Status.Root colorPalette="green">
+                <Status.Indicator />
+              </Status.Root>
+              <Badge colorScheme="green" fontSize="sm">Online</Badge>
+            </HStack>
+          </HStack>
+        </VStack>
+
+        {/* Dashboard Cards */}
+        <SimpleGrid 
+          columns={{ base: 1, md: 2 }} 
+          gap={6}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          {/* Table Section 1 */}
+          <Box 
+            cursor="pointer" 
+            onClick={() => handleNavigation("/table/1")}
+            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
+            transition="all 0.2s"
+            bg="white"
+            borderRadius="lg"
+            shadow="md"
+            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
+          >
+            <Box textAlign="center" p={8}>
+              <Heading size="lg" mb={2} color="blue.600">
+                Table Section 1
+              </Heading>
+              <Text color="gray.600" mb={4}>
+                Manage orders for section 1
+              </Text>
+              <HStack justify="center" gap={2}>
+                <Status.Root colorPalette="blue" size="sm">
+                  <Status.Indicator />
+                </Status.Root>
+                <Badge colorScheme="blue" fontSize="sm">
+                  {loading ? "..." : `${getActiveOrderCount(1)} Active Orders`}
+                </Badge>
+              </HStack>
+            </Box>
+          </Box>
+
+          {/* Table Section 2 */}
+          <Box 
+            cursor="pointer" 
+            onClick={() => handleNavigation("/table/2")}
+            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
+            transition="all 0.2s"
+            bg="white"
+            borderRadius="lg"
+            shadow="md"
+            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
+          >
+            <Box textAlign="center" p={8}>
+              <Heading size="lg" mb={2} color="blue.600">
+                Table Section 2
+              </Heading>
+              <Text color="gray.600" mb={4}>
+                Manage orders for section 2
+              </Text>
+              <HStack justify="center" gap={2}>
+                <Status.Root colorPalette="blue" size="sm">
+                  <Status.Indicator />
+                </Status.Root>
+                <Badge colorScheme="blue" fontSize="sm">
+                  {loading ? "..." : `${getActiveOrderCount(2)} Active Orders`}
+                </Badge>
+              </HStack>
+            </Box>
+          </Box>
+
+          {/* Table Section 3 */}
+          <Box 
+            cursor="pointer" 
+            onClick={() => handleNavigation("/table/3")}
+            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
+            transition="all 0.2s"
+            bg="white"
+            borderRadius="lg"
+            shadow="md"
+            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
+          >
+            <Box textAlign="center" p={8}>
+              <Heading size="lg" mb={2} color="blue.600">
+                Table Section 3
+              </Heading>
+              <Text color="gray.600" mb={4}>
+                Manage orders for section 3
+              </Text>
+              <HStack justify="center" gap={2}>
+                <Status.Root colorPalette="blue" size="sm">
+                  <Status.Indicator />
+                </Status.Root>
+                <Badge colorScheme="blue" fontSize="sm">
+                  {loading ? "..." : `${getActiveOrderCount(3)} Active Orders`}
+                </Badge>
+              </HStack>
+            </Box>
+          </Box>
+
+          {/* BOH Page */}
+          <Box 
+            cursor="pointer" 
+            onClick={() => handleNavigation("/boh")}
+            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
+            transition="all 0.2s"
+            bg="white"
+            borderRadius="lg"
+            shadow="md"
+            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
+          >
+            <Box textAlign="center" p={8}>
+              <Heading size="lg" mb={2} color="purple.600">
+                BOH Management
+              </Heading>
+              <Text color="gray.600" mb={4}>
+                Back of house operations
+              </Text>
+              <HStack justify="center" gap={2}>
+                <Status.Root colorPalette="purple" size="sm">
+                  <Status.Indicator />
+                </Status.Root>
+                <Badge colorScheme="purple" fontSize="sm">
+                  {loading ? "..." : `${getTotalActiveOrders()} Total Active Orders`}
+                </Badge>
+              </HStack>
+            </Box>
+          </Box>
+        </SimpleGrid>
+      </Box>
+    </Box>
   );
 }
