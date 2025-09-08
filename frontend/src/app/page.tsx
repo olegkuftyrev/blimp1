@@ -18,6 +18,8 @@ interface Order {
   updatedAt?: string;
 }
 
+
+
 export default function Home() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -95,7 +97,7 @@ export default function Home() {
             color="gray.800"
             className="text-3xl font-bold text-center text-gray-800"
           >
-            Blimp Smart Table
+          Blimp Smart Table
           </Heading>
           <Text 
             textAlign="center" 
@@ -120,6 +122,7 @@ export default function Home() {
             </HStack>
           </HStack>
         </VStack>
+
 
         {/* Dashboard Cards */}
         <SimpleGrid 
