@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+
+export const dynamic = 'force-dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';

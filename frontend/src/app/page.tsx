@@ -1,6 +1,8 @@
 'use client';
 
 import Link from "next/link";
+
+export const dynamic = 'force-dynamic';
 import { useRouter } from "next/navigation";
 import { Box, Grid, Heading, Text, Button, HStack, Status, VStack, SimpleGrid, Badge, Stack } from "@chakra-ui/react";
 import { useState, useEffect } from "react";

@@ -2,6 +2,8 @@
 
 import { Box, Heading, Text, VStack, Card, Button } from "@chakra-ui/react";
 
+export const dynamic = 'force-dynamic';
+
 export default function TestPage() {
   return (
     <Box minH="100vh" bg="gray.50" p={8} className="min-h-screen bg-gray-50 p-8">
