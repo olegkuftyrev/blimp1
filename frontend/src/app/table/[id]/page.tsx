@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ interface Order {
   menuItem?: MenuItem;
 }
 
-export default function TableSection() {
+function TableSectionContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const tableId = params.id as string;
@@ -665,5 +665,24 @@ export default function TableSection() {
         </Box>
       </Box>
     </Box>
+  );
+}
+
+export default function TableSection() {
+  return (
+    <Suspense fallback={
+      <Box 
+        minH="100vh" 
+        bg="gray.50" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        className="min-h-screen bg-gray-50 flex items-center justify-center"
+      >
+        <Text fontSize="2xl" color="gray.600">Loading...</Text>
+      </Box>
+    }>
+      <TableSectionContent />
+    </Suspense>
   );
 }
