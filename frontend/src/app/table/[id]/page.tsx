@@ -492,19 +492,6 @@ function TableSectionContent() {
                           flex={1}
                           onClick={() => createOrder(item.id, batchNumber)}
                           disabled={isSent}
-                          colorPalette={
-                            isSent
-                              ? (() => {
-                                  if (order) {
-                                    if (order.status === 'cooking') return 'blue';
-                                    if (order.status === 'pending') return 'yellow';
-                                    if (order.status === 'timer_expired') return 'red';
-                                    if (order.status === 'ready') return 'green';
-                                  }
-                                  return 'yellow';
-                                })()
-                              : 'gray'
-                          }
                           variant="outline"
                           size="md"
                           fontWeight="medium"
@@ -530,7 +517,6 @@ function TableSectionContent() {
                         {order && (
                           <Button
                             onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
-                            colorScheme="red"
                             variant="solid"
                             size="md"
                             fontWeight="medium"
@@ -557,7 +543,6 @@ function TableSectionContent() {
             {orders.length > 0 && (
               <Button
                 onClick={deleteAllOrders}
-                colorScheme="red"
                 variant="solid"
                 size="sm"
                 fontWeight="medium"
@@ -599,12 +584,6 @@ function TableSectionContent() {
                         </Table.Cell>
                         <Table.Cell>
                           <Badge 
-                            colorScheme={
-                              order.status === 'pending' ? 'yellow' :
-                              order.status === 'cooking' ? 'blue' :
-                              order.status === 'timer_expired' ? 'red' :
-                              order.status === 'ready' ? 'green' : 'gray'
-                            }
                             size="sm"
                           >
                             {order.status}
@@ -635,7 +614,6 @@ function TableSectionContent() {
                             {order.status === 'timer_expired' && (
                               <Button
                                 onClick={() => deleteOrder(order.id, order.menuItem?.id || 0, order.batchNumber || 1)}
-                                colorScheme="red"
                                 variant="solid"
                                 size="sm"
                                 fontWeight="medium"
@@ -656,7 +634,6 @@ function TableSectionContent() {
         <Box mt={8} textAlign="center" className="mt-8 text-center">
           <Link href="/">
             <Button
-              colorScheme="gray"
               variant="solid"
               size="lg"
               fontWeight="medium"
