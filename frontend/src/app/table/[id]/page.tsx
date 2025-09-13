@@ -4,7 +4,8 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
-import Link from 'next/link'
+import Link from 'next/link';
+import { Box, Heading, HStack, Status, Badge, Table, Button, Text, VStack, SimpleGrid, Card } from "@chakra-ui/react";
 
 interface MenuItem {
   id: number;
@@ -455,195 +456,238 @@ export default function TableSection() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-2xl text-gray-600">Loading...</div>
-      </div>
+      <Box 
+        minH="100vh" 
+        bg="gray.50" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        className="min-h-screen bg-gray-50 flex items-center justify-center"
+      >
+        <Text fontSize="2xl" color="gray.600">Loading...</Text>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-800">Table Section {tableId}</h1>
-            <div className="mt-2 text-lg text-gray-600">Current Time: {new Date().toLocaleTimeString()}</div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-sm text-gray-600">{isConnected ? 'Connected' : 'Disconnected'}</span>
-          </div>
-        </div>
+    <Box minH="100vh" bg="gray.50" p={8} className="min-h-screen bg-gray-50 p-8">
+      <Box maxW="6xl" mx="auto" className="max-w-6xl mx-auto">
+        <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
+          <VStack align="start" gap={2}>
+            <Heading as="h1" size="3xl" color="gray.800" className="text-4xl font-bold text-gray-800">
+              Table Section {tableId}
+            </Heading>
+            <Text fontSize="lg" color="gray.600" className="text-lg text-gray-600">
+              Current Time: {new Date().toLocaleTimeString()}
+            </Text>
+          </VStack>
+          <HStack gap={2} className="flex items-center space-x-2">
+            <Status.Root colorPalette={isConnected ? "green" : "red"}>
+              <Status.Indicator />
+            </Status.Root>
+            <Text fontSize="sm" color="gray.600" className="text-sm text-gray-600">
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </Text>
+          </HStack>
+        </HStack>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <SimpleGrid 
+          columns={{ base: 1, md: 2, lg: 4 }} 
+          gap={4}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
           {menuItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg shadow-lg p-6">
-              <div className="h-12 flex items-center justify-center mb-1">
-                <h3 className="text-xl font-semibold text-center text-gray-800 leading-tight">{item.itemTitle}</h3>
-              </div>
+            <Card.Root key={item.id} bg="white" borderRadius="lg" shadow="lg" p={6} className="bg-white rounded-lg shadow-lg p-6">
+              <Card.Body>
+                <Box h={12} display="flex" alignItems="center" justifyContent="center" mb={1} className="h-12 flex items-center justify-center mb-1">
+                  <Heading as="h3" size="lg" textAlign="center" color="gray.800" className="text-xl font-semibold text-center text-gray-800 leading-tight">
+                    {item.itemTitle}
+                  </Heading>
+                </Box>
 
-              <div className="space-y-2">
-                {[1, 2, 3].map((batchNumber) => {
-                  const order = orders.find((o) => o.menuItemId === item.id && o.batchNumber === batchNumber);
-                  const isSent = Boolean(order);
+                <VStack gap={2} className="space-y-2">
+                  {[1, 2, 3].map((batchNumber) => {
+                    const order = orders.find((o) => o.menuItemId === item.id && o.batchNumber === batchNumber);
+                    const isSent = Boolean(order);
 
-                  return (
-                    <div key={batchNumber} className="flex space-x-2">
-                      <button
-                        onClick={() => createOrder(item.id, batchNumber)}
-                        disabled={isSent}
-                        className={`flex-1 py-2 px-3 rounded-md text-base font-medium transition-colors ${
-                          isSent
+                    return (
+                      <HStack key={batchNumber} gap={2} className="flex space-x-2">
+                        <Button
+                          flex={1}
+                          onClick={() => createOrder(item.id, batchNumber)}
+                          disabled={isSent}
+                          colorScheme={
+                            isSent
+                              ? (() => {
+                                  if (order) {
+                                    if (order.status === 'cooking') return 'blue';
+                                    if (order.status === 'pending') return 'yellow';
+                                    if (order.status === 'timer_expired') return 'red';
+                                    if (order.status === 'ready') return 'green';
+                                  }
+                                  return 'yellow';
+                                })()
+                              : 'gray'
+                          }
+                          variant="solid"
+                          size="md"
+                          fontWeight="medium"
+                          _disabled={{ cursor: 'not-allowed' }}
+                        >
+                          {isSent
                             ? (() => {
                                 if (order) {
-                                  if (order.status === 'cooking') return 'bg-blue-500 text-white cursor-not-allowed';
-                                  if (order.status === 'pending') return 'bg-yellow-500 text-white cursor-not-allowed';
-                                  if (order.status === 'timer_expired') return 'bg-red-500 text-white cursor-not-allowed';
-                                  if (order.status === 'ready') return 'bg-green-500 text-white cursor-not-allowed';
+                                  if (order.status === 'cooking') {
+                                    const remaining = getRemainingTime(order);
+                                    if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
+                                    return `Timer activated`;
+                                  }
+                                  if (order.status === 'pending') return `⏳ Pending`;
+                                  if (order.status === 'timer_expired') return `🔴 Timer Expired`;
+                                  if (order.status === 'ready') return `✅ Ready!`;
                                 }
-                                return 'bg-yellow-500 text-white cursor-not-allowed';
+                                return `Batch ${batchNumber} - Waiting`;
                               })()
-                            : 'bg-gray-500 hover:bg-gray-600 text-white'
-                        }`}
-                      >
-                        {isSent
-                          ? (() => {
-                              if (order) {
-                                if (order.status === 'cooking') {
-                                  const remaining = getRemainingTime(order);
-                                  if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
-                                  return `Timer activated`;
-                                }
-                                if (order.status === 'pending') return `⏳ Pending`;
-                                if (order.status === 'timer_expired') return `🔴 Timer Expired`;
-                                if (order.status === 'ready') return `✅ Ready!`;
-                              }
-                              return `Batch ${batchNumber} - Waiting`;
-                            })()
-                          : `Batch ${batchNumber}`}
-                      </button>
+                            : `Batch ${batchNumber}`}
+                        </Button>
 
-                      {order && (
-                        <button
-                          onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
-                          className="py-2 px-2 rounded-md font-medium transition-colors bg-red-500 hover:bg-red-600 text-white"
-                          title="Delete order"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                        {order && (
+                          <Button
+                            onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
+                            colorScheme="red"
+                            variant="solid"
+                            size="md"
+                            fontWeight="medium"
+                            title="Delete order"
+                          >
+                            🗑️
+                          </Button>
+                        )}
+                      </HStack>
+                    );
+                  })}
+                </VStack>
+              </Card.Body>
+            </Card.Root>
           ))}
-        </div>
+        </SimpleGrid>
 
         {/* Orders Section */}
-        <div className="mt-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Current Orders</h2>
+        <Box mt={12} className="mt-12">
+          <HStack justify="space-between" mb={6} className="flex justify-between items-center mb-6">
+            <Heading as="h2" size="2xl" color="gray.800" className="text-2xl font-bold text-gray-800">
+              Current Orders
+            </Heading>
             {orders.length > 0 && (
-              <button
+              <Button
                 onClick={deleteAllOrders}
-                className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                colorScheme="red"
+                variant="solid"
+                size="sm"
+                fontWeight="medium"
               >
                 🗑️ Delete All Orders
-              </button>
+              </Button>
             )}
-          </div>
+          </HStack>
           {orders.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-              <p className="text-gray-600 text-lg">No orders yet</p>
-            </div>
+            <Box bg="white" borderRadius="lg" shadow="lg" p={8} textAlign="center" className="bg-white rounded-lg shadow-lg p-8 text-center">
+              <Text color="gray.600" fontSize="lg" className="text-gray-600 text-lg">No orders yet</Text>
+            </Box>
           ) : (
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Dish</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Batch Size</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Timer</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
+            <Box bg="white" borderRadius="lg" shadow="lg" overflow="hidden" className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <Table.Root size="sm" striped>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Dish</Table.ColumnHeader>
+                    <Table.ColumnHeader>Batch Size</Table.ColumnHeader>
+                    <Table.ColumnHeader>Status</Table.ColumnHeader>
+                    <Table.ColumnHeader>Timer</Table.ColumnHeader>
+                    <Table.ColumnHeader>Actions</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
                   {orders
                     .filter((o) => o.tableSection === parseInt(tableId))
                     .map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                          {order?.menuItem?.itemTitle ?? '—'}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{order.batchSize}</td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-white text-sm font-medium ${
-                              order.status === 'pending'
-                                ? 'bg-yellow-500'
-                                : order.status === 'cooking'
-                                ? 'bg-blue-500'
-                                : order.status === 'timer_expired'
-                                ? 'bg-red-500'
-                                : order.status === 'ready'
-                                ? 'bg-green-500'
-                                : 'bg-gray-500'
-                            }`}
+                      <Table.Row key={order.id} _hover={{ bg: "gray.50" }}>
+                        <Table.Cell>
+                          <Text fontSize="sm" fontWeight="medium" color="gray.900">
+                            {order?.menuItem?.itemTitle ?? '—'}
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text fontSize="sm" color="gray.900">{order.batchSize}</Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Badge 
+                            colorScheme={
+                              order.status === 'pending' ? 'yellow' :
+                              order.status === 'cooking' ? 'blue' :
+                              order.status === 'timer_expired' ? 'red' :
+                              order.status === 'ready' ? 'green' : 'gray'
+                            }
+                            size="sm"
                           >
                             {order.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                          </Badge>
+                        </Table.Cell>
+                        <Table.Cell>
                           {order.status === 'cooking' ? (
                             (() => {
                               const remaining = getRemainingTime(order);
                               return remaining !== null ? (
-                                <div className="text-blue-600 font-medium">⏰ {formatTime(remaining)}</div>
+                                <Text color="blue.600" fontWeight="medium">⏰ {formatTime(remaining)}</Text>
                               ) : (
-                                <div className="text-blue-600 font-medium">Running...</div>
+                                <Text color="blue.600" fontWeight="medium">Running...</Text>
                               );
                             })()
                           ) : order.status === 'pending' ? (
-                            <span className="text-yellow-600 font-medium">Pending</span>
+                            <Text color="yellow.600" fontWeight="medium">Pending</Text>
                           ) : order.status === 'timer_expired' ? (
-                            <span className="text-red-600 font-medium">Expired!</span>
+                            <Text color="red.600" fontWeight="medium">Expired!</Text>
                           ) : order.status === 'ready' ? (
-                            <span className="text-green-600 font-medium">Ready!</span>
+                            <Text color="green.600" fontWeight="medium">Ready!</Text>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <Text color="gray.400">-</Text>
                           )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex space-x-2">
+                        </Table.Cell>
+                        <Table.Cell>
+                          <HStack gap={2}>
                             {order.status === 'timer_expired' && (
-                              <button
+                              <Button
                                 onClick={() => deleteOrder(order.id, order.menuItem?.id || 0, order.batchNumber || 1)}
-                                className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                                colorScheme="red"
+                                variant="solid"
+                                size="sm"
+                                fontWeight="medium"
                               >
                                 Delete
-                              </button>
+                              </Button>
                             )}
-                          </div>
-                        </td>
-                      </tr>
+                          </HStack>
+                        </Table.Cell>
+                      </Table.Row>
                     ))}
-                </tbody>
-              </table>
-            </div>
+                </Table.Body>
+              </Table.Root>
+            </Box>
           )}
-        </div>
+        </Box>
 
-        <div className="mt-8 text-center">
-          <Link
+        <Box mt={8} textAlign="center" className="mt-8 text-center">
+          <Button
+            as={Link}
             href="/"
-            className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg text-lg font-medium transition-colors"
+            colorScheme="gray"
+            variant="solid"
+            size="lg"
+            fontWeight="medium"
           >
             Back to Home
-          </Link>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   );
 }

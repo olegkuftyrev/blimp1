@@ -424,7 +424,7 @@ export default function BOHPage() {
                             </>
                           ) : order.status === 'cooking' ? (
                             <Badge
-                            variant="solid"  
+                              variant="solid"  
                               size="lg"
                               colorScheme="green"
                               onClick={() => handleAction(order.id, 'complete')}
