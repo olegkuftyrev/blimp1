@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import Link from 'next/link'
@@ -27,6 +28,9 @@ interface Order {
 }
 
 export default function Kitchen() {
+  const searchParams = useSearchParams();
+  const restaurantId = searchParams.get('restaurant_id') || '1';
+  
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setNow] = useState<number>(Date.now());
@@ -35,7 +39,7 @@ export default function Kitchen() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [restaurantId]);
 
   // WebSocket connection management
   useEffect(() => {
@@ -181,7 +185,7 @@ export default function Kitchen() {
   const fetchOrders = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
-      const response = await fetch(`${apiUrl}/api/orders`);
+      const response = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
       const data = await response.json();
       setOrders(data.data);
       setLoading(false);

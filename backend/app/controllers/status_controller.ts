@@ -7,19 +7,19 @@ export default class StatusController {
    */
   async index({ response }: HttpContext) {
     try {
-      const totalOrders = await Order.query().count('* as total')
-      const pendingOrders = await Order.query().where('status', 'pending').count('* as total')
-      const cookingOrders = await Order.query().whereIn('status', ['cooking', 'timer_expired']).count('* as total')
-      const readyOrders = await Order.query().where('status', 'ready').count('* as total')
+      const totalOrders = await Order.query().count('* as total').first()
+      const pendingOrders = await Order.query().where('status', 'pending').count('* as total').first()
+      const cookingOrders = await Order.query().whereIn('status', ['cooking', 'timer_expired']).count('* as total').first()
+      const readyOrders = await Order.query().where('status', 'ready').count('* as total').first()
 
       return response.json({
         data: {
           system: 'online',
           orders: {
-            total: totalOrders[0].total,
-            pending: pendingOrders[0].total,
-            cooking: cookingOrders[0].total,
-            ready: readyOrders[0].total
+            total: totalOrders?.$extras.total || 0,
+            pending: pendingOrders?.$extras.total || 0,
+            cooking: cookingOrders?.$extras.total || 0,
+            ready: readyOrders?.$extras.total || 0
           },
           timestamp: new Date().toISOString()
         }
@@ -98,22 +98,25 @@ export default class StatusController {
         .where('status', 'pending')
         .preload('menuItem')
         .count('* as total')
+        .first()
 
       const cookingOrders = await Order.query()
         .whereIn('status', ['cooking', 'timer_expired'])
         .preload('menuItem')
         .count('* as total')
+        .first()
 
       const readyOrders = await Order.query()
         .where('status', 'ready')
         .preload('menuItem')
         .count('* as total')
+        .first()
 
       return response.json({
         data: {
-          pending: pendingOrders[0].total,
-          cooking: cookingOrders[0].total,
-          ready: readyOrders[0].total,
+          pending: pendingOrders?.$extras.total || 0,
+          cooking: cookingOrders?.$extras.total || 0,
+          ready: readyOrders?.$extras.total || 0,
           timestamp: new Date().toISOString()
         }
       })

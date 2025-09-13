@@ -1,5 +1,7 @@
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Restaurant from './restaurant.js'
 
 export default class MenuItem extends BaseModel {
   @column({ isPrimary: true })
@@ -32,9 +34,15 @@ export default class MenuItem extends BaseModel {
   @column()
   declare status: string
 
+  @column()
+  declare restaurantId: number
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  @belongsTo(() => Restaurant)
+  declare restaurant: BelongsTo<typeof Restaurant>
 }

@@ -14,6 +14,13 @@ router.on('/').render('pages/home')
 
 // API routes (without CSRF protection)
 router.group(() => {
+  // Restaurants
+  router.get('/restaurants', '#controllers/restaurants_controller.index')
+  router.get('/restaurants/:id', '#controllers/restaurants_controller.show')
+  router.post('/restaurants', '#controllers/restaurants_controller.store')
+  router.put('/restaurants/:id', '#controllers/restaurants_controller.update')
+  router.delete('/restaurants/:id', '#controllers/restaurants_controller.destroy')
+
   // Menu Items
   router.get('/menu-items', '#controllers/menu_item_controller.index')
   router.get('/menu-items/:id', '#controllers/menu_item_controller.show')

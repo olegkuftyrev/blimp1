@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import { Box, Heading, HStack, Status, Badge, Table, Button,  Text, VStack } from "@chakra-ui/react";
@@ -32,6 +33,9 @@ interface Order {
 }
 
 export default function BOHPage() {
+  const searchParams = useSearchParams();
+  const restaurantId = searchParams.get('restaurant_id') || '1';
+  
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setNow] = useState<number>(Date.now());
@@ -49,7 +53,7 @@ export default function BOHPage() {
     return () => {
       leaveKitchen();
     };
-  }, [isConnected, joinKitchen, leaveKitchen]);
+  }, [restaurantId, isConnected, joinKitchen, leaveKitchen]);
 
   // Fallback polling: refresh orders every 2 seconds only if WebSocket is not connected
   useEffect(() => {
@@ -73,7 +77,7 @@ export default function BOHPage() {
   const fetchOrders = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders`);
+      const response = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
       const data = await response.json();
       setOrders(data.data);
       setLoading(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
@@ -37,7 +37,9 @@ interface Order {
 
 export default function TableSection() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const tableId = params.id as string;
+  const restaurantId = searchParams.get('restaurant_id') || '1';
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export default function TableSection() {
     return () => {
       leaveTable(parseInt(tableId));
     };
-  }, [tableId, isConnected, joinTable, leaveTable]);
+  }, [tableId, restaurantId, isConnected, joinTable, leaveTable]);
 
   // Fallback polling: refresh orders every 2 seconds only if WebSocket is not connected
   useEffect(() => {
@@ -81,10 +83,11 @@ export default function TableSection() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch(`/api/menu-items`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const response = await fetch(`${apiUrl}/api/menu-items?restaurant_id=${restaurantId}`);
       const data = await response.json();
 
-      // Show all menu items
+      // Show all menu items for the selected restaurant
       setMenuItems(data.data);
       setLoading(false);
     } catch (error) {
@@ -95,7 +98,8 @@ export default function TableSection() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`/api/orders`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const response = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
       const data = await response.json();
       setOrders(data.data);
       // Timer management is handled by backend
@@ -320,14 +324,16 @@ export default function TableSection() {
     if (!menuItem) return;
     const batchSize = getBatchSize(menuItem, batchNumber);
     try {
-      const response = await fetch(`/api/orders`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tableSection: 1, // Default to table section 1
+          tableSection: parseInt(tableId),
           menuItemId: menuItemId,
           batchSize: batchSize,
           batchNumber: batchNumber,
+          restaurantId: parseInt(restaurantId),
         }),
       });
       if (!response.ok) alert('Failed to create order');
@@ -340,7 +346,8 @@ export default function TableSection() {
 
   const deleteOrder = async (orderId: number, menuItemId: number, batchNumber: number) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -383,7 +390,8 @@ export default function TableSection() {
     const table = parseInt(tableId);
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const resp = await fetch(`/api/orders`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+        const resp = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
         const json = await resp.json();
         const list: BackendOrder[] = Array.isArray(json.data) ? (json.data as BackendOrder[]) : [];
         const normalized: Order[] = list.map(normalizeOrder);
@@ -401,7 +409,8 @@ export default function TableSection() {
     if (!confirm('Are you sure you want to delete ALL orders? This action cannot be undone.')) return;
 
     try {
-      const response = await fetch(`/api/orders`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const response = await fetch(`${apiUrl}/api/orders`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -643,16 +652,16 @@ export default function TableSection() {
         </Box>
 
         <Box mt={8} textAlign="center" className="mt-8 text-center">
-          <Button
-            as={Link}
-            href="/"
-            colorScheme="gray"
-            variant="solid"
-            size="lg"
-            fontWeight="medium"
-          >
-            Back to Home
-          </Button>
+          <Link href="/">
+            <Button
+              colorScheme="gray"
+              variant="solid"
+              size="lg"
+              fontWeight="medium"
+            >
+              Back to Home
+            </Button>
+          </Link>
         </Box>
       </Box>
     </Box>

@@ -5,9 +5,21 @@ export default class MenuItemController {
   /**
    * Display a list of all menu items
    */
-  async index({ response }: HttpContext) {
+  async index({ request, response }: HttpContext) {
     try {
-      const menuItems = await MenuItem.all()
+      const restaurantId = request.input('restaurant_id', 1) // Default to restaurant 1
+      
+      // Try to filter by restaurant_id, but fall back to all items if none found
+      let menuItems = await MenuItem.query()
+        .where('restaurantId', restaurantId)
+        .where('status', 'available')
+      
+      // If no items found for this restaurant, show all available items (fallback)
+      if (menuItems.length === 0) {
+        menuItems = await MenuItem.query()
+          .where('status', 'available')
+      }
+      
       return response.json({
         data: menuItems
       })

@@ -55,5 +55,5 @@ app.ready(() => {
   })
 
   // Make io available globally for controllers
-  global.socketIO = io
+  ;(global as any).socketIO = io
 })

@@ -6,11 +6,16 @@ import WebSocketService from '#services/websocket_service'
 export default class OrderController {
   private wsService = new WebSocketService()
   /**
-   * Display a list of all orders
+   * Display a list of all orders for a specific restaurant
    */
-  async index({ response }: HttpContext) {
+  async index({ request, response }: HttpContext) {
     try {
-      const orders = await Order.query().preload('menuItem')
+      const restaurantId = request.input('restaurant_id', 1) // Default to restaurant 1
+      const orders = await Order.query()
+        .where('restaurantId', restaurantId)
+        .preload('menuItem')
+        .preload('restaurant')
+      
       return response.json({
         data: orders
       })
@@ -31,21 +36,24 @@ export default class OrderController {
         'tableSection',
         'menuItemId',
         'batchSize',
-        'batchNumber'
+        'batchNumber',
+        'restaurantId'
       ])
 
       // Validate that menu item exists
-      const menuItem = await MenuItem.findOrFail(data.menuItemId)
+      await MenuItem.findOrFail(data.menuItemId)
       
       const order = new Order()
       order.tableSection = data.tableSection
       order.menuItemId = data.menuItemId
       order.batchSize = data.batchSize
       order.batchNumber = data.batchNumber || 1
+      order.restaurantId = data.restaurantId || 1 // Default to restaurant 1
       order.status = 'pending'
       
       await order.save()
       await order.load('menuItem')
+      await order.load('restaurant')
 
       // Emit WebSocket event for new order
       this.wsService.emitOrderCreated(order)
@@ -131,7 +139,7 @@ export default class OrderController {
       
       await order.delete()
 
-      return response.status(204).send()
+      return response.status(204).send('')
     } catch (error) {
       return response.status(400).json({
         error: 'Failed to delete order',

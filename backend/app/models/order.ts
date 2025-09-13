@@ -2,6 +2,7 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import MenuItem from './menu_item.js'
+import Restaurant from './restaurant.js'
 
 export default class Order extends BaseModel {
   @column({ isPrimary: true })
@@ -22,6 +23,9 @@ export default class Order extends BaseModel {
   @column()
   declare status: string
 
+  @column()
+  declare restaurantId: number
+
   @column.dateTime()
   declare timerStart: DateTime | null
 
@@ -39,4 +43,7 @@ export default class Order extends BaseModel {
 
   @belongsTo(() => MenuItem)
   declare menuItem: BelongsTo<typeof MenuItem>
+
+  @belongsTo(() => Restaurant)
+  declare restaurant: BelongsTo<typeof Restaurant>
 }
