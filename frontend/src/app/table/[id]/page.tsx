@@ -84,43 +84,8 @@ export default function TableSection() {
       const response = await fetch(`/api/menu-items`);
       const data = await response.json();
 
-      // Filter menu items based on table ID
-      let filteredItems = data.data;
-      if (tableId === '1') {
-        // Table 1 should only show: C3, F4, B3, M1, R1 (and V1 if you intended it)
-        filteredItems = data.data.filter(
-          (item: MenuItem) =>
-            item.itemTitle.includes('C3 Kung Pao Chicken') ||
-            item.itemTitle.includes('F4 Honey Walnut Shrimp') ||
-            item.itemTitle.includes('B3 Black Pepper Sirloin Steak') ||
-            item.itemTitle.includes('M1 Chow Mein') || // 🛠️ “Chow” not “Show”
-            item.itemTitle.includes('V1 Super Greens') ||
-            item.itemTitle.includes('R1 Fried Rice') ||
-            item.itemTitle.includes('test')
-        );
-      } else if (tableId === '2') {
-        // Table 2 should only show: CB1, C1, C2, B5, B1, CB3
-        filteredItems = data.data.filter(
-          (item: MenuItem) =>
-            item.itemTitle.includes('CB1 String Bean Chicken Breast') ||
-            item.itemTitle.includes('C1 Orange Chicken') ||
-            item.itemTitle.includes('C2 Mushroom Chicken') ||
-            item.itemTitle.includes('B5 Beijing Beef') ||
-            item.itemTitle.includes('B1 Broccoli Beef') ||
-            item.itemTitle.includes('CB3 Honey Sesame Chicken Breast')
-        );
-      } else if (tableId === '3') {
-        // Table 3 should only show: E2, E3, E1, C4
-        filteredItems = data.data.filter(
-          (item: MenuItem) =>
-            item.itemTitle.includes('E2 Chicken Egg Roll') ||
-            item.itemTitle.includes('E3 Cream Cheese Rangoons') ||
-            item.itemTitle.includes('E1 Veggie Spring Rolls') ||
-            item.itemTitle.includes('C4 Grilled Teriyaki Chicken')
-        );
-      }
-
-      setMenuItems(filteredItems);
+      // Show all menu items
+      setMenuItems(data.data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching menu items:', error);
@@ -359,7 +324,7 @@ export default function TableSection() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tableSection: parseInt(tableId),
+          tableSection: 1, // Default to table section 1
           menuItemId: menuItemId,
           batchSize: batchSize,
           batchNumber: batchNumber,
@@ -475,7 +440,7 @@ export default function TableSection() {
         <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
           <VStack align="start" gap={2}>
             <Heading as="h1" size="3xl" color="gray.800" className="text-4xl font-bold text-gray-800">
-              Table Section {tableId}
+              Table Section
             </Heading>
             <Text fontSize="lg" color="gray.600" className="text-lg text-gray-600">
               Current Time: {new Date().toLocaleTimeString()}
@@ -600,6 +565,7 @@ export default function TableSection() {
                 <Table.Header>
                   <Table.Row>
                     <Table.ColumnHeader>Dish</Table.ColumnHeader>
+                    <Table.ColumnHeader>Table</Table.ColumnHeader>
                     <Table.ColumnHeader>Batch Size</Table.ColumnHeader>
                     <Table.ColumnHeader>Status</Table.ColumnHeader>
                     <Table.ColumnHeader>Timer</Table.ColumnHeader>
@@ -607,14 +573,15 @@ export default function TableSection() {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {orders
-                    .filter((o) => o.tableSection === parseInt(tableId))
-                    .map((order) => (
+                  {orders.map((order) => (
                       <Table.Row key={order.id} _hover={{ bg: "gray.50" }}>
                         <Table.Cell>
                           <Text fontSize="sm" fontWeight="medium" color="gray.900">
                             {order?.menuItem?.itemTitle ?? '—'}
                           </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text fontSize="sm" color="gray.900">Table {order.tableSection}</Text>
                         </Table.Cell>
                         <Table.Cell>
                           <Text fontSize="sm" color="gray.900">{order.batchSize}</Text>

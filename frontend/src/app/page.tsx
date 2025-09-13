@@ -50,15 +50,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Count active orders for each section
-  const getActiveOrderCount = (tableSection: number) => {
-    return orders.filter(order => 
-      order.tableSection === tableSection && 
-      ['pending', 'cooking', 'timer_expired', 'ready'].includes(order.status)
-    ).length;
-  };
-
-  // Count total active orders for BOH
+  // Count total active orders
   const getTotalActiveOrders = () => {
     return orders.filter(order => 
       ['pending', 'cooking', 'timer_expired', 'ready'].includes(order.status)
@@ -130,7 +122,7 @@ export default function Home() {
           gap={6}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Table Section 1 */}
+          {/* Table Section */}
           <Box 
             cursor="pointer" 
             onClick={() => handleNavigation("/table/1")}
@@ -143,75 +135,17 @@ export default function Home() {
           >
             <Box textAlign="center" p={8}>
               <Heading size="lg" mb={2} color="blue.600">
-                Table Section 1
+                Table Section
               </Heading>
               <Text color="gray.600" mb={4}>
-                Manage orders for section 1
+                Manage all orders and menu items
               </Text>
               <HStack justify="center" gap={2}>
                 <Status.Root colorPalette="blue" size="sm">
                   <Status.Indicator />
                 </Status.Root>
                 <Badge colorScheme="blue" fontSize="sm">
-                  {loading ? "..." : `${getActiveOrderCount(1)} Active Orders`}
-                </Badge>
-              </HStack>
-            </Box>
-          </Box>
-
-          {/* Table Section 2 */}
-          <Box 
-            cursor="pointer" 
-            onClick={() => handleNavigation("/table/2")}
-            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
-            transition="all 0.2s"
-            bg="white"
-            borderRadius="lg"
-            shadow="md"
-            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
-          >
-            <Box textAlign="center" p={8}>
-              <Heading size="lg" mb={2} color="blue.600">
-                Table Section 2
-              </Heading>
-              <Text color="gray.600" mb={4}>
-                Manage orders for section 2
-              </Text>
-              <HStack justify="center" gap={2}>
-                <Status.Root colorPalette="blue" size="sm">
-                  <Status.Indicator />
-                </Status.Root>
-                <Badge colorScheme="blue" fontSize="sm">
-                  {loading ? "..." : `${getActiveOrderCount(2)} Active Orders`}
-                </Badge>
-              </HStack>
-            </Box>
-          </Box>
-
-          {/* Table Section 3 */}
-          <Box 
-            cursor="pointer" 
-            onClick={() => handleNavigation("/table/3")}
-            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
-            transition="all 0.2s"
-            bg="white"
-            borderRadius="lg"
-            shadow="md"
-            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
-          >
-            <Box textAlign="center" p={8}>
-              <Heading size="lg" mb={2} color="blue.600">
-                Table Section 3
-              </Heading>
-              <Text color="gray.600" mb={4}>
-                Manage orders for section 3
-              </Text>
-              <HStack justify="center" gap={2}>
-                <Status.Root colorPalette="blue" size="sm">
-                  <Status.Indicator />
-                </Status.Root>
-                <Badge colorScheme="blue" fontSize="sm">
-                  {loading ? "..." : `${getActiveOrderCount(3)} Active Orders`}
+                  {loading ? "..." : `${getTotalActiveOrders()} Active Orders`}
                 </Badge>
               </HStack>
             </Box>
