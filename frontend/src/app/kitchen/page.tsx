@@ -1,7 +1,11 @@
 'use client';
 
-import { Suspense } from 'react';
-import { Box, Text } from "@chakra-ui/react";
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
+import { Box, Heading, HStack, Status, Badge, Table, Button, Text, VStack } from "@chakra-ui/react";
+import Link from 'next/link';
 
 interface Order {
   id: number;
@@ -25,11 +29,6 @@ interface Order {
 }
 
 function KitchenContent() {
-  const { useState, useEffect } = require('react');
-  const { useSearchParams } = require('next/navigation');
-  const { useWebSocket } = require('@/contexts/WebSocketContext');
-  const { useOrderEvents, useTimerEvents } = require('@/hooks/useWebSocketEvents');
-  const Link = require('next/link').default;
   
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id') || '1';

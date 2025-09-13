@@ -1,14 +1,12 @@
 'use client';
 
-import { Suspense } from 'react';
-import { Box, Text } from "@chakra-ui/react";
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
+import { Box, Heading, HStack, Status, Badge, Table, Button, Text, VStack } from "@chakra-ui/react";
 
 function BOHPageContent() {
-  const { useState, useEffect } = require('react');
-  const { useSearchParams } = require('next/navigation');
-  const { useWebSocket } = require('@/contexts/WebSocketContext');
-  const { useOrderEvents, useTimerEvents } = require('@/hooks/useWebSocketEvents');
-  const { Heading, HStack, Status, Badge, Table, Button, VStack } = require("@chakra-ui/react");
 
   interface Order {
     id: number;

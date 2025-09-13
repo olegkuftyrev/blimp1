@@ -490,7 +490,7 @@ function TableSectionContent() {
                           flex={1}
                           onClick={() => createOrder(item.id, batchNumber)}
                           disabled={isSent}
-                          colorScheme={
+                          colorPalette={
                             isSent
                               ? (() => {
                                   if (order) {
@@ -503,26 +503,10 @@ function TableSectionContent() {
                                 })()
                               : 'gray'
                           }
-                          variant="solid"
-                          size="lg"
-                          fontWeight="bold"
-                          fontSize="md"
-                          minH="48px"
-                          shadow="md"
-                          _hover={{
-                            transform: 'translateY(-2px)',
-                            shadow: 'lg'
-                          }}
-                          _active={{
-                            transform: 'translateY(0px)',
-                            shadow: 'md'
-                          }}
-                          transition="all 0.2s"
-                          _disabled={{ 
-                            cursor: 'not-allowed',
-                            opacity: 0.7,
-                            transform: 'none'
-                          }}
+                          variant="outline"
+                          size="md"
+                          fontWeight="medium"
+                          _disabled={{ cursor: 'not-allowed' }}
                         >
                           {isSent
                             ? (() => {
@@ -530,15 +514,15 @@ function TableSectionContent() {
                                   if (order.status === 'cooking') {
                                     const remaining = getRemainingTime(order);
                                     if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
-                                    return `🔥 COOKING`;
+                                    return `Timer activated`;
                                   }
-                                  if (order.status === 'pending') return `⏳ PENDING`;
-                                  if (order.status === 'timer_expired') return `🚨 EXPIRED`;
-                                  if (order.status === 'ready') return `✅ READY`;
+                                  if (order.status === 'pending') return `⏳ Pending`;
+                                  if (order.status === 'timer_expired') return `🔴 Timer Expired`;
+                                  if (order.status === 'ready') return `✅ Ready!`;
                                 }
                                 return `Batch ${batchNumber} - Waiting`;
                               })()
-                            : `📦 BATCH ${batchNumber}`}
+                            : `Batch ${batchNumber}`}
                         </Button>
 
                         {order && (
@@ -546,22 +530,11 @@ function TableSectionContent() {
                             onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
                             colorScheme="red"
                             variant="solid"
-                            size="lg"
-                            fontWeight="bold"
-                            minH="48px"
-                            shadow="md"
-                            _hover={{
-                              transform: 'translateY(-2px)',
-                              shadow: 'lg'
-                            }}
-                            _active={{
-                              transform: 'translateY(0px)',
-                              shadow: 'md'
-                            }}
-                            transition="all 0.2s"
+                            size="md"
+                            fontWeight="medium"
                             title="Delete order"
                           >
-                            🗑️ DELETE
+                            🗑️
                           </Button>
                         )}
                       </HStack>
