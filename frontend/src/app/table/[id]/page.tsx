@@ -504,9 +504,25 @@ function TableSectionContent() {
                               : 'gray'
                           }
                           variant="solid"
-                          size="md"
-                          fontWeight="medium"
-                          _disabled={{ cursor: 'not-allowed' }}
+                          size="lg"
+                          fontWeight="bold"
+                          fontSize="md"
+                          minH="48px"
+                          shadow="md"
+                          _hover={{
+                            transform: 'translateY(-2px)',
+                            shadow: 'lg'
+                          }}
+                          _active={{
+                            transform: 'translateY(0px)',
+                            shadow: 'md'
+                          }}
+                          transition="all 0.2s"
+                          _disabled={{ 
+                            cursor: 'not-allowed',
+                            opacity: 0.7,
+                            transform: 'none'
+                          }}
                         >
                           {isSent
                             ? (() => {
@@ -514,15 +530,15 @@ function TableSectionContent() {
                                   if (order.status === 'cooking') {
                                     const remaining = getRemainingTime(order);
                                     if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
-                                    return `Timer activated`;
+                                    return `🔥 COOKING`;
                                   }
-                                  if (order.status === 'pending') return `⏳ Pending`;
-                                  if (order.status === 'timer_expired') return `🔴 Timer Expired`;
-                                  if (order.status === 'ready') return `✅ Ready!`;
+                                  if (order.status === 'pending') return `⏳ PENDING`;
+                                  if (order.status === 'timer_expired') return `🚨 EXPIRED`;
+                                  if (order.status === 'ready') return `✅ READY`;
                                 }
                                 return `Batch ${batchNumber} - Waiting`;
                               })()
-                            : `Batch ${batchNumber}`}
+                            : `📦 BATCH ${batchNumber}`}
                         </Button>
 
                         {order && (
@@ -530,11 +546,22 @@ function TableSectionContent() {
                             onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
                             colorScheme="red"
                             variant="solid"
-                            size="md"
-                            fontWeight="medium"
+                            size="lg"
+                            fontWeight="bold"
+                            minH="48px"
+                            shadow="md"
+                            _hover={{
+                              transform: 'translateY(-2px)',
+                              shadow: 'lg'
+                            }}
+                            _active={{
+                              transform: 'translateY(0px)',
+                              shadow: 'md'
+                            }}
+                            transition="all 0.2s"
                             title="Delete order"
                           >
-                            🗑️
+                            🗑️ DELETE
                           </Button>
                         )}
                       </HStack>
