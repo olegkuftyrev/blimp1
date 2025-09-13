@@ -5,6 +5,7 @@ import Link from "next/link";
 export const dynamic = 'force-dynamic';
 import { useRouter } from "next/navigation";
 import { Box, Grid, Heading, Text, Button, HStack, Status, VStack, SimpleGrid, Badge, Stack } from "@chakra-ui/react";
+import { ColorModeButton } from "@/components/ui/color-mode";
 import { useState, useEffect } from "react";
 
 interface Order {
@@ -149,6 +150,10 @@ export default function Home() {
         className="min-h-screen bg-gray-50 p-8"
       >
         <Box maxW="4xl" mx="auto" className="max-w-4xl mx-auto">
+          <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
+            <Box />
+            <ColorModeButton />
+          </HStack>
           <VStack gap={8} mb={12} className="mb-12">
             <Heading 
               as="h1" 
@@ -223,6 +228,10 @@ export default function Home() {
     >
       <Box maxW="6xl" mx="auto" className="max-w-6xl mx-auto">
         {/* Header Section */}
+        <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
+          <Box />
+          <ColorModeButton />
+        </HStack>
         <VStack gap={6} mb={12} className="mb-12">
           <Heading 
             as="h1" 
