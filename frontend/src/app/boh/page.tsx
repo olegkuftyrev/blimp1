@@ -243,9 +243,19 @@ function BOHPageContent() {
   const startTimer = async (orderId: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}/start-timer`, {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const cookingTimeMinutes = getCookingTime(order);
+      
+      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/start-timer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cookingTime: cookingTimeMinutes
+        }),
       });
       if (!response.ok) {
         alert('Failed to start timer');
@@ -259,7 +269,7 @@ function BOHPageContent() {
   const completeOrder = async (orderId: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}/complete`, {
+      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
