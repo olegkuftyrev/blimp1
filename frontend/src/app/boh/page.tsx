@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
+import { useSound } from '@/hooks/useSound';
 import { Box, Heading, HStack, Status, Badge, Table, Button, Text, VStack } from "@chakra-ui/react";
 
 function BOHPageContent() {
@@ -43,6 +44,7 @@ function BOHPageContent() {
   const [loading, setLoading] = useState(true);
   const [, setNow] = useState<number>(Date.now());
   const { joinKitchen, leaveKitchen, isConnected } = useWebSocket();
+  const { playTimerBeepSequence, playTimerBeep } = useSound();
 
   useEffect(() => {
     fetchOrders();
@@ -175,6 +177,16 @@ function BOHPageContent() {
 
   const handleTimerExpired = (event: TimerEventT) => {
     console.log('⏰ Timer expired event received:', event);
+    console.log('🔊 About to play timer sound...');
+    
+    // Play timer completion sound
+    try {
+      playTimerBeepSequence();
+      console.log('🔊 Timer sound triggered successfully');
+    } catch (error) {
+      console.error('🔊 Error playing timer sound:', error);
+    }
+    
     const ord = normalizeOrder(event.order);
     fetchOrders();
   };
@@ -327,6 +339,41 @@ function BOHPageContent() {
             </Text>
           </VStack>
           <HStack gap={2} className="flex items-center space-x-2">
+            <Button
+              onClick={() => playTimerBeepSequence()}
+              colorScheme="purple"
+              variant="outline"
+              size="sm"
+              fontWeight="medium"
+            >
+              🔊 Test Sound
+            </Button>
+            <Button
+              onClick={() => {
+                console.log('🧪 Testing timer expiration handler...');
+                handleTimerExpired({
+                  order: {
+                    id: 999,
+                    tableSection: 1,
+                    menuItemId: 1,
+                    batchSize: 1,
+                    status: 'timer_expired',
+                    timerStart: new Date().toISOString(),
+                    timerEnd: new Date().toISOString(),
+                    menuItem: {
+                      id: 1,
+                      itemTitle: 'Test Item'
+                    }
+                  }
+                });
+              }}
+              colorScheme="orange"
+              variant="outline"
+              size="sm"
+              fontWeight="medium"
+            >
+              🧪 Test Timer Expired
+            </Button>
             <Status.Root colorPalette={isConnected ? "green" : "red"}>
               <Status.Indicator />
             </Status.Root>

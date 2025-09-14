@@ -114,7 +114,10 @@ export function useTimerEvents(
     }
 
     if (onTimerExpired) {
-      socket.on('timer:expired', onTimerExpired)
+      socket.on('timer:expired', (event) => {
+        console.log('🔔 WebSocket timer:expired event received:', event);
+        onTimerExpired(event);
+      })
     }
 
     return () => {
