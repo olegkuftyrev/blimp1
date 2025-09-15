@@ -46,6 +46,7 @@ router.group(() => {
   router.post('/kitchen/orders/:id/extend-timer', '#controllers/kitchen_controller.extendTimer')
   router.get('/kitchen/orders/:id/timer-status', '#controllers/kitchen_controller.getTimerStatus')
   router.post('/kitchen/orders/:id/complete', '#controllers/kitchen_controller.complete')
+  router.post('/kitchen/test-timer-expiration', '#controllers/kitchen_controller.testTimerExpiration')
 
   // System Status
   router.get('/status', '#controllers/status_controller.index')

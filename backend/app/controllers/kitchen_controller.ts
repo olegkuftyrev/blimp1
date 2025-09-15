@@ -8,6 +8,38 @@ export default class KitchenController {
   private wsService = new WebSocketService()
   private timerService = new TimerService()
   /**
+   * Test endpoint to manually trigger timer expiration
+   */
+  async testTimerExpiration({ response }: HttpContext) {
+    try {
+      // Find a cooking order to test with
+      const order = await Order.query()
+        .where('status', 'cooking')
+        .first()
+      
+      if (!order) {
+        return response.status(404).json({
+          error: 'No cooking orders found',
+          message: 'Create a cooking order first to test timer expiration'
+        })
+      }
+
+      // Manually trigger timer expiration
+      await this.timerService.handleTimerExpiration(order.id)
+      
+      return response.json({
+        message: 'Timer expiration triggered manually',
+        orderId: order.id
+      })
+    } catch (error) {
+      return response.status(500).json({
+        error: 'Failed to trigger timer expiration',
+        message: error.message
+      })
+    }
+  }
+
+  /**
    * Get all kitchen orders
    */
   async orders({ response }: HttpContext) {

@@ -75,7 +75,7 @@ export default class TimerService {
   /**
    * Handle timer expiration
    */
-  private async handleTimerExpiration(orderId: number): Promise<void> {
+  async handleTimerExpiration(orderId: number): Promise<void> {
     try {
       // Clear the timer
       this.clearTimer(orderId)
