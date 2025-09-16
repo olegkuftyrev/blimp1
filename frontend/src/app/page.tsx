@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Box, Grid, Heading, Text, Button, HStack, Status, VStack, SimpleGrid, Badge, Stack } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { useState, useEffect } from "react";
+import { getApiUrl } from '@/lib/api';
 
 interface Order {
   id: number;
@@ -56,8 +57,7 @@ export default function Home() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-        const response = await fetch(`${apiUrl}/api/restaurants`);
+        const response = await fetch(getApiUrl('restaurants'));
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -88,8 +88,7 @@ export default function Home() {
 
     const fetchOrders = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-        const response = await fetch(`${apiUrl}/api/orders?restaurant_id=${selectedRestaurant.id}`);
+        const response = await fetch(getApiUrl(`orders?restaurant_id=${selectedRestaurant.id}`));
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import { useSound } from '@/hooks/useSound';
+import { getApiUrl } from '@/lib/api';
 import { Box, Heading, HStack, Status, Badge, Table, Button, Text, VStack } from "@chakra-ui/react";
 
 function BOHPageContent() {
@@ -81,8 +82,7 @@ function BOHPageContent() {
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
+      const response = await fetch(getApiUrl(`orders?restaurant_id=${restaurantId}`));
       const data = await response.json();
       setOrders(data.data);
       setLoading(false);
@@ -256,13 +256,12 @@ function BOHPageContent() {
 
   const startTimer = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
       const order = orders.find(o => o.id === orderId);
       if (!order) return;
 
       const cookingTimeMinutes = getCookingTime(order);
       
-      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/start-timer`, {
+      const response = await fetch(getApiUrl(`kitchen/orders/${orderId}/start-timer`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -282,8 +281,7 @@ function BOHPageContent() {
 
   const completeOrder = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/kitchen/orders/${orderId}/complete`, {
+      const response = await fetch(getApiUrl(`kitchen/orders/${orderId}/complete`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -298,8 +296,7 @@ function BOHPageContent() {
 
   const deleteOrder = async (orderId: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+      const response = await fetch(getApiUrl(`orders/${orderId}`), {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -372,7 +369,30 @@ function BOHPageContent() {
               size="sm"
               fontWeight="medium"
             >
-              🧪 Test Timer Expired
+              🧪 Test Timer Handler
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  console.log('🧪 Testing backend timer expiration...');
+                  const response = await fetch(getApiUrl('kitchen/test-timer-expiration'), {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                  const data = await response.json();
+                  console.log('Backend response:', data);
+                } catch (error) {
+                  console.error('Error testing backend timer expiration:', error);
+                }
+              }}
+              colorScheme="red"
+              variant="outline"
+              size="sm"
+              fontWeight="medium"
+            >
+              🧪 Test Backend Timer
             </Button>
             <Status.Root colorPalette={isConnected ? "green" : "red"}>
               <Status.Indicator />
