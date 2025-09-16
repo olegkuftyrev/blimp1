@@ -7,7 +7,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import Link from 'next/link';
-import { Box, Heading, HStack, Status, Badge, Table, Button, Text, VStack, SimpleGrid, Card } from "@chakra-ui/react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface MenuItem {
   id: number;
@@ -432,234 +436,216 @@ function TableSectionContent() {
 
   if (loading) {
     return (
-      <Box 
-        minH="100vh" 
-        bg="gray.50" 
-        display="flex" 
-        alignItems="center" 
-        justifyContent="center"
-        className="min-h-screen bg-gray-50 flex items-center justify-center"
-      >
-        <Text fontSize="2xl" color="gray.600">Loading...</Text>
-      </Box>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-2xl text-muted-foreground">Loading...</p>
+      </div>
     );
   }
 
   return (
-    <Box minH="100vh" bg="gray.50" p={8} className="min-h-screen bg-gray-50 p-8">
-      <Box maxW="6xl" mx="auto" className="max-w-6xl mx-auto">
-        <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
-          <VStack align="start" gap={2}>
-            <Heading as="h1" size="3xl" color="gray.800" className="text-4xl font-bold text-gray-800">
+    <div className="min-h-screen bg-background p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold text-foreground">
               Table Section
-            </Heading>
-            <Text fontSize="lg" color="gray.600" className="text-lg text-gray-600">
+            </h1>
+            <p className="text-lg text-muted-foreground">
               Current Time: {new Date().toLocaleTimeString()}
-            </Text>
-          </VStack>
-          <HStack gap={2} className="flex items-center space-x-2">
-            <Status.Root colorPalette={isConnected ? "green" : "red"}>
-              <Status.Indicator />
-            </Status.Root>
-            <Text fontSize="sm" color="gray.600" className="text-sm text-gray-600">
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <p className="text-sm text-muted-foreground">
               {isConnected ? 'Connected' : 'Disconnected'}
-            </Text>
-          </HStack>
-        </HStack>
+            </p>
+          </div>
+        </div>
 
-        <SimpleGrid 
-          columns={{ base: 1, md: 2, lg: 4 }} 
-          gap={4}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {menuItems.map((item) => (
-            <Card.Root key={item.id} bg="white" borderRadius="lg" shadow="lg" p={6} className="bg-white rounded-lg shadow-lg p-6">
-              <Card.Body>
-                <Box h={12} display="flex" alignItems="center" justifyContent="center" mb={1} className="h-12 flex items-center justify-center mb-1">
-                  <Heading as="h3" size="lg" textAlign="center" color="gray.800" className="text-xl font-semibold text-center text-gray-800 leading-tight">
-                    {item.itemTitle}
-                  </Heading>
-                </Box>
+            <Card key={item.id} className="shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl font-semibold text-center leading-tight">
+                  {item.itemTitle}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[1, 2, 3].map((batchNumber) => {
+                  const order = orders.find((o) => o.menuItemId === item.id && o.batchNumber === batchNumber);
+                  const isSent = Boolean(order);
 
-                <VStack gap={2} className="space-y-2">
-                  {[1, 2, 3].map((batchNumber) => {
-                    const order = orders.find((o) => o.menuItemId === item.id && o.batchNumber === batchNumber);
-                    const isSent = Boolean(order);
-
-                    return (
-                      <HStack key={batchNumber} gap={2} className="flex space-x-2">
-                        <Button
-                          flex={1}
-                          onClick={() => createOrder(item.id, batchNumber)}
-                          disabled={isSent}
-                          variant="outline"
-                          size="md"
-                          fontWeight="medium"
-                          _disabled={{ cursor: 'not-allowed' }}
-                        >
-                          {isSent
-                            ? (() => {
-                                if (order) {
-                                  if (order.status === 'cooking') {
-                                    const remaining = getRemainingTime(order);
-                                    if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
-                                    return `Timer activated`;
-                                  }
-                                  if (order.status === 'pending') return `⏳ Pending`;
-                                  if (order.status === 'timer_expired') return `🔴 Timer Expired`;
-                                  if (order.status === 'ready') return `✅ Ready!`;
+                  return (
+                    <div key={batchNumber} className="flex space-x-2">
+                      <Button
+                        className="flex-1"
+                        onClick={() => createOrder(item.id, batchNumber)}
+                        disabled={isSent}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {isSent
+                          ? (() => {
+                              if (order) {
+                                if (order.status === 'cooking') {
+                                  const remaining = getRemainingTime(order);
+                                  if (remaining !== null) return `⏰ ${formatTime(remaining)}`;
+                                  return `Timer activated`;
                                 }
-                                return `Batch ${batchNumber} - Waiting`;
-                              })()
-                            : `Batch ${batchNumber}`}
-                        </Button>
+                                if (order.status === 'pending') return `⏳ Pending`;
+                                if (order.status === 'timer_expired') return `🔴 Timer Expired`;
+                                if (order.status === 'ready') return `✅ Ready!`;
+                              }
+                              return `Batch ${batchNumber} - Waiting`;
+                            })()
+                          : `Batch ${batchNumber}`}
+                      </Button>
 
-                        {order && (
-                          <Button
-                            onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
-                            variant="solid"
-                            size="md"
-                            fontWeight="medium"
-                            title="Delete order"
-                          >
-                            🗑️
-                          </Button>
-                        )}
-                      </HStack>
-                    );
-                  })}
-                </VStack>
-              </Card.Body>
-            </Card.Root>
+                      {order && (
+                        <Button
+                          onClick={() => deleteOrder(order.id, item.id, order.batchNumber || 1)}
+                          variant="destructive"
+                          size="sm"
+                          title="Delete order"
+                        >
+                          🗑️
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
           ))}
-        </SimpleGrid>
+        </div>
 
         {/* Orders Section */}
-        <Box mt={12} className="mt-12">
-          <HStack justify="space-between" mb={6} className="flex justify-between items-center mb-6">
-            <Heading as="h2" size="2xl" color="gray.800" className="text-2xl font-bold text-gray-800">
+        <div className="mt-12">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-foreground">
               Current Orders
-            </Heading>
+            </h2>
             {orders.length > 0 && (
-              <Button
-                onClick={deleteAllOrders}
-                variant="solid"
-                size="sm"
-                fontWeight="medium"
-              >
-                🗑️ Delete All Orders
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    🗑️ Delete All Orders
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete all orders.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={deleteAllOrders}>
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
-          </HStack>
+          </div>
           {orders.length === 0 ? (
-            <Box bg="white" borderRadius="lg" shadow="lg" p={8} textAlign="center" className="bg-white rounded-lg shadow-lg p-8 text-center">
-              <Text color="gray.600" fontSize="lg" className="text-gray-600 text-lg">No orders yet</Text>
-            </Box>
+            <Card className="shadow-lg">
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground text-lg">No orders yet</p>
+              </CardContent>
+            </Card>
           ) : (
-            <Box bg="white" borderRadius="lg" shadow="lg" overflow="hidden" className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <Table.Root size="sm" striped>
-                <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeader>Dish</Table.ColumnHeader>
-                    <Table.ColumnHeader>Table</Table.ColumnHeader>
-                    <Table.ColumnHeader>Batch Size</Table.ColumnHeader>
-                    <Table.ColumnHeader>Status</Table.ColumnHeader>
-                    <Table.ColumnHeader>Timer</Table.ColumnHeader>
-                    <Table.ColumnHeader>Actions</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
+            <Card className="shadow-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Dish</TableHead>
+                    <TableHead>Table</TableHead>
+                    <TableHead>Batch Size</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Timer</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {orders.map((order) => (
-                      <Table.Row key={order.id} _hover={{ bg: "gray.50" }}>
-                        <Table.Cell>
-                          <Text fontSize="sm" fontWeight="medium" color="gray.900">
-                            {order?.menuItem?.itemTitle ?? '—'}
-                          </Text>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Text fontSize="sm" color="gray.900">Table {order.tableSection}</Text>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Text fontSize="sm" color="gray.900">{order.batchSize}</Text>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Badge 
-                            size="sm"
-                          >
-                            {order.status}
-                          </Badge>
-                        </Table.Cell>
-                        <Table.Cell>
-                          {order.status === 'cooking' ? (
-                            (() => {
-                              const remaining = getRemainingTime(order);
-                              return remaining !== null ? (
-                                <Text color="blue.600" fontWeight="medium">⏰ {formatTime(remaining)}</Text>
-                              ) : (
-                                <Text color="blue.600" fontWeight="medium">Running...</Text>
-                              );
-                            })()
-                          ) : order.status === 'pending' ? (
-                            <Text color="yellow.600" fontWeight="medium">Pending</Text>
-                          ) : order.status === 'timer_expired' ? (
-                            <Text color="red.600" fontWeight="medium">Expired!</Text>
-                          ) : order.status === 'ready' ? (
-                            <Text color="green.600" fontWeight="medium">Ready!</Text>
-                          ) : (
-                            <Text color="gray.400">-</Text>
+                    <TableRow key={order.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <p className="text-sm font-medium">
+                          {order?.menuItem?.itemTitle ?? '—'}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm">Table {order.tableSection}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm">{order.batchSize}</p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {order.status === 'cooking' ? (
+                          (() => {
+                            const remaining = getRemainingTime(order);
+                            return remaining !== null ? (
+                              <p className="text-blue-600 font-medium">⏰ {formatTime(remaining)}</p>
+                            ) : (
+                              <p className="text-blue-600 font-medium">Running...</p>
+                            );
+                          })()
+                        ) : order.status === 'pending' ? (
+                          <p className="text-yellow-600 font-medium">Pending</p>
+                        ) : order.status === 'timer_expired' ? (
+                          <p className="text-red-600 font-medium">Expired!</p>
+                        ) : order.status === 'ready' ? (
+                          <p className="text-green-600 font-medium">Ready!</p>
+                        ) : (
+                          <p className="text-muted-foreground">-</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          {order.status === 'timer_expired' && (
+                            <Button
+                              onClick={() => deleteOrder(order.id, order.menuItem?.id || 0, order.batchNumber || 1)}
+                              variant="destructive"
+                              size="sm"
+                            >
+                              Delete
+                            </Button>
                           )}
-                        </Table.Cell>
-                        <Table.Cell>
-                          <HStack gap={2}>
-                            {order.status === 'timer_expired' && (
-                              <Button
-                                onClick={() => deleteOrder(order.id, order.menuItem?.id || 0, order.batchNumber || 1)}
-                                variant="solid"
-                                size="sm"
-                                fontWeight="medium"
-                              >
-                                Delete
-                              </Button>
-                            )}
-                          </HStack>
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                </Table.Body>
-              </Table.Root>
-            </Box>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
           )}
-        </Box>
+        </div>
 
-        <Box mt={8} textAlign="center" className="mt-8 text-center">
+        <div className="mt-8 text-center">
           <Link href="/">
-            <Button
-              variant="solid"
-              size="lg"
-              fontWeight="medium"
-            >
+            <Button size="lg">
               Back to Home
             </Button>
           </Link>
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function TableSection() {
   return (
     <Suspense fallback={
-      <Box 
-        minH="100vh" 
-        bg="gray.50" 
-        display="flex" 
-        alignItems="center" 
-        justifyContent="center"
-        className="min-h-screen bg-gray-50 flex items-center justify-center"
-      >
-        <Text fontSize="2xl" color="gray.600">Loading...</Text>
-      </Box>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-2xl text-muted-foreground">Loading...</p>
+      </div>
     }>
       <TableSectionContent />
     </Suspense>

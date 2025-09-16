@@ -4,7 +4,9 @@ import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 import { useRouter } from "next/navigation";
-import { Box, Grid, Heading, Text, Button, HStack, Status, VStack, SimpleGrid, Badge, Stack } from "@chakra-ui/react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { useState, useEffect } from "react";
 import { getApiUrl } from '@/lib/api';
@@ -126,240 +128,158 @@ export default function Home() {
 
   if (restaurantsLoading) {
     return (
-      <Box 
-        minH="100vh" 
-        bg="gray.50" 
-        display="flex" 
-        alignItems="center" 
-        justifyContent="center"
-        className="min-h-screen bg-gray-50 flex items-center justify-center"
-      >
-        <Text fontSize="xl" color="gray.600">Loading restaurants...</Text>
-      </Box>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-xl text-muted-foreground">Loading restaurants...</p>
+      </div>
     );
   }
 
   // Show restaurant selection if no restaurant is selected
   if (!selectedRestaurant) {
     return (
-      <Box 
-        minH="100vh" 
-        bg="gray.50" 
-        p={8}
-        className="min-h-screen bg-gray-50 p-8"
-      >
-        <Box maxW="4xl" mx="auto" className="max-w-4xl mx-auto">
-          <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
-            <Box />
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div />
             <ColorModeButton />
-          </HStack>
-          <VStack gap={8} mb={12} className="mb-12">
-            <Heading 
-              as="h1" 
-              size="3xl" 
-              textAlign="center" 
-              color="gray.800"
-              className="text-3xl font-bold text-center text-gray-800"
-            >
+          </div>
+          <div className="space-y-8 mb-12">
+            <h1 className="text-3xl font-bold text-center text-foreground">
               Blimp Smart Table
-            </Heading>
-            <Text 
-              textAlign="center" 
-              color="gray.600" 
-              fontSize="xl"
-              className="text-center text-gray-600 text-xl"
-            >
+            </h1>
+            <p className="text-center text-muted-foreground text-xl">
               Select a restaurant to continue
-            </Text>
-          </VStack>
+            </p>
+          </div>
 
-          <SimpleGrid 
-            columns={{ base: 1, md: 2, lg: 3 }} 
-            gap={6}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {restaurants.map((restaurant) => (
-              <Box 
+              <Card 
                 key={restaurant.id}
-                cursor="pointer" 
+                className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
                 onClick={() => setSelectedRestaurant(restaurant)}
-                _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
-                transition="all 0.2s"
-                bg="white"
-                borderRadius="lg"
-                shadow="md"
-                p={6}
-                className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md p-6"
               >
-                <Stack gap={4}>
-                  <Heading size="md" color="blue.600">
+                <CardHeader>
+                  <CardTitle className="text-primary">
                     {restaurant.name}
-                  </Heading>
-                  <Text color="gray.600" fontSize="sm">
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground text-sm">
                     {restaurant.address}
-                  </Text>
-                  <Text color="gray.500" fontSize="sm">
+                  </p>
+                  <p className="text-muted-foreground/70 text-sm">
                     {restaurant.phone}
-                  </Text>
-                  <HStack justify="center">
-                    <Status.Root colorPalette="green" size="sm">
-                      <Status.Indicator />
-                    </Status.Root>
-                    <Badge colorScheme="green" fontSize="xs">
+                  </p>
+                  <div className="flex justify-center">
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                       Active
                     </Badge>
-                  </HStack>
-                </Stack>
-              </Box>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </SimpleGrid>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box 
-      minH="100vh" 
-      bg="gray.50" 
-      p={8}
-      className="min-h-screen bg-gray-50 p-8"
-    >
-      <Box maxW="6xl" mx="auto" className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background p-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <HStack justify="space-between" mb={8} className="flex justify-between items-center mb-8">
-          <Box />
+        <div className="flex justify-between items-center mb-8">
+          <div />
           <ColorModeButton />
-        </HStack>
-        <VStack gap={6} mb={12} className="mb-12">
-          <Heading 
-            as="h1" 
-            size="3xl" 
-            textAlign="center" 
-            color="gray.800"
-            className="text-3xl font-bold text-center text-gray-800"
-          >
-          Blimp Smart Table
-          </Heading>
+        </div>
+        <div className="space-y-6 mb-12">
+          <h1 className="text-3xl font-bold text-center text-foreground">
+            Blimp Smart Table
+          </h1>
           
           {/* Selected Restaurant Info */}
-          <Box bg="blue.50" borderColor="blue.200" borderWidth="1px" borderRadius="lg" p={6} className="bg-blue-50 border-blue-200 border rounded-lg p-6">
-            <VStack gap={3}>
-              <Heading size="lg" color="blue.700" className="text-blue-700">
+          <div className="bg-muted/50 border border-border rounded-lg p-6">
+            <div className="space-y-3">
+              <h2 className="text-xl font-semibold text-primary">
                 {selectedRestaurant.name}
-              </Heading>
-              <Text color="gray.600" fontSize="sm" textAlign="center">
+              </h2>
+              <p className="text-muted-foreground text-sm text-center">
                 {selectedRestaurant.address}
-              </Text>
-              <HStack gap={4}>
+              </p>
+              <div className="flex gap-4 justify-center">
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  colorScheme="blue"
                   onClick={() => setSelectedRestaurant(null)}
                 >
                   Change Restaurant
                 </Button>
-                <HStack gap={2}>
-                  <Status.Root colorPalette="green" size="sm">
-                    <Status.Indicator />
-                  </Status.Root>
-                  <Badge colorScheme="green" fontSize="xs">Active</Badge>
-                </HStack>
-              </HStack>
-            </VStack>
-          </Box>
+                <div className="flex gap-2 items-center">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>
+                </div>
+              </div>
+            </div>
+          </div>
           
-          <Text 
-            textAlign="center" 
-            color="gray.600" 
-            fontSize="lg"
-            maxW="2xl"
-            className="text-center text-gray-600 text-lg max-w-2xl"
-          >
+          <p className="text-center text-muted-foreground text-lg max-w-2xl mx-auto">
             Select your section to manage orders and operations
-          </Text>
+          </p>
           
           {/* System Status */}
-          <HStack gap={4}>
-            <Text color="gray.500" fontSize="sm" className="text-gray-500 text-sm">
+          <div className="flex gap-4 justify-center">
+            <p className="text-muted-foreground text-sm">
               System Status:
-            </Text>
-            <HStack gap={2}>
-              <Status.Root colorPalette="green">
-                <Status.Indicator />
-              </Status.Root>
-              <Badge colorScheme="green" fontSize="sm">Online</Badge>
-            </HStack>
-          </HStack>
-        </VStack>
-
+            </p>
+            <div className="flex gap-2 items-center">
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Online</Badge>
+            </div>
+          </div>
+        </div>
 
         {/* Dashboard Cards */}
-        <SimpleGrid 
-          columns={{ base: 1, md: 2 }} 
-          gap={6}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6"
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Table Section */}
-          <Box 
-            cursor="pointer" 
+          <Card 
+            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
             onClick={() => handleNavigation("/table/1")}
-            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
-            transition="all 0.2s"
-            bg="white"
-            borderRadius="lg"
-            shadow="md"
-            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
           >
-            <Box textAlign="center" p={8}>
-              <Heading size="lg" mb={2} color="blue.600">
+            <CardContent className="text-center p-8">
+              <h3 className="text-lg font-semibold mb-2 text-primary">
                 Table Section
-              </Heading>
-              <Text color="gray.600" mb={4}>
+              </h3>
+              <p className="text-muted-foreground mb-4">
                 Manage all orders and menu items
-              </Text>
-              <HStack justify="center" gap={2}>
-                <Status.Root colorPalette="blue" size="sm">
-                  <Status.Indicator />
-                </Status.Root>
-                <Badge colorScheme="blue" fontSize="sm">
+              </p>
+              <div className="flex justify-center gap-2">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                   {loading ? "..." : `${getTotalActiveOrders()} Active Orders`}
                 </Badge>
-              </HStack>
-            </Box>
-          </Box>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* BOH Page */}
-          <Box 
-            cursor="pointer" 
+          <Card 
+            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
             onClick={() => handleNavigation("/boh")}
-            _hover={{ transform: "translateY(-4px)", shadow: "xl" }}
-            transition="all 0.2s"
-            bg="white"
-            borderRadius="lg"
-            shadow="md"
-            className="cursor-pointer hover:transform hover:-translate-y-1 hover:shadow-xl transition-all duration-200 bg-white rounded-lg shadow-md"
           >
-            <Box textAlign="center" p={8}>
-              <Heading size="lg" mb={2} color="purple.600">
+            <CardContent className="text-center p-8">
+              <h3 className="text-lg font-semibold mb-2 text-purple-600 dark:text-purple-400">
                 BOH Management
-              </Heading>
-              <Text color="gray.600" mb={4}>
+              </h3>
+              <p className="text-muted-foreground mb-4">
                 Back of house operations
-              </Text>
-              <HStack justify="center" gap={2}>
-                <Status.Root colorPalette="purple" size="sm">
-                  <Status.Indicator />
-                </Status.Root>
-                <Badge colorScheme="purple" fontSize="sm">
+              </p>
+              <div className="flex justify-center gap-2">
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                   {loading ? "..." : `${getTotalActiveOrders()} Total Active Orders`}
                 </Badge>
-              </HStack>
-            </Box>
-          </Box>
-        </SimpleGrid>
-      </Box>
-    </Box>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 }
