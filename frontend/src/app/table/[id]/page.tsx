@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { apiFetch } from '@/lib/api';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface MenuItem {
   id: number;
@@ -89,28 +91,25 @@ function TableSectionContent() {
 
   const fetchMenuItems = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/menu-items?restaurant_id=${restaurantId}`);
-      const data = await response.json();
-
+      const data = await apiFetch<{data: MenuItem[]}>(`simple-auth/menu-items?restaurant_id=${restaurantId}`);
       // Show all menu items for the selected restaurant
-      setMenuItems(data.data);
+      setMenuItems(data.data || []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching menu items:', error);
+      setMenuItems([]); // Set empty array on error
       setLoading(false);
     }
   };
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
-      const data = await response.json();
-      setOrders(data.data);
+      const data = await apiFetch<{data: Order[]}>(`simple-auth/orders?restaurant_id=${restaurantId}`);
+      setOrders(data.data || []);
       // Timer management is handled by backend
     } catch (error) {
       console.error('Error fetching orders:', error);
+      setOrders([]); // Set empty array on error
     }
   };
 
@@ -330,10 +329,8 @@ function TableSectionContent() {
     if (!menuItem) return;
     const batchSize = getBatchSize(menuItem, batchNumber);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders`, {
+      await apiFetch('simple-auth/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableSection: parseInt(tableId),
           menuItemId: menuItemId,
@@ -342,7 +339,6 @@ function TableSectionContent() {
           restaurantId: parseInt(restaurantId),
         }),
       });
-      if (!response.ok) alert('Failed to create order');
       // UI updates via WebSocket
     } catch (error) {
       console.error('Error creating order:', error);
@@ -352,23 +348,19 @@ function TableSectionContent() {
 
   const deleteOrder = async (orderId: number, menuItemId: number, batchNumber: number) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+      await apiFetch(`simple-auth/orders/${orderId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
       });
 
-      if (response.ok) {
-        const key = `${menuItemId}-${batchNumber}`;
-        setSentOrders((prev) => {
-          const newState = { ...prev };
-          delete newState[key];
-          return newState;
-        });
+      const key = `${menuItemId}-${batchNumber}`;
+      setSentOrders((prev) => {
+        const newState = { ...prev };
+        delete newState[key];
+        return newState;
+      });
 
-        setOrders((prev) => prev.filter((o) => o.id !== orderId));
-        console.log('🗑️ Order deleted successfully');
-      }
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      console.log('🗑️ Order deleted successfully');
     } catch (error) {
       console.error('Error deleting order:', error);
     }
@@ -463,7 +455,7 @@ function TableSectionContent() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {menuItems.map((item) => (
+          {(menuItems || []).map((item) => (
             <Card key={item.id} className="shadow-lg">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xl font-semibold text-center leading-tight">
@@ -642,12 +634,14 @@ function TableSectionContent() {
 
 export default function TableSection() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-2xl text-muted-foreground">Loading...</p>
-      </div>
-    }>
-      <TableSectionContent />
-    </Suspense>
+    <ProtectedRoute>
+      <Suspense fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <p className="text-2xl text-muted-foreground">Loading...</p>
+        </div>
+      }>
+        <TableSectionContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

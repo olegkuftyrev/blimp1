@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ColorModeButton } from "@/components/ui/color-mode";
 import { useState, useEffect } from "react";
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, apiFetch } from '@/lib/api';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface Order {
   id: number;
@@ -36,7 +36,7 @@ interface Restaurant {
 
 
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -59,20 +59,7 @@ export default function Home() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const response = await fetch(getApiUrl('restaurants'));
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('Received non-JSON response:', text);
-          throw new Error(`Expected JSON response but got: ${contentType}`);
-        }
-        
-        const data = await response.json();
+        const data = await apiFetch<{data: Restaurant[]}>('simple-auth/restaurants');
         setRestaurants(data.data || []);
         setRestaurantsLoading(false);
       } catch (error) {
@@ -90,20 +77,7 @@ export default function Home() {
 
     const fetchOrders = async () => {
       try {
-        const response = await fetch(getApiUrl(`orders?restaurant_id=${selectedRestaurant.id}`));
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('Received non-JSON response:', text);
-          throw new Error(`Expected JSON response but got: ${contentType}`);
-        }
-        
-        const data = await response.json();
+        const data = await apiFetch<{data: Order[]}>(`simple-auth/orders?restaurant_id=${selectedRestaurant.id}`);
         setOrders(data.data || []);
         setLoading(false);
       } catch (error) {
@@ -139,10 +113,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-background p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div />
-            <ColorModeButton />
-          </div>
+          <div className="mb-8"></div>
           <div className="space-y-8 mb-12">
             <h1 className="text-3xl font-bold text-center text-foreground">
               Blimp Smart Table
@@ -189,10 +160,7 @@ export default function Home() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <div className="flex justify-between items-center mb-8">
-          <div />
-          <ColorModeButton />
-        </div>
+        <div className="mb-8"></div>
         <div className="space-y-6 mb-12">
           <h1 className="text-3xl font-bold text-center text-foreground">
             Blimp Smart Table
@@ -281,5 +249,13 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <ProtectedRoute>
+      <HomeContent />
+    </ProtectedRoute>
   );
 }

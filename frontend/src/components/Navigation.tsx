@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, ChefHat, Home, Settings, History, Clock } from 'lucide-react';
+import { Menu, X, ChefHat, Home, Settings, History, Clock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AuthAPI } from '@/lib/api';
+import { ColorModeButton } from '@/components/ui/color-mode';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isBohSubmenuOpen, setIsBohSubmenuOpen] = useState(false);
+  const [user, setUser] = useState<{ fullName?: string; email: string } | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
@@ -25,6 +29,33 @@ const Navigation = () => {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
     setIsBohSubmenuOpen(false);
+  };
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          const response = await AuthAPI.me();
+          setUser(response.user);
+        }
+      } catch (error) {
+        // User is not authenticated or token is invalid
+        setUser(null);
+        localStorage.removeItem('auth_token');
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Get display name for user
+  const getUserDisplayName = () => {
+    if (!user) return 'Профиль';
+    return user.fullName || (user.email ? user.email.split('@')[0] : '') || 'Пользователь';
   };
 
   return (
@@ -104,6 +135,20 @@ const Navigation = () => {
                 )}
               </div>
 
+              {/* Профиль */}
+              <Link
+                href="/profile"
+                className={cn(
+                  'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  isActive('/profile')
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                )}
+              >
+                <User className="h-4 w-4 inline mr-2" />
+                {isCheckingAuth ? 'Загрузка...' : getUserDisplayName()}
+              </Link>
+
               {/* Тест (скрыть в продакшене) */}
               {process.env.NODE_ENV === 'development' && (
                 <Link
@@ -118,6 +163,11 @@ const Navigation = () => {
                   Тест
                 </Link>
               )}
+
+              {/* Theme Toggle */}
+              <div className="ml-4">
+                <ColorModeButton />
+              </div>
             </div>
           </div>
 
@@ -206,6 +256,21 @@ const Navigation = () => {
               )}
             </div>
 
+            {/* Профиль для мобильных */}
+            <Link
+              href="/profile"
+              className={cn(
+                'block px-3 py-2 rounded-md text-base font-medium transition-colors',
+                isActive('/profile')
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+              )}
+              onClick={closeMobileMenu}
+            >
+              <User className="h-4 w-4 inline mr-2" />
+              {isCheckingAuth ? 'Загрузка...' : getUserDisplayName()}
+            </Link>
+
             {/* Тест для мобильных */}
             {process.env.NODE_ENV === 'development' && (
               <Link
@@ -221,6 +286,13 @@ const Navigation = () => {
                 Тест
               </Link>
             )}
+
+            {/* Theme Toggle for Mobile */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="px-3 py-2">
+                <ColorModeButton />
+              </div>
+            </div>
           </div>
         </div>
       )}

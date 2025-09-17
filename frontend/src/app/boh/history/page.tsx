@@ -170,7 +170,7 @@ export default function BohHistoryPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-300">Среднее время</p>
                 <p className="text-2xl font-bold text-white">
-                  {Math.round(orders.reduce((acc, o) => acc + o.duration, 0) / orders.length) || 0} мин
+                  {orders.length > 0 ? Math.round(orders.reduce((acc, o) => acc + o.duration, 0) / orders.length) : 0} мин
                 </p>
               </div>
             </div>

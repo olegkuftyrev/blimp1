@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import { useSound } from '@/hooks/useSound';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, apiFetch } from '@/lib/api';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,9 +86,8 @@ function BOHPageContent() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(getApiUrl(`orders?restaurant_id=${restaurantId}`));
-      const data = await response.json();
-      setOrders(data.data);
+      const data = await apiFetch<{data: Order[]}>(`simple-auth/orders?restaurant_id=${restaurantId}`);
+      setOrders(data.data || []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -264,18 +264,12 @@ function BOHPageContent() {
 
       const cookingTimeMinutes = getCookingTime(order);
       
-      const response = await fetch(getApiUrl(`kitchen/orders/${orderId}/start-timer`), {
+      await apiFetch(`simple-auth/orders/${orderId}/start-timer`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           cookingTime: cookingTimeMinutes
         }),
       });
-      if (!response.ok) {
-        alert('Failed to start timer');
-      }
     } catch (error) {
       console.error('Error starting timer:', error);
       alert('Error starting timer');
@@ -284,13 +278,9 @@ function BOHPageContent() {
 
   const completeOrder = async (orderId: number) => {
     try {
-      const response = await fetch(getApiUrl(`kitchen/orders/${orderId}/complete`), {
+      await apiFetch(`simple-auth/orders/${orderId}/complete`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
-      if (!response.ok) {
-        alert('Failed to complete order');
-      }
     } catch (error) {
       console.error('Error completing order:', error);
       alert('Error completing order');
@@ -299,13 +289,8 @@ function BOHPageContent() {
 
   const deleteOrder = async (orderId: number) => {
     try {
-      const response = await fetch(getApiUrl(`orders/${orderId}`), {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      }
+      await apiFetch(`simple-auth/orders/${orderId}`, { method: 'DELETE' });
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (error) {
       console.error('Error deleting order:', error);
     }
@@ -500,12 +485,14 @@ function BOHPageContent() {
 
 export default function BOHPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-2xl text-muted-foreground">Loading...</p>
-      </div>
-    }>
-      <BOHPageContent />
-    </Suspense>
+    <ProtectedRoute>
+      <Suspense fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <p className="text-2xl text-muted-foreground">Loading...</p>
+        </div>
+      }>
+        <BOHPageContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }
