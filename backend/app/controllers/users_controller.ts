@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import UserRestaurant from '#models/user_restaurant'
-import Restaurant from '#models/restaurant'
 import { SimpleAuthHelper } from '#utils/simple_auth_helper'
 import UserPolicy from '#policies/user_policy'
 import { DateTime } from 'luxon'
@@ -70,14 +69,26 @@ export default class UsersController {
         })
       }
 
-      const users = await User.query()
+      let users = await User.query()
         .whereNull('deleted_at')
         .orderBy('created_at', 'desc')
 
-      // For each user, if they're a black_shirt, get their restaurant assignments
+      // Filter users based on current user's role
+      if (currentUser.role === 'admin') {
+        // Admin can see all users
+      } else if (currentUser.role === 'ops_lead') {
+        // Ops Lead can see admin, ops_lead, black_shirt, and associate
+        users = users.filter(user => ['admin', 'ops_lead', 'black_shirt', 'associate'].includes(user.role))
+      } else if (currentUser.role === 'black_shirt') {
+        // Black Shirt can see admin, ops_lead, black_shirt, and associate
+        users = users.filter(user => ['admin', 'ops_lead', 'black_shirt', 'associate'].includes(user.role))
+      }
+      // Associates should not reach this point due to policy restrictions
+
+      // For each user, if they're not admin, get their restaurant assignments
       const usersWithRestaurants = await Promise.all(
         users.map(async (user) => {
-          if (user.role === 'black_shirt') {
+          if (user.role !== 'admin') {
             const userRestaurants = await UserRestaurant.query()
               .where('user_id', user.id)
               .preload('restaurant')
@@ -141,8 +152,8 @@ export default class UsersController {
         jobTitle
       })
 
-      // If user is black_shirt and has restaurant assignments, create them
-      if (role === 'black_shirt' && restaurantIds.length > 0) {
+      // If user is not admin and has restaurant assignments, create them
+      if (role !== 'admin' && restaurantIds.length > 0) {
         const restaurantAssignments = restaurantIds.map((restaurantId: number) => ({
           userId: user.id,
           restaurantId,
@@ -198,8 +209,8 @@ export default class UsersController {
       targetUser.merge({ fullName, email, role, jobTitle })
       await targetUser.save()
 
-      // Handle restaurant assignments for black_shirt users
-      if (role === 'black_shirt') {
+      // Handle restaurant assignments for non-admin users
+      if (role !== 'admin') {
         // Remove existing assignments
         await UserRestaurant.query().where('user_id', targetUser.id).delete()
         
@@ -214,7 +225,7 @@ export default class UsersController {
           await UserRestaurant.createMany(restaurantAssignments)
         }
       } else {
-        // If user is no longer black_shirt, remove all restaurant assignments
+        // If user is admin, remove all restaurant assignments
         await UserRestaurant.query().where('user_id', targetUser.id).delete()
       }
 

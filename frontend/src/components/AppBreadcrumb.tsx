@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ChevronRight, Home, ChefHat, Users, BarChart3, Settings, History, Edit, Table } from "lucide-react";
+import { ChevronRight, Home, ChefHat, Users, BarChart3, Settings, History, Edit, Table, BookOpen } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -37,6 +37,8 @@ const routeConfig: Record<string, BreadcrumbConfig> = {
   '/analytics': { label: 'Analytics', icon: BarChart3 },
   '/profile': { label: 'Profile', icon: Users },
   '/auth': { label: 'Authentication', icon: Users },
+  '/idp': { label: 'IDP - Individual Development Plant', icon: BookOpen },
+  '/pay-structure': { label: 'Pay Structure', icon: BarChart3 },
 };
 
 interface AppBreadcrumbProps {
@@ -58,6 +60,8 @@ export default function AppBreadcrumb({ customItems, className = "" }: AppBreadc
         setRestaurants(response.data || []);
       } catch (error) {
         console.error('Error fetching restaurants for breadcrumb:', error);
+        // Set empty array on error to prevent breadcrumb issues
+        setRestaurants([]);
       }
     };
 

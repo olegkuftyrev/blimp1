@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import payStructure from '@/data/payStructure';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PayData {
   [role: string]: number;
@@ -22,6 +23,7 @@ interface Region {
 }
 
 function PayStructureContent() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -49,6 +51,27 @@ function PayStructureContent() {
     const max = Math.max(...pays);
     return { min, max };
   };
+
+  // Check if user has permission to access Pay Structure
+  if (user && !['admin', 'ops_lead'].includes(user.role)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to access Pay Structure information.
+          </p>
+          <Link href="/dashboard">
+            <Button>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">

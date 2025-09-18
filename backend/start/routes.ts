@@ -237,10 +237,11 @@ router.group(() => {
         console.log(`Admin ${user.email} accessing all restaurants`)
       } else {
         // Get restaurants user has access to
-        const userRestaurantIds = await db.default
+        const userRestaurantRecords = await db.default
           .from('user_restaurants')
           .where('user_id', user.id)
-          .pluck('restaurant_id')
+          .select('restaurant_id')
+        const userRestaurantIds = userRestaurantRecords.map(record => record.restaurant_id)
         
         if (userRestaurantIds.length > 0) {
           restaurants = await Restaurant.default.query()
@@ -643,6 +644,419 @@ router.group(() => {
   router.delete('/simple-auth/orders-v2/:id', '#controllers/simple_orders_controller.destroy')
   router.post('/simple-auth/orders-v2/:id/start-timer', '#controllers/simple_orders_controller.startTimer')
   router.post('/simple-auth/orders-v2/:id/complete', '#controllers/simple_orders_controller.complete')
+  
+  // Simple auth - IDP endpoints (temporary for testing)
+  router.get('/simple-auth/idp/roles', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+      
+      // Get IDP roles
+      const IdpRole = await import('#models/idp_role')
+      const roles = await IdpRole.default.query()
+        .where('isActive', true)
+        .orderBy('id')
+
+      return response.ok({
+        data: roles,
+        message: 'IDP roles retrieved successfully'
+      })
+    } catch (error: any) {
+      console.error('Error fetching IDP roles:', error)
+      return response.status(500).json({ error: 'Failed to fetch IDP roles' })
+    }
+  })
+  
+  router.get('/simple-auth/idp/roles/:userRole', async ({ request, response, params }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+      
+      const { userRole } = params
+      
+      // Get IDP role with competencies
+      const IdpRole = await import('#models/idp_role')
+      const role = await IdpRole.default.query()
+        .where('userRole', userRole)
+        .where('isActive', true)
+        .preload('competencies', (competencyQuery) => {
+          competencyQuery
+            .where('isActive', true)
+            .orderBy('sortOrder')
+            .preload('questions', (questionQuery) => {
+              questionQuery.where('isActive', true).orderBy('sortOrder')
+            })
+            .preload('actions', (actionQuery) => {
+              actionQuery.where('isActive', true).orderBy('sortOrder')
+            })
+            .preload('descriptions', (descQuery) => {
+              descQuery.where('isActive', true).orderBy('sortOrder')
+            })
+        })
+        .first()
+
+      if (!role) {
+        return response.status(404).json({ error: 'Role not found for user role' })
+      }
+
+      return response.ok({
+        data: role,
+        message: 'IDP role with competencies retrieved successfully'
+      })
+    } catch (error: any) {
+      console.error('Error fetching IDP role:', error)
+      return response.status(500).json({ error: 'Failed to fetch IDP role' })
+    }
+  })
+  
+  router.get('/simple-auth/idp/assessment/current', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      // Find user
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Find active assessment
+      const IdpAssessment = await import('#models/idp_assessment')
+      let assessment = await IdpAssessment.default.query()
+        .where('userId', user.id)
+        .where('isActive', true)
+        .whereNull('deletedAt')
+        .preload('role')
+        .preload('answers', (answerQuery) => {
+          answerQuery.preload('question')
+        })
+        .first()
+
+      if (!assessment) {
+        // Find role based on user's role
+        const IdpRole = await import('#models/idp_role')
+        const role = await IdpRole.default.query()
+          .where('userRole', user.role)
+          .where('isActive', true)
+          .first()
+
+        if (!role) {
+          return response.status(400).json({ 
+            error: 'No IDP role found for your user role',
+            userRole: user.role 
+          })
+        }
+
+        // Create new assessment
+        assessment = await IdpAssessment.default.create({
+          userId: user.id,
+          roleId: role.id,
+          version: 1,
+          status: 'draft',
+          isActive: true,
+        })
+
+        await assessment.load('role')
+        await assessment.load('answers')
+      }
+
+      return response.ok({
+        data: assessment,
+        message: 'Current assessment retrieved successfully'
+      })
+    } catch (error: any) {
+      console.error('Error fetching current assessment:', error)
+      return response.status(500).json({ error: 'Failed to fetch current assessment' })
+    }
+  })
+  
+  router.post('/simple-auth/idp/assessment/answers', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      // Find user
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      const { answers } = request.only(['answers'])
+
+      // Get current active assessment
+      const IdpAssessment = await import('#models/idp_assessment')
+      const assessment = await IdpAssessment.default.query()
+        .where('userId', user.id)
+        .where('isActive', true)
+        .whereNull('deletedAt')
+        .first()
+
+      if (!assessment) {
+        return response.status(404).json({ error: 'No active assessment found' })
+      }
+
+      // Update assessment status
+      if (assessment.status === 'draft') {
+        const { DateTime } = await import('luxon')
+        assessment.status = 'in_progress'
+        assessment.startedAt = DateTime.now()
+        await assessment.save()
+      }
+
+      // Save/update answers
+      const IdpAssessmentAnswer = await import('#models/idp_assessment_answer')
+      for (const [questionIdStr, answer] of Object.entries(answers)) {
+        const questionId = parseInt(questionIdStr)
+        
+        // Upsert answer
+        const existingAnswer = await IdpAssessmentAnswer.default.query()
+          .where('assessmentId', assessment.id)
+          .where('questionId', questionId)
+          .first()
+
+        if (existingAnswer) {
+          existingAnswer.answer = answer as 'yes' | 'no'
+          await existingAnswer.save()
+        } else {
+          await IdpAssessmentAnswer.default.create({
+            assessmentId: assessment.id,
+            questionId: questionId,
+            answer: answer as 'yes' | 'no',
+          })
+        }
+      }
+
+      return response.ok({
+        message: 'Answers saved successfully'
+      })
+    } catch (error: any) {
+      console.error('Error saving answers:', error)
+      return response.status(500).json({ error: 'Failed to save answers' })
+    }
+  })
+  
+  router.post('/simple-auth/idp/assessment/complete', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      // Find user
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Get current active assessment
+      const IdpAssessment = await import('#models/idp_assessment')
+      const assessment = await IdpAssessment.default.query()
+        .where('userId', user.id)
+        .where('isActive', true)
+        .whereNull('deletedAt')
+        .preload('role', (roleQuery) => {
+          roleQuery.preload('competencies', (competencyQuery) => {
+            competencyQuery
+              .where('isActive', true)
+              .preload('questions', (questionQuery) => {
+                questionQuery.where('isActive', true).orderBy('sortOrder')
+              })
+              .preload('actions', (actionQuery) => {
+                actionQuery.where('isActive', true).orderBy('sortOrder')
+              })
+              .preload('descriptions', (descQuery) => {
+                descQuery.where('isActive', true).orderBy('sortOrder')
+              })
+          })
+        })
+        .preload('answers', (answerQuery) => {
+          answerQuery.preload('question')
+        })
+        .first()
+
+      if (!assessment) {
+        return response.status(404).json({ error: 'No active assessment found' })
+      }
+
+      // Calculate competency scores
+      const scores = await assessment.getCompetencyScores()
+
+      // Mark assessment as completed
+      const { DateTime } = await import('luxon')
+      assessment.status = 'completed'
+      assessment.completedAt = DateTime.now()
+      await assessment.save()
+
+      return response.ok({
+        data: {
+          assessment,
+          scores
+        },
+        message: 'Assessment completed successfully'
+      })
+    } catch (error: any) {
+      console.error('Error completing assessment:', error)
+      return response.status(500).json({ error: 'Failed to complete assessment' })
+    }
+  })
+  
+  router.post('/simple-auth/idp/assessment/reset', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      // Find user
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Soft delete current active assessment and all its answers
+      const IdpAssessment = await import('#models/idp_assessment')
+      const assessment = await IdpAssessment.default.query()
+        .where('userId', user.id)
+        .where('isActive', true)
+        .whereNull('deletedAt')
+        .first()
+
+      if (assessment) {
+        const { DateTime } = await import('luxon')
+        
+        // Soft delete the assessment
+        assessment.deletedAt = DateTime.now()
+        assessment.isActive = false
+        await assessment.save()
+
+        // Delete all answers for this assessment
+        const IdpAssessmentAnswer = await import('#models/idp_assessment_answer')
+        await IdpAssessmentAnswer.default.query()
+          .where('assessmentId', assessment.id)
+          .delete()
+
+        console.log(`Reset IDP assessment ${assessment.id} for user ${user.email}`)
+      }
+
+      return response.ok({
+        message: 'IDP assessment reset successfully'
+      })
+    } catch (error: any) {
+      console.error('Error resetting IDP assessment:', error)
+      return response.status(500).json({ error: 'Failed to reset IDP assessment' })
+    }
+  })
+  
+  // IDP (Individual Development Plant) - Available for all authenticated users
+  router
+    .group(() => {
+      // Get available roles
+      router.get('/roles', '#controllers/idp_controller.getRoles')
+      
+      // Get role by user role (maps user.role to IDP role)
+      router.get('/roles/:userRole', '#controllers/idp_controller.getRoleByUserRole')
+      
+      // Assessment management
+      router.get('/assessment/current', '#controllers/idp_controller.getCurrentAssessment')
+      router.post('/assessment/answers', '#controllers/idp_controller.saveAnswers')
+      router.post('/assessment/complete', '#controllers/idp_controller.completeAssessment')
+      
+      // Legacy endpoints (for backward compatibility)
+      router.get('/', '#controllers/idp_controller.index')
+      router.get('/:id', '#controllers/idp_controller.show')
+    })
+    .prefix('/idp')
+    .use(middleware.auth())
   
   // Manual token test
   router.get('/debug/manual-auth', async ({ request, response }) => {

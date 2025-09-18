@@ -46,3 +46,10 @@ export class SimpleAuthHelper {
     return user
   }
 }
+
+/**
+ * Legacy function for compatibility
+ */
+export async function getAuthenticatedUser(ctx: HttpContext): Promise<User | null> {
+  return SimpleAuthHelper.authenticate(ctx)
+}

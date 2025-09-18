@@ -14,9 +14,11 @@ import {
   ClipboardList,
   MessageSquare,
   Shield,
-  Banknote
+  Banknote,
+  BookOpen
 } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ModuleCard {
   id: string;
@@ -91,6 +93,16 @@ const modules: ModuleCard[] = [
     isActive: true
   },
   {
+    id: 'idp',
+    title: 'Individual Development Plant',
+    description: 'Personal and professional development planning and tracking',
+    icon: BookOpen,
+    href: '/idp',
+    color: 'bg-teal-500',
+    badge: 'Active',
+    isActive: true
+  },
+  {
     id: 'delivery',
     title: 'Delivery & Logistics',
     description: 'Delivery tracking, driver management, and logistics',
@@ -133,6 +145,29 @@ const modules: ModuleCard[] = [
 ];
 
 function DashboardContent() {
+  const { user } = useAuth();
+  
+  // Filter modules based on user role
+  const getVisibleModules = () => {
+    if (!user) return modules;
+    
+    let filteredModules = modules;
+    
+    // Associates should not see Staff Management
+    if (user.role === 'associate') {
+      filteredModules = filteredModules.filter(module => module.id !== 'staff');
+    }
+    
+    // Only admin and ops_lead should see Pay Structure
+    if (!['admin', 'ops_lead'].includes(user.role)) {
+      filteredModules = filteredModules.filter(module => module.id !== 'pay-structure');
+    }
+    
+    return filteredModules;
+  };
+  
+  const visibleModules = getVisibleModules();
+  
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
@@ -155,10 +190,10 @@ function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {modules.filter(m => m.isActive).length}
+                {visibleModules.filter(m => m.isActive).length}
               </div>
               <p className="text-xs text-muted-foreground">
-                of {modules.length} total modules
+                of {visibleModules.length} total modules
               </p>
             </CardContent>
           </Card>
@@ -207,7 +242,7 @@ function DashboardContent() {
         <div className="mb-8">
           <h2 className="text-2xl font-semibold text-foreground mb-4">Management Modules</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {modules.map((module) => {
+            {visibleModules.map((module) => {
               const IconComponent = module.icon;
               return (
                 <Card 
@@ -286,16 +321,18 @@ function DashboardContent() {
               </div>
             </Link>
 
-            <Link
-              href="/pay-structure"
-              className="flex items-center space-x-3 p-4 rounded-lg bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/30 transition-colors"
-            >
-              <Banknote className="h-8 w-8 text-cyan-600" />
-              <div>
-                <p className="font-medium text-foreground">Pay Structure</p>
-                <p className="text-sm text-muted-foreground">Manage regional pay rates</p>
-              </div>
-            </Link>
+            {user && ['admin', 'ops_lead'].includes(user.role) && (
+              <Link
+                href="/pay-structure"
+                className="flex items-center space-x-3 p-4 rounded-lg bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/30 transition-colors"
+              >
+                <Banknote className="h-8 w-8 text-cyan-600" />
+                <div>
+                  <p className="font-medium text-foreground">Pay Structure</p>
+                  <p className="text-sm text-muted-foreground">Manage regional pay rates</p>
+                </div>
+              </Link>
+            )}
 
             <Link
               href="/profile"

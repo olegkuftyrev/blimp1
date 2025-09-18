@@ -142,8 +142,8 @@ export default class UserPolicy extends BasePolicy {
    * Check if user can view the list of all users
    */
   async viewUsersList(user: User): Promise<AuthorizerResponse> {
-    // Admin, Ops Lead, and Black Shirt can view users list
-    // (Each will see only users they can manage based on other policies)
+    // Only admin, ops_lead, and black_shirt can view users list
+    // Associates should not have access to Staff Management at all
     return ['admin', 'ops_lead', 'black_shirt'].includes(user.role)
   }
 
@@ -173,15 +173,17 @@ export default class UserPolicy extends BasePolicy {
    * Helper: Check if users share at least one restaurant
    */
   private async shareRestaurant(user1: User, user2: User): Promise<boolean> {
-    const user1Restaurants = await UserRestaurant.query()
+    const user1RestaurantRecords = await UserRestaurant.query()
       .where('user_id', user1.id)
-      .pluck('restaurant_id')
+      .select('restaurant_id')
+    const user1Restaurants = user1RestaurantRecords.map(ur => ur.restaurantId)
 
-    const user2Restaurants = await UserRestaurant.query()
+    const user2RestaurantRecords = await UserRestaurant.query()
       .where('user_id', user2.id)
-      .pluck('restaurant_id')
+      .select('restaurant_id')
+    const user2Restaurants = user2RestaurantRecords.map(ur => ur.restaurantId)
 
-    return user1Restaurants.some(id => user2Restaurants.includes(id))
+    return user1Restaurants.some((id: number) => user2Restaurants.includes(id))
   }
 
   /**

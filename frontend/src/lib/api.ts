@@ -26,6 +26,103 @@ export type AuthUser = {
   job_title?: string;
 };
 
+// IDP Types
+export type IDPRole = {
+  id: number;
+  label: string;
+  title: string;
+  description?: string | null;
+  userRole: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  competencies?: IDPCompetency[];
+};
+
+export type IDPCompetency = {
+  id: number;
+  roleId: number;
+  competencyId: string;
+  label: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  questions?: IDPQuestion[];
+  actions?: IDPAction[];
+  descriptions?: IDPDescription[];
+};
+
+export type IDPQuestion = {
+  id: number;
+  competencyId: number;
+  questionId: string;
+  question: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IDPAction = {
+  id: number;
+  competencyId: number;
+  actionId: string;
+  action: string;
+  measurement: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  responsible?: string[] | null;
+  resources?: string[] | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IDPDescription = {
+  id: number;
+  competencyId: number;
+  type: 'overview' | 'definition' | 'examples' | 'behaviors';
+  title: string;
+  content: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IDPAssessment = {
+  id: number;
+  userId: number;
+  roleId: number;
+  version: number;
+  status: 'draft' | 'in_progress' | 'completed';
+  isActive: boolean;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  role?: IDPRole;
+  answers?: IDPAssessmentAnswer[];
+};
+
+export type IDPAssessmentAnswer = {
+  id: number;
+  assessmentId: number;
+  questionId: number;
+  answer: 'yes' | 'no';
+  createdAt: string;
+  updatedAt: string;
+  question?: IDPQuestion;
+};
+
+export type IDPCompetencyScores = {
+  [competencyId: string]: number;
+};
+
 export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const url = getApiUrl(endpoint);
   // Read token from localStorage on client to attach Authorization header
@@ -74,4 +171,41 @@ export const AuthAPI = {
       method: 'POST',
       body: JSON.stringify({ role, restaurant_id: restaurantId }),
     }),
+};
+
+export const IDPAPI = {
+  // Get all available roles
+  getRoles: () =>
+    apiFetch<{ data: IDPRole[]; message: string }>('simple-auth/idp/roles'),
+
+  // Get role by user role with competencies, questions, actions, and descriptions
+  getRoleByUserRole: (userRole: string) =>
+    apiFetch<{ data: IDPRole; message: string }>(`simple-auth/idp/roles/${userRole}`),
+
+  // Get current user's active assessment or create new one
+  getCurrentAssessment: () =>
+    apiFetch<{ data: IDPAssessment; message: string }>('simple-auth/idp/assessment/current'),
+
+  // Save assessment answers
+  saveAnswers: (answers: { [questionId: number]: 'yes' | 'no' }) =>
+    apiFetch<{ message: string }>('simple-auth/idp/assessment/answers', {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    }),
+
+  // Complete assessment and get results
+  completeAssessment: () =>
+    apiFetch<{ data: { assessment: IDPAssessment; scores: IDPCompetencyScores }; message: string }>('simple-auth/idp/assessment/complete', {
+      method: 'POST',
+    }),
+
+  // Reset assessment (delete current assessment and all answers)
+  resetAssessment: () =>
+    apiFetch<{ message: string }>('simple-auth/idp/assessment/reset', {
+      method: 'POST',
+    }),
+
+  // Legacy endpoint for basic info
+  getBasicInfo: () =>
+    apiFetch<{ data: any[]; message: string }>('idp'),
 };

@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { apiFetch } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface User {
   id: number;
@@ -65,6 +66,7 @@ const jobTitleLabels = {
 };
 
 function StaffManagementContent() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,27 @@ function StaffManagementContent() {
     fetchRestaurants();
     checkUserRole();
   }, []);
+
+  // Check if user has permission to access Staff Management
+  if (currentUser && currentUser.role === 'associate') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to access Staff Management.
+          </p>
+          <Link href="/dashboard">
+            <Button>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const checkUserRole = async () => {
     try {
@@ -127,6 +150,13 @@ function StaffManagementContent() {
       setLoading(false);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      
+      // Check if it's a permissions error
+      if (error.message.includes('403') || error.message.includes('Forbidden')) {
+        console.log('User does not have permission to view users list');
+        alert('You do not have permission to view the users list. Please contact your administrator.');
+      }
+      
       setLoading(false);
     }
   };
@@ -349,7 +379,7 @@ function StaffManagementContent() {
                     </div>
                   </div>
 
-                  {newUser.role === 'black_shirt' && (
+                  {newUser.role && newUser.role !== 'admin' && (
                     <div>
                       <Label>Restaurant Access</Label>
                       <div className="border rounded-md p-4 max-h-48 overflow-y-auto">
@@ -369,7 +399,7 @@ function StaffManagementContent() {
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Select which restaurants this Black Shirt can access
+                        Select which restaurants this {roleLabels[newUser.role as keyof typeof roleLabels]} can access
                       </p>
                     </div>
                   )}
@@ -444,7 +474,7 @@ function StaffManagementContent() {
                     </div>
                   </div>
 
-                  {editUser.role === 'black_shirt' && (
+                  {editUser.role && editUser.role !== 'admin' && (
                     <div>
                       <Label>Restaurant Access</Label>
                       <div className="border rounded-md p-4 max-h-48 overflow-y-auto">
@@ -464,7 +494,7 @@ function StaffManagementContent() {
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Select which restaurants this Black Shirt can access
+                        Select which restaurants this {roleLabels[editUser.role as keyof typeof roleLabels]} can access
                       </p>
                     </div>
                   )}
@@ -585,7 +615,9 @@ function StaffManagementContent() {
                         </TableCell>
                         <TableCell>{jobTitleLabels[user.jobTitle]}</TableCell>
                         <TableCell>
-                          {user.role === 'black_shirt' ? (
+                          {user.role === 'admin' ? (
+                            <span className="text-muted-foreground text-sm">All restaurants</span>
+                          ) : (
                             <div className="flex flex-wrap gap-1">
                               {user.restaurants?.map(restaurant => (
                                 <Badge key={restaurant.id} variant="outline" className="text-xs">
@@ -593,8 +625,6 @@ function StaffManagementContent() {
                                 </Badge>
                               )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">All restaurants</span>
                           )}
                         </TableCell>
                         <TableCell>
