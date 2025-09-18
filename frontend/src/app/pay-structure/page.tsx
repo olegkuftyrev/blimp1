@@ -146,8 +146,8 @@ function PayStructureContent() {
           </div>
         </div>
 
-        {/* Pay Structure Table */}
-        <Card className="mb-8">
+        {/* Pay Structure Table - Desktop */}
+        <Card className="mb-8 hidden md:block">
           <CardHeader>
             <CardTitle>Regional Pay Structure</CardTitle>
           </CardHeader>
@@ -172,7 +172,11 @@ function PayStructureContent() {
                         <div>
                           <div className="font-semibold">{region.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {region.stores.length} locations
+                            {region.stores.map((store, index) => (
+                              <span key={store}>
+                                #{store}{index < region.stores.length - 1 ? ', ' : ''}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </TableCell>
@@ -195,6 +199,43 @@ function PayStructureContent() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pay Structure Cards - Mobile */}
+        <div className="md:hidden mb-8 space-y-4">
+          {filteredRegions.map((region, index) => (
+            <Card key={index} className="border">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg mb-1">{region.name}</CardTitle>
+                    <div className="text-sm text-muted-foreground">
+                      {region.stores.map((store, index) => (
+                        <span key={store}>
+                          #{store}{index < region.stores.length - 1 ? ', ' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="ml-2">
+                    {region.stores.length} stores
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  {roles.map(role => (
+                    <div key={role} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                      <span className="text-sm font-medium">{role}</span>
+                      <span className="font-mono font-semibold text-green-600">
+                        ${region.pay[role].toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         {/* Role Summary */}
         <Card>
