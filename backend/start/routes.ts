@@ -24,6 +24,24 @@ router.group(() => {
   // Invites (create)
   router.post('/invites', '#controllers/invites_controller.create').use(middleware.auth())
 
+  // Debug endpoint (no auth middleware)
+  router.get('/users/debug', '#controllers/users_controller.debug')
+  
+  // Test endpoint without auth
+  router.get('/users/test', ({ response }) => {
+    return response.json({ message: 'Test endpoint works', timestamp: new Date() })
+  })
+
+  // Users management (no auth middleware for now)
+  router
+    .group(() => {
+      router.get('/', '#controllers/users_controller.index')
+      router.post('/', '#controllers/users_controller.store')
+      router.put('/:id', '#controllers/users_controller.update')
+      router.delete('/:id', '#controllers/users_controller.destroy')
+    })
+    .prefix('/users')
+
   // Restaurants (protected)
   router
     .group(() => {

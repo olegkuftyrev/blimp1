@@ -51,8 +51,13 @@ export default class UserPolicy extends BasePolicy {
       return true
     }
 
-    // Ops Lead can edit black_shirt and associate profiles in their restaurants
+    // Ops Lead can ONLY edit black_shirt and associate profiles (NOT other ops_lead or admin)
     if (currentUser.role === 'ops_lead' && ['black_shirt', 'associate'].includes(targetUser.role)) {
+      return await this.shareRestaurant(currentUser, targetUser)
+    }
+
+    // Black Shirt can only edit associate profiles in their restaurants
+    if (currentUser.role === 'black_shirt' && targetUser.role === 'associate') {
       return await this.shareRestaurant(currentUser, targetUser)
     }
 
@@ -98,12 +103,12 @@ export default class UserPolicy extends BasePolicy {
       return true
     }
 
-    // Ops Lead can manage black_shirt and associate
+    // Ops Lead can ONLY manage black_shirt and associate (NOT other ops_lead or admin)
     if (currentUser.role === 'ops_lead' && ['black_shirt', 'associate'].includes(targetUser.role)) {
       return true
     }
 
-    // Black Shirt can manage associates in their restaurants
+    // Black Shirt can ONLY manage associates in their restaurants (NOT other black_shirt)
     if (currentUser.role === 'black_shirt' && targetUser.role === 'associate') {
       return await this.shareRestaurant(currentUser, targetUser)
     }
@@ -120,9 +125,45 @@ export default class UserPolicy extends BasePolicy {
       return true
     }
 
-    // Ops Lead can delete black_shirt and associate in their restaurants
+    // Ops Lead can ONLY delete black_shirt and associate (NOT other ops_lead or admin)
     if (currentUser.role === 'ops_lead' && ['black_shirt', 'associate'].includes(targetUser.role)) {
       return await this.shareRestaurant(currentUser, targetUser)
+    }
+
+    // Black Shirt can ONLY delete associates in their restaurants (NOT other black_shirt)
+    if (currentUser.role === 'black_shirt' && targetUser.role === 'associate') {
+      return await this.shareRestaurant(currentUser, targetUser)
+    }
+
+    return false
+  }
+
+  /**
+   * Check if user can view the list of all users
+   */
+  async viewUsersList(user: User): Promise<AuthorizerResponse> {
+    // Admin, Ops Lead, and Black Shirt can view users list
+    // (Each will see only users they can manage based on other policies)
+    return ['admin', 'ops_lead', 'black_shirt'].includes(user.role)
+  }
+
+  /**
+   * Check if user can create new users
+   */
+  async createUser(user: User, targetRole?: string): Promise<AuthorizerResponse> {
+    // Admin can create any users
+    if (user.role === 'admin') {
+      return true
+    }
+
+    // Ops Lead can create black_shirt and associate users (NOT other ops_lead or admin)
+    if (user.role === 'ops_lead' && targetRole) {
+      return ['black_shirt', 'associate'].includes(targetRole)
+    }
+
+    // Black Shirt can ONLY create associate users (NOT other black_shirt, ops_lead, or admin)
+    if (user.role === 'black_shirt' && targetRole) {
+      return targetRole === 'associate'
     }
 
     return false

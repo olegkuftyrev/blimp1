@@ -1,0 +1,277 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import User from '#models/user'
+import UserRestaurant from '#models/user_restaurant'
+import Restaurant from '#models/restaurant'
+import { SimpleAuthHelper } from '#utils/simple_auth_helper'
+import UserPolicy from '#policies/user_policy'
+import { DateTime } from 'luxon'
+
+export default class UsersController {
+  /**
+   * Debug current user info - using simple auth
+   */
+  async debug({ request, response }: HttpContext) {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database (simple auth style)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+      
+      // Find user
+      const user = await User.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      return response.json({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          jobTitle: user.jobTitle
+        }
+      })
+    } catch (error) {
+      return response.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Get all users with their restaurant assignments
+   */
+  async index(ctx: HttpContext) {
+    try {
+      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      
+      // Check permission using policy
+      const userPolicy = new UserPolicy()
+      if (!(await userPolicy.viewUsersList(currentUser))) {
+        return ctx.response.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to view users list'
+        })
+      }
+
+      const users = await User.query()
+        .whereNull('deleted_at')
+        .orderBy('created_at', 'desc')
+
+      // For each user, if they're a black_shirt, get their restaurant assignments
+      const usersWithRestaurants = await Promise.all(
+        users.map(async (user) => {
+          if (user.role === 'black_shirt') {
+            const userRestaurants = await UserRestaurant.query()
+              .where('user_id', user.id)
+              .preload('restaurant')
+
+            return {
+              ...user.toJSON(),
+              restaurants: userRestaurants.map((ur) => ur.restaurant)
+            }
+          }
+          return user.toJSON()
+        })
+      )
+
+      return ctx.response.json({
+        success: true,
+        data: usersWithRestaurants
+      })
+    } catch (error) {
+      if (error.message === 'Unauthorized') {
+        return // Response already sent
+      }
+      return ctx.response.status(500).json({
+        success: false,
+        message: 'Failed to fetch users',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Create a new user
+   */
+  async store(ctx: HttpContext) {
+    try {
+      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      
+      const { fullName, email, password, role, jobTitle, restaurantIds = [] } = ctx.request.only([
+        'fullName',
+        'email', 
+        'password',
+        'role',
+        'jobTitle',
+        'restaurantIds'
+      ])
+
+      // Check permission using policy
+      const userPolicy = new UserPolicy()
+      if (!(await userPolicy.createUser(currentUser, role))) {
+        return ctx.response.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to create user with this role'
+        })
+      }
+
+      // Create the user
+      const user = await User.create({
+        fullName,
+        email,
+        password,
+        role,
+        jobTitle
+      })
+
+      // If user is black_shirt and has restaurant assignments, create them
+      if (role === 'black_shirt' && restaurantIds.length > 0) {
+        const restaurantAssignments = restaurantIds.map((restaurantId: number) => ({
+          userId: user.id,
+          restaurantId,
+          addedByUserId: currentUser.id
+        }))
+
+        await UserRestaurant.createMany(restaurantAssignments)
+      }
+
+      return ctx.response.status(201).json({
+        success: true,
+        data: user,
+        message: 'User created successfully'
+      })
+    } catch (error) {
+      if (error.message === 'Unauthorized') {
+        return // Response already sent
+      }
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Failed to create user',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Update a user
+   */
+  async update(ctx: HttpContext) {
+    try {
+      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      const targetUser = await User.findOrFail(ctx.params.id)
+      
+      // Check permission using policy
+      const userPolicy = new UserPolicy()
+      if (!(await userPolicy.editProfile(currentUser, targetUser))) {
+        return ctx.response.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to edit this user'
+        })
+      }
+
+      const { fullName, email, role, jobTitle, restaurantIds = [] } = ctx.request.only([
+        'fullName',
+        'email',
+        'role', 
+        'jobTitle',
+        'restaurantIds'
+      ])
+
+      // Update user basic info
+      targetUser.merge({ fullName, email, role, jobTitle })
+      await targetUser.save()
+
+      // Handle restaurant assignments for black_shirt users
+      if (role === 'black_shirt') {
+        // Remove existing assignments
+        await UserRestaurant.query().where('user_id', targetUser.id).delete()
+        
+        // Add new assignments
+        if (restaurantIds.length > 0) {
+          const restaurantAssignments = restaurantIds.map((restaurantId: number) => ({
+            userId: targetUser.id,
+            restaurantId,
+            addedByUserId: currentUser.id
+          }))
+
+          await UserRestaurant.createMany(restaurantAssignments)
+        }
+      } else {
+        // If user is no longer black_shirt, remove all restaurant assignments
+        await UserRestaurant.query().where('user_id', targetUser.id).delete()
+      }
+
+      return ctx.response.json({
+        success: true,
+        data: targetUser,
+        message: 'User updated successfully'
+      })
+    } catch (error) {
+      if (error.message === 'Unauthorized') {
+        return // Response already sent
+      }
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Failed to update user',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Delete a user (soft delete)
+   */
+  async destroy(ctx: HttpContext) {
+    try {
+      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      const targetUser = await User.findOrFail(ctx.params.id)
+      
+      // Check permission using policy
+      const userPolicy = new UserPolicy()
+      if (!(await userPolicy.deleteUser(currentUser, targetUser))) {
+        return ctx.response.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to delete this user'
+        })
+      }
+      
+      // Soft delete
+      targetUser.deletedAt = DateTime.now()
+      await targetUser.save()
+
+      // Also remove restaurant assignments
+      await UserRestaurant.query().where('user_id', targetUser.id).delete()
+
+      return ctx.response.json({
+        success: true,
+        message: 'User deleted successfully'
+      })
+    } catch (error) {
+      if (error.message === 'Unauthorized') {
+        return // Response already sent
+      }
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Failed to delete user',
+        error: error.message
+      })
+    }
+  }
+}

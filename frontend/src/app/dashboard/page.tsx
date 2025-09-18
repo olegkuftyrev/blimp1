@@ -43,12 +43,12 @@ const modules: ModuleCard[] = [
   {
     id: 'staff',
     title: 'Staff Management',
-    description: 'Employee schedules, roles, and performance',
+    description: 'User creation, role assignment, and restaurant access',
     icon: Users,
     href: '/staff',
     color: 'bg-blue-500',
-    badge: 'Coming Soon',
-    isActive: false
+    badge: 'Active',
+    isActive: true
   },
   {
     id: 'analytics',
