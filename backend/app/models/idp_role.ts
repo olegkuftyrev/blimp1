@@ -18,7 +18,7 @@ export default class IdpRole extends BaseModel {
   @column()
   declare description: string | null
 
-  @column()
+  @column({ columnName: 'user_role' })
   declare userRole: string // Maps to user.role (associate, shift_leader, assistant_manager, etc.)
 
   @column()

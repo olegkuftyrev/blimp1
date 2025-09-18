@@ -6,34 +6,34 @@ export default class extends BaseSeeder {
     // Clear existing data
     await IdpRole.query().delete()
 
-    // Create roles based on the original data structure
+    // Simple 1:1 mapping - IDP roles = User roles
     const roles = [
       {
-        label: 'Shift Leader',
-        title: 'Hourly Associate',
+        label: 'Associate',
+        title: 'Associate',
         description: 'Entry-level role focusing on core competencies',
-        userRole: 'associate', // Maps to user.role
+        user_role: 'associate',
         isActive: true,
       },
       {
-        label: 'Assistant Manager',
-        title: 'AM/Chef, SM/GM, TL',
+        label: 'Black Shirt',
+        title: 'Black Shirt',
         description: 'Management role with leadership responsibilities',
-        userRole: 'black_shirt', // Maps to user.role (operations leadership)
+        user_role: 'black_shirt',
         isActive: true,
       },
       {
-        label: 'ACO',
-        title: 'ACO, RDO',
+        label: 'Operations Lead',
+        title: 'Operations Lead',
         description: 'Senior leadership role with strategic responsibilities',
-        userRole: 'ops_lead', // Maps to user.role (highest level)
+        user_role: 'ops_lead',
         isActive: true,
       },
       {
-        label: 'Executive',
-        title: 'Admin/Executive',
-        description: 'Executive level with full strategic and operational oversight',
-        userRole: 'admin', // Maps to user.role (admin level)
+        label: 'Admin',
+        title: 'Admin',
+        description: 'Administrative role with full system access',
+        user_role: 'admin',
         isActive: true,
       },
     ]

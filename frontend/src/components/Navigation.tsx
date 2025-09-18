@@ -45,17 +45,12 @@ const Navigation = () => {
     <nav className="bg-white text-gray-900 shadow-lg dark:bg-gray-900 dark:text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <Link href={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
-              <ChefHat className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <span className="text-xl font-bold">BLIMP</span>
-            </Link>
-          </div>
-
-          {/* Desktop Menu */}
+          {/* Empty left space */}
+          <div className="flex-1"></div>
+          
+          {/* Desktop Menu - Centered */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
+            <div className="flex items-baseline space-x-4">
               {/* Home - only show for authenticated users */}
               {user && (
                 <Link
@@ -149,10 +144,13 @@ const Navigation = () => {
                 </Link>
               )}
 
-              {/* Theme Toggle */}
-              <div className="ml-4">
-                <ColorModeButton />
-              </div>
+            </div>
+          </div>
+
+          {/* Right side - Theme Toggle */}
+          <div className="flex-1 flex justify-end">
+            <div className="hidden md:block">
+              <ColorModeButton />
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Provider } from "@/components/ui/provider";
 import Navigation from "@/components/Navigation";
 import AppBreadcrumb from "@/components/AppBreadcrumb";
+import { ConditionalSidebar } from "@/components/ConditionalSidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,13 +36,17 @@ export default function RootLayout({
         <Provider defaultTheme="system" enableSystem={true}>
           <AuthProvider>
             <WebSocketProvider>
-              <Navigation />
-              <main className="min-h-screen">
-                <div className="container mx-auto px-4 pt-4">
-                  <AppBreadcrumb />
-                </div>
-                {children}
-              </main>
+              <div className="flex flex-col min-h-screen">
+                <Navigation />
+                <ConditionalSidebar>
+                  <main className="flex-1">
+                    <div className="container mx-auto px-4 pt-4">
+                      <AppBreadcrumb />
+                    </div>
+                    {children}
+                  </main>
+                </ConditionalSidebar>
+              </div>
             </WebSocketProvider>
           </AuthProvider>
         </Provider>

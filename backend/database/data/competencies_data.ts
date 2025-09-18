@@ -25,7 +25,7 @@ export const competenciesData: CompetencyData[] = [
   {
     id: "strategicMindset",
     label: "Strategic Mindset",
-    roleLabels: ["ACO", "Executive"], // For senior leadership and executives
+    roleLabels: ["Operations Lead", "Admin"], // For senior leadership and executives
     questions: [
       { id: "strategicMindset-q1", question: "Do you allocate time for long-range (+1 month) planning?" },
       { id: "strategicMindset-q2", question: "Can you articulate how current projects align with the company's vision?" },
@@ -86,7 +86,7 @@ export const competenciesData: CompetencyData[] = [
   {
     id: "businessInsight",
     label: "Business Insight",
-    roleLabels: ["Assistant Manager", "ACO", "Executive"], // For management levels
+    roleLabels: ["Black Shirt", "Operations Lead", "Admin"], // For management levels
     questions: [
       { id: "businessInsight-q1", question: "Can you teach your direct reports how to understand COGS/Labor and build Sales?" },
       { id: "businessInsight-q2", question: "Are you knowledgeable about trends in the food industry and how they are affecting Panda and your store?" },
@@ -147,7 +147,7 @@ export const competenciesData: CompetencyData[] = [
   {
     id: "actionOriented",
     label: "Action Oriented",
-    roleLabels: ["Shift Leader", "Assistant Manager", "ACO", "Executive"], // All levels
+    roleLabels: ["Associate", "Black Shirt", "Operations Lead", "Admin"], // All levels
     questions: [
       { id: "actionOriented-q1", question: "Do you break tasks into quick wins to maintain momentum?" },
       { id: "actionOriented-q2", question: "Do you consistently complete requests from your supervisor?" },
@@ -198,7 +198,7 @@ export const competenciesData: CompetencyData[] = [
   {
     id: "communicatesEffectively",
     label: "Communicates Effectively",
-    roleLabels: ["Shift Leader", "Assistant Manager", "ACO", "Executive"], // All levels
+    roleLabels: ["Associate", "Black Shirt", "Operations Lead", "Admin"], // All levels
     questions: [
       { id: "communicatesEffectively-q1", question: "Do you adjust your message for clarity based on audience feedback?" },
       { id: "communicatesEffectively-q2", question: "Do you verify understanding after giving instructions?" },
@@ -258,7 +258,7 @@ export const competenciesData: CompetencyData[] = [
   {
     id: "customerFocus",
     label: "Customer Focus",
-    roleLabels: ["Shift Leader", "Assistant Manager", "ACO", "Executive"], // All levels
+    roleLabels: ["Associate", "Black Shirt", "Operations Lead", "Admin"], // All levels
     questions: [
       { id: "guestFocus-q1", question: "Do you actively gather guest feedback by talking to guests?" },
       { id: "guestFocus-q2", question: "Do you take actions based on guest feedback?" },
@@ -318,7 +318,7 @@ export const competenciesData: CompetencyData[] = [
   {
     id: "integrityTrust",
     label: "Integrity and Trust",
-    roleLabels: ["Shift Leader", "Assistant Manager", "ACO", "Executive"], // All levels
+    roleLabels: ["Associate", "Black Shirt", "Operations Lead", "Admin"], // All levels
     questions: [
       { id: "integrityTrust-q1", question: "Do you consistently follow through on promises and commitments?" },
       { id: "integrityTrust-q2", question: "Are you transparent about decision-making criteria?" },

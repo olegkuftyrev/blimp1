@@ -32,7 +32,7 @@ export default class IdpController {
       const { userRole } = params
       
       const role = await IdpRole.query()
-        .where('userRole', userRole)
+        .where('user_role', userRole)
         .where('isActive', true)
         .preload('competencies', (competencyQuery) => {
           competencyQuery
@@ -85,7 +85,7 @@ export default class IdpController {
       if (!assessment) {
         // Find role based on user's role
         const role = await IdpRole.query()
-          .where('userRole', user.role)
+          .where('user_role', user.role)
           .where('isActive', true)
           .first()
 

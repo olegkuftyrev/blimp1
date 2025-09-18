@@ -682,6 +682,62 @@ router.group(() => {
     }
   })
   
+  router.get('/simple-auth/idp/role/current', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+      
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+      
+      const IdpRole = await import('#models/idp_role')
+      const role = await IdpRole.default.query()
+        .where('user_role', user.role)
+        .where('isActive', true)
+        .preload('competencies', (competencyQuery) => {
+          competencyQuery
+            .where('isActive', true)
+            .orderBy('sortOrder')
+            .preload('questions', (questionQuery) => {
+              questionQuery.where('isActive', true).orderBy('sortOrder')
+            })
+            .preload('actions', (actionQuery) => {
+              actionQuery.where('isActive', true).orderBy('sortOrder')
+            })
+            .preload('descriptions', (descQuery) => {
+              descQuery.where('isActive', true).orderBy('sortOrder')
+            })
+        })
+        .first()
+
+      if (!role) {
+        return response.status(404).json({ error: 'Role not found for user role' })
+      }
+
+      return response.ok({
+        data: role,
+        message: 'IDP role with competencies retrieved successfully'
+      })
+    } catch (error) {
+      console.error('Error fetching current user IDP role:', error)
+      return response.status(500).json({ error: 'Failed to fetch IDP role' })
+    }
+  })
+
   router.get('/simple-auth/idp/roles/:userRole', async ({ request, response, params }) => {
     try {
       const authHeader = request.header('authorization')

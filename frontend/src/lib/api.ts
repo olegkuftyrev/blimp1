@@ -182,6 +182,10 @@ export const IDPAPI = {
   getRoleByUserRole: (userRole: string) =>
     apiFetch<{ data: IDPRole; message: string }>(`simple-auth/idp/roles/${userRole}`),
 
+  // Get current user's role (automatically uses their role)
+  getCurrentUserRole: () =>
+    apiFetch<{ data: IDPRole; message: string }>('simple-auth/idp/role/current'),
+
   // Get current user's active assessment or create new one
   getCurrentAssessment: () =>
     apiFetch<{ data: IDPAssessment; message: string }>('simple-auth/idp/assessment/current'),
