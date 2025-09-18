@@ -5,24 +5,24 @@ import { Settings, Save, Bell, Clock, Users, ChefHat } from 'lucide-react';
 
 export default function BohSettingsPage() {
   const [settings, setSettings] = useState({
-    // Уведомления
+    // Notifications
     soundEnabled: true,
     notificationVolume: 70,
     newOrderSound: true,
     orderReadySound: true,
     
-    // Таймеры
+    // Timers
     defaultPrepTime: 15,
     warningTime: 5,
     autoCompleteTime: 30,
     
-    // Интерфейс
+    // Interface
     autoRefresh: true,
     refreshInterval: 5,
     showTableNumbers: true,
     showOrderTime: true,
     
-    // Кухня
+    // Kitchen
     maxConcurrentOrders: 10,
     autoAssignChef: false,
     requireConfirmation: true
@@ -39,10 +39,10 @@ export default function BohSettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Здесь будет API вызов для сохранения настроек
+    // Here will be API call to save settings
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSaving(false);
-    // Показать уведомление об успешном сохранении
+    // Show success notification
   };
 
   const SettingCard = ({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
@@ -58,23 +58,23 @@ export default function BohSettingsPage() {
   return (
     <div className="min-h-screen bg-gray-900 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-3 mb-4">
             <Settings className="h-8 w-8 text-blue-400" />
-            <h1 className="text-3xl font-bold text-white">Настройки BOH</h1>
+            <h1 className="text-3xl font-bold text-white">BOH Settings</h1>
           </div>
-          <p className="text-gray-300">Настройте параметры работы кухни и уведомлений</p>
+          <p className="text-gray-300">Configure kitchen and notification settings</p>
         </div>
 
         <div className="space-y-6">
-          {/* Уведомления */}
-          <SettingCard title="Уведомления" icon={Bell}>
+          {/* Notifications */}
+          <SettingCard title="Notifications" icon={Bell}>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-300">Включить звук</label>
-                  <p className="text-sm text-gray-400">Звуковые уведомления для новых заказов</p>
+                  <label className="text-sm font-medium text-gray-300">Enable Sound</label>
+                  <p className="text-sm text-gray-400">Sound notifications for new orders</p>
                 </div>
                 <input
                   type="checkbox"
@@ -86,7 +86,7 @@ export default function BohSettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Громкость уведомлений: {settings.notificationVolume}%
+                  Notification Volume: {settings.notificationVolume}%
                 </label>
                 <input
                   type="range"
@@ -100,8 +100,8 @@ export default function BohSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-300">Звук нового заказа</label>
-                  <p className="text-sm text-gray-400">Уведомление при поступлении нового заказа</p>
+                  <label className="text-sm font-medium text-gray-300">New Order Sound</label>
+                  <p className="text-sm text-gray-400">Notification when new order arrives</p>
                 </div>
                 <input
                   type="checkbox"
@@ -113,8 +113,8 @@ export default function BohSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-300">Звук готового заказа</label>
-                  <p className="text-sm text-gray-400">Уведомление когда заказ готов к подаче</p>
+                  <label className="text-sm font-medium text-gray-300">Ready Order Sound</label>
+                  <p className="text-sm text-gray-400">Notification when order is ready to serve</p>
                 </div>
                 <input
                   type="checkbox"
@@ -126,12 +126,12 @@ export default function BohSettingsPage() {
             </div>
           </SettingCard>
 
-          {/* Таймеры */}
-          <SettingCard title="Таймеры" icon={Clock}>
+          {/* Timers */}
+          <SettingCard title="Timers" icon={Clock}>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Время приготовления по умолчанию (минуты)
+                  Default Cooking Time (minutes)
                 </label>
                 <input
                   type="number"
@@ -145,7 +145,7 @@ export default function BohSettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Время предупреждения (минуты)
+                  Warning Time (minutes)
                 </label>
                 <input
                   type="number"
@@ -159,7 +159,7 @@ export default function BohSettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Автозавершение заказа (минуты)
+                  Auto-complete Order (minutes)
                 </label>
                 <input
                   type="number"
@@ -173,13 +173,13 @@ export default function BohSettingsPage() {
             </div>
           </SettingCard>
 
-          {/* Интерфейс */}
-          <SettingCard title="Интерфейс" icon={Users}>
+          {/* Interface */}
+          <SettingCard title="Interface" icon={Users}>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-300">Автообновление</label>
-                  <p className="text-sm text-gray-400">Автоматически обновлять данные</p>
+                  <label className="text-sm font-medium text-gray-300">Auto Refresh</label>
+                  <p className="text-sm text-gray-400">Automatically refresh data</p>
                 </div>
                 <input
                   type="checkbox"
@@ -191,7 +191,7 @@ export default function BohSettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Интервал обновления (секунды)
+                  Refresh Interval (seconds)
                 </label>
                 <input
                   type="number"
@@ -205,8 +205,8 @@ export default function BohSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-300">Показывать номера столов</label>
-                  <p className="text-sm text-gray-400">Отображать номера столов в списке заказов</p>
+                  <label className="text-sm font-medium text-gray-300">Show Table Numbers</label>
+                  <p className="text-sm text-gray-400">Display table numbers in order list</p>
                 </div>
                 <input
                   type="checkbox"
@@ -218,8 +218,8 @@ export default function BohSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-300">Показывать время заказа</label>
-                  <p className="text-sm text-gray-400">Отображать время поступления заказа</p>
+                  <label className="text-sm font-medium text-gray-300">Show Order Time</label>
+                  <p className="text-sm text-gray-400">Display order arrival time</p>
                 </div>
                 <input
                   type="checkbox"
@@ -231,12 +231,12 @@ export default function BohSettingsPage() {
             </div>
           </SettingCard>
 
-          {/* Кухня */}
-          <SettingCard title="Кухня" icon={ChefHat}>
+          {/* Kitchen */}
+          <SettingCard title="Kitchen" icon={ChefHat}>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Максимум одновременных заказов
+                  Maximum Concurrent Orders
                 </label>
                 <input
                   type="number"
@@ -250,8 +250,8 @@ export default function BohSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Автоназначение повара</label>
-                  <p className="text-sm text-gray-500">Автоматически назначать повара на заказы</p>
+                  <label className="text-sm font-medium text-gray-700">Auto-assign Chef</label>
+                  <p className="text-sm text-gray-500">Automatically assign chef to orders</p>
                 </div>
                 <input
                   type="checkbox"
@@ -263,8 +263,8 @@ export default function BohSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Требовать подтверждение</label>
-                  <p className="text-sm text-gray-500">Требовать подтверждение перед завершением заказа</p>
+                  <label className="text-sm font-medium text-gray-700">Require Confirmation</label>
+                  <p className="text-sm text-gray-500">Require confirmation before completing order</p>
                 </div>
                 <input
                   type="checkbox"
@@ -277,7 +277,7 @@ export default function BohSettingsPage() {
           </SettingCard>
         </div>
 
-        {/* Кнопка сохранения */}
+        {/* Save Button */}
         <div className="mt-8 flex justify-end">
           <button
             onClick={handleSave}
@@ -285,7 +285,7 @@ export default function BohSettingsPage() {
             className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="h-5 w-5 mr-2" />
-            {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
+            {isSaving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </div>

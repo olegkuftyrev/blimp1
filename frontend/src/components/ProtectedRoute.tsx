@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,51 +11,33 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          setIsAuthenticated(false);
-          router.push('/auth');
-          return;
-        }
+    if (!isLoading && !user) {
+      router.push('/auth');
+    }
+  }, [user, isLoading, router]);
 
-        // Проверяем валидность токена
-        await AuthAPI.me();
-        setIsAuthenticated(true);
-      } catch (error) {
-        // Токен недействителен
-        localStorage.removeItem('auth_token');
-        setIsAuthenticated(false);
-        router.push('/auth');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  // Показываем загрузку пока проверяем авторизацию
-  if (isAuthenticated === null) {
+  // Show loading while checking authentication
+  if (isLoading) {
     return (
       fallback || (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-lg text-muted-foreground">Проверка авторизации...</p>
+            <p className="text-lg text-muted-foreground">Checking authorization...</p>
           </div>
         </div>
       )
     );
   }
 
-  // Если не авторизован, не показываем контент (происходит редирект)
-  if (!isAuthenticated) {
+  // If not authenticated, don't show content (redirect happens)
+  if (!user) {
     return null;
   }
 
-  // Показываем защищенный контент
+  // Show protected content
   return <>{children}</>;
 }

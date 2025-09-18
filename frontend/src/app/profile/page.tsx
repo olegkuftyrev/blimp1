@@ -20,10 +20,10 @@ interface UserProfile {
 
 const getRoleDisplayName = (role: string) => {
   switch (role) {
-    case 'admin': return 'Администратор';
-    case 'ops_lead': return 'Руководитель операций';
-    case 'black_shirt': return 'Черная рубашка';
-    case 'associate': return 'Сотрудник';
+    case 'admin': return 'Administrator';
+    case 'ops_lead': return 'Operations Lead';
+    case 'black_shirt': return 'Black Shirt';
+    case 'associate': return 'Associate';
     default: return role;
   }
 };
@@ -77,7 +77,7 @@ function ProfilePageContent() {
       });
     } catch (err: any) {
       console.error('Failed to load user profile:', err);
-      setError('Не удалось загрузить профиль пользователя');
+      setError('Failed to load user profile');
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ function ProfilePageContent() {
       setIsEditing(false);
     } catch (err: any) {
       console.error('Failed to save profile:', err);
-      setError('Не удалось сохранить изменения');
+      setError('Failed to save changes');
     }
   };
 
@@ -141,7 +141,7 @@ function ProfilePageContent() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Загрузка профиля...</p>
+          <p className="text-lg text-muted-foreground">Loading profile...</p>
         </div>
       </div>
     );
@@ -152,11 +152,11 @@ function ProfilePageContent() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-center text-destructive">Ошибка</CardTitle>
+            <CardTitle className="text-center text-destructive">Error</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={loadUserProfile}>Попробовать снова</Button>
+            <Button onClick={loadUserProfile}>Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -168,11 +168,11 @@ function ProfilePageContent() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-center">Профиль не найден</CardTitle>
+            <CardTitle className="text-center">Profile Not Found</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-muted-foreground mb-4">Не удалось загрузить данные профиля</p>
-            <Button onClick={() => router.push('/auth')}>Войти в систему</Button>
+            <p className="text-muted-foreground mb-4">Failed to load profile data</p>
+            <Button onClick={() => router.push('/auth')}>Sign In</Button>
           </CardContent>
         </Card>
       </div>
@@ -183,8 +183,8 @@ function ProfilePageContent() {
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-2xl mx-auto px-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Профиль пользователя</h1>
-          <p className="text-muted-foreground">Управление данными вашего профиля</p>
+          <h1 className="text-3xl font-bold">User Profile</h1>
+          <p className="text-muted-foreground">Manage your profile information</p>
         </div>
 
         <Card>
@@ -195,7 +195,7 @@ function ProfilePageContent() {
               </div>
               <div>
                 <CardTitle className="text-xl">
-                  {user.fullName || 'Имя не указано'}
+                  {user.fullName || 'Name not specified'}
                 </CardTitle>
                 <p className="text-muted-foreground">ID: {user.id}</p>
               </div>
@@ -216,16 +216,16 @@ function ProfilePageContent() {
                     type="email"
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    placeholder="Введите email"
+                    placeholder="Enter email"
                     className="mt-1"
                   />
                 ) : (
                   <div className="flex items-center space-x-2">
                     <p className="text-muted-foreground">{user.email}</p>
                     {user.role === 'admin' && !isEditing && (
-                      <Badge variant="outline" className="text-xs">
-                        Редактируется
-                      </Badge>
+                       <Badge variant="outline" className="text-xs">
+                         Editable
+                       </Badge>
                     )}
                   </div>
                 )}
@@ -236,17 +236,17 @@ function ProfilePageContent() {
             <div className="flex items-center space-x-3">
               <User className="h-5 w-5 text-muted-foreground" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Полное имя</p>
+                <p className="text-sm font-medium">Full Name</p>
                 {isEditing ? (
                   <Input
                     value={editForm.fullName}
                     onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                    placeholder="Введите полное имя"
+                    placeholder="Enter full name"
                     className="mt-1"
                   />
                 ) : (
                   <p className="text-muted-foreground">
-                    {user.fullName || 'Не указано'}
+                    {user.fullName || 'Not specified'}
                   </p>
                 )}
               </div>
@@ -256,14 +256,14 @@ function ProfilePageContent() {
             <div className="flex items-center space-x-3">
               <Briefcase className="h-5 w-5 text-muted-foreground" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Должность</p>
+                <p className="text-sm font-medium">Job Title</p>
                 {isEditing ? (
                   <select
                     value={editForm.job_title}
                     onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
                     className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <option value="">Выберите должность</option>
+                    <option value="">Select job title</option>
                     {JOB_TITLES.map((title) => (
                       <option key={title} value={title}>
                         {title}
@@ -272,7 +272,7 @@ function ProfilePageContent() {
                   </select>
                 ) : (
                   <p className="text-muted-foreground">
-                    {user.job_title || 'Не указано'}
+                    {user.job_title || 'Not specified'}
                   </p>
                 )}
               </div>
@@ -282,7 +282,7 @@ function ProfilePageContent() {
             <div className="flex items-center space-x-3">
               <Shield className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Роль</p>
+                <p className="text-sm font-medium">Role</p>
                 <p className="text-muted-foreground">{getRoleDisplayName(user.role)}</p>
               </div>
             </div>
@@ -293,23 +293,23 @@ function ProfilePageContent() {
                 <div className="flex space-x-2">
                   <Button onClick={handleSave} size="sm">
                     <Save className="h-4 w-4 mr-2" />
-                    Сохранить
+                    Save
                   </Button>
                   <Button onClick={handleCancel} variant="outline" size="sm">
                     <X className="h-4 w-4 mr-2" />
-                    Отмена
+                    Cancel
                   </Button>
                 </div>
               ) : (
                 <Button onClick={handleEdit} variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-2" />
-                  Редактировать
+                  Edit
                 </Button>
               )}
               
               <Button onClick={handleLogout} variant="destructive" size="sm">
                 <LogOut className="h-4 w-4 mr-2" />
-                Выйти
+                Sign Out
               </Button>
             </div>
           </CardContent>

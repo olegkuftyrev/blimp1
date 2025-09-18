@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { AuthAPI } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function AuthPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,12 +19,8 @@ export default function AuthPage() {
     setError(null)
     setLoading(true)
     try {
-      const res = await AuthAPI.signIn(email, password)
-      const token = (res as any)?.token as string | undefined
-      if (token) {
-        window.localStorage.setItem('auth_token', token)
-      }
-      router.push('/boh')
+      await login(email, password)
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err?.message || 'Failed to sign in')
     } finally {

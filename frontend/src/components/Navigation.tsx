@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ChefHat, Home, Settings, History, Clock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AuthAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { ColorModeButton } from '@/components/ui/color-mode';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isBohSubmenuOpen, setIsBohSubmenuOpen] = useState(false);
-  const [user, setUser] = useState<{ fullName?: string; email: string } | null>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const { user, isLoading } = useAuth();
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
@@ -31,63 +30,49 @@ const Navigation = () => {
     setIsBohSubmenuOpen(false);
   };
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          const response = await AuthAPI.me();
-          setUser(response.user);
-        }
-      } catch (error) {
-        // User is not authenticated or token is invalid
-        setUser(null);
-        localStorage.removeItem('auth_token');
-      } finally {
-        setIsCheckingAuth(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
   // Get display name for user
   const getUserDisplayName = () => {
-    if (!user) return 'Профиль';
-    return user.fullName || (user.email ? user.email.split('@')[0] : '') || 'Пользователь';
+    if (!user) return 'Profile';
+    return user.fullName || (user.email ? user.email.split('@')[0] : '') || 'User';
   };
+
+  // Don't render navigation if user is not authenticated (even while checking)
+  if (!user) {
+    return null;
+  }
 
   return (
     <nav className="bg-white text-gray-900 shadow-lg dark:bg-gray-900 dark:text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Логотип */}
+          {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
               <ChefHat className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <span className="text-xl font-bold">BLIMP</span>
             </Link>
           </div>
 
-          {/* Десктопное меню */}
+          {/* Desktop Menu */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              {/* Главная */}
-              <Link
-                href="/"
-                className={cn(
-                  'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                  isActive('/')
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                )}
-              >
-                <Home className="h-4 w-4 inline mr-2" />
-                Главная
-              </Link>
+              {/* Home - only show for authenticated users */}
+              {user && (
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                    isActive('/dashboard')
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  )}
+                >
+                  <Home className="h-4 w-4 inline mr-2" />
+                  Dashboard
+                </Link>
+              )}
 
-              {/* BOH с подменю */}
+              {/* BOH with submenu */}
               <div className="relative">
                 <button
                   onClick={toggleBohSubmenu}
@@ -99,10 +84,10 @@ const Navigation = () => {
                   )}
                 >
                   <ChefHat className="h-4 w-4 inline mr-2" />
-                  BOH
+                  Kitchen
                 </button>
 
-                {/* BOH подменю */}
+                {/* BOH submenu */}
                 {isBohSubmenuOpen && (
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 dark:bg-gray-800">
                     <div className="py-1">
@@ -112,7 +97,7 @@ const Navigation = () => {
                         onClick={closeMobileMenu}
                       >
                         <Clock className="h-4 w-4 mr-2" />
-                        Активные заказы
+                        Active Orders
                       </Link>
                       <Link
                         href="/boh/history"
@@ -120,7 +105,7 @@ const Navigation = () => {
                         onClick={closeMobileMenu}
                       >
                         <History className="h-4 w-4 mr-2" />
-                        История
+                        History
                       </Link>
                       <Link
                         href="/boh/settings"
@@ -128,14 +113,14 @@ const Navigation = () => {
                         onClick={closeMobileMenu}
                       >
                         <Settings className="h-4 w-4 mr-2" />
-                        Настройки
+                        Settings
                       </Link>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Профиль */}
+              {/* Profile */}
               <Link
                 href="/profile"
                 className={cn(
@@ -146,10 +131,10 @@ const Navigation = () => {
                 )}
               >
                 <User className="h-4 w-4 inline mr-2" />
-                {isCheckingAuth ? 'Загрузка...' : getUserDisplayName()}
+                {isLoading ? 'Loading...' : getUserDisplayName()}
               </Link>
 
-              {/* Тест (скрыть в продакшене) */}
+              {/* Test (hide in production) */}
               {process.env.NODE_ENV === 'development' && (
                 <Link
                   href="/test"
@@ -160,7 +145,7 @@ const Navigation = () => {
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   )}
                 >
-                  Тест
+                  Test
                 </Link>
               )}
 
@@ -171,7 +156,7 @@ const Navigation = () => {
             </div>
           </div>
 
-          {/* Мобильное меню кнопка */}
+          {/* Mobile menu button */}
           <div className="md:hidden">
             <button
               onClick={toggleMobileMenu}
@@ -187,27 +172,30 @@ const Navigation = () => {
         </div>
       </div>
 
-      {/* Мобильное меню */}
+      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-800">
-            {/* Главная */}
-            <Link
-              href="/"
-              className={cn(
-                'block px-3 py-2 rounded-md text-base font-medium transition-colors',
-                isActive('/')
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-              )}
-              onClick={closeMobileMenu}
-            >
-              <Home className="h-4 w-4 inline mr-2" />
-              Главная
-            </Link>
+            {/* Home - only show for authenticated users */}
+            {user && (
+              <Link
+                href="/dashboard"
+                className={cn(
+                  'block px-3 py-2 rounded-md text-base font-medium transition-colors',
+                  isActive('/dashboard')
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                )}
+                onClick={closeMobileMenu}
+              >
+                <Home className="h-4 w-4 inline mr-2" />
+                Dashboard
+              </Link>
+            )}
 
-            {/* BOH подменю для мобильных */}
-            <div>
+            {/* BOH submenu for mobile - only show for authenticated users */}
+            {user && (
+              <div>
               <button
                 onClick={toggleBohSubmenu}
                 className={cn(
@@ -219,7 +207,7 @@ const Navigation = () => {
               >
                 <div className="flex items-center">
                   <ChefHat className="h-4 w-4 mr-2" />
-                  BOH
+                  Kitchen
                 </div>
                 <span className={cn('transform transition-transform', isBohSubmenuOpen ? 'rotate-180' : '')}>
                   ▼
@@ -234,7 +222,7 @@ const Navigation = () => {
                     onClick={closeMobileMenu}
                   >
                     <Clock className="h-4 w-4 mr-2" />
-                    Активные заказы
+                    Active Orders
                   </Link>
                   <Link
                     href="/boh/history"
@@ -242,7 +230,7 @@ const Navigation = () => {
                     onClick={closeMobileMenu}
                   >
                     <History className="h-4 w-4 mr-2" />
-                    История
+                    History
                   </Link>
                   <Link
                     href="/boh/settings"
@@ -250,13 +238,15 @@ const Navigation = () => {
                     onClick={closeMobileMenu}
                   >
                     <Settings className="h-4 w-4 mr-2" />
-                    Настройки
+                    Settings
                   </Link>
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
-            {/* Профиль для мобильных */}
+            {/* Profile for mobile - only show for authenticated users */}
+            {user && (
             <Link
               href="/profile"
               className={cn(
@@ -268,11 +258,12 @@ const Navigation = () => {
               onClick={closeMobileMenu}
             >
               <User className="h-4 w-4 inline mr-2" />
-              {isCheckingAuth ? 'Загрузка...' : getUserDisplayName()}
+              {isLoading ? 'Loading...' : getUserDisplayName()}
             </Link>
+            )}
 
-            {/* Тест для мобильных */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* Test for mobile - only show for authenticated users */}
+            {user && process.env.NODE_ENV === 'development' && (
               <Link
                 href="/test"
                 className={cn(
@@ -283,7 +274,7 @@ const Navigation = () => {
                 )}
                 onClick={closeMobileMenu}
               >
-                Тест
+                Test
               </Link>
             )}
 

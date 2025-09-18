@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Provider } from "@/components/ui/provider";
 import Navigation from "@/components/Navigation";
+import AppBreadcrumb from "@/components/AppBreadcrumb";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,12 +33,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Provider defaultTheme="system" enableSystem={true}>
-          <WebSocketProvider>
-            <Navigation />
-            <main className="min-h-screen">
-              {children}
-            </main>
-          </WebSocketProvider>
+          <AuthProvider>
+            <WebSocketProvider>
+              <Navigation />
+              <main className="min-h-screen">
+                <div className="container mx-auto px-4 pt-4">
+                  <AppBreadcrumb />
+                </div>
+                {children}
+              </main>
+            </WebSocketProvider>
+          </AuthProvider>
         </Provider>
       </body>
     </html>

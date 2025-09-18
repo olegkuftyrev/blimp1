@@ -35,6 +35,9 @@ export default class Order extends BaseModel {
   @column.dateTime()
   declare completedAt: DateTime | null
 
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 

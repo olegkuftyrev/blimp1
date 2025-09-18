@@ -28,6 +28,7 @@
     "#providers/*": "./providers/*.js",
     "#policies/*": "./app/policies/*.js",
     "#abilities/*": "./app/abilities/*.js",
+    "#utils/*": "./app/utils/*.js",
     "#database/*": "./database/*.js",
     "#tests/*": "./tests/*.js",
     "#start/*": "./start/*.js",
@@ -54,6 +55,7 @@
   },
   "dependencies": {
     "@adonisjs/auth": "^9.4.0",
+    "@adonisjs/bouncer": "^3.1.6",
     "@adonisjs/core": "^6.18.0",
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^21.6.1",

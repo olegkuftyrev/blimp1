@@ -17,7 +17,7 @@ A tablet-based food calling and kitchen management system designed to streamline
 
 ## 📝 Development Notes
 
-### Current Status (Last Updated: Sep 7, 2025)
+### Current Status (Last Updated: Sep 16, 2025)
 - ✅ **Backend**: AdonisJS 6.19.0 project created and working
 - ✅ **Database**: SQLite configured, migrations executed successfully
 - ✅ **Models**: MenuItem and Order models created with relationships
@@ -27,12 +27,13 @@ A tablet-based food calling and kitchen management system designed to streamline
 - ✅ **Frontend**: Next.js 15.5.2 with TypeScript and Tailwind CSS
 - ✅ **Table Interfaces**: 3 table section pages with smart batch selection
 - ✅ **Kitchen Interface**: Kitchen tablet with timer management
+- ✅ **BOH Interfaces**: BOH pages (including settings)
 - ✅ **WebSocket**: Real-time communication between kitchen and table sections
 - ✅ **Timer System**: Complete timer workflow with countdown displays
 - ✅ **Order Management**: Full order lifecycle from creation to completion
 - ✅ **Smart UI**: Time-based batch recommendations and visual feedback
-- ✅ **Deployment**: Live on DigitalOcean server (137.184.15.223)
-- ✅ **Environment Config**: Frontend configured to connect to server backend
+- ✅ **Deployment**: Live on DigitalOcean
+- ✅ **Environment Config**: Frontend configured to connect to server backend via env
 
 ### Key Files Created:
 - `backend/app/models/menu_item.ts` - MenuItem model with cooking times
@@ -49,9 +50,10 @@ A tablet-based food calling and kitchen management system designed to streamline
 - `backend/start/ws.ts` - WebSocket server configuration
 - `backend/config/shield.ts` - CSRF disabled for API
 - `backend/tmp/db.sqlite3` - SQLite database with test data
-- `frontend/src/app/page.tsx` - Main navigation page with section selection
+- `frontend/src/app/page.tsx` - Main navigation page
 - `frontend/src/app/table/[id]/page.tsx` - Smart table section interfaces with timers
-- `frontend/src/app/kitchen/page.tsx` - Kitchen tablet with timer management
+- `frontend/src/app/boh/page.tsx` - BOH interface
+- `frontend/src/app/boh/settings/page.tsx` - BOH settings page
 - `frontend/src/contexts/WebSocketContext.tsx` - WebSocket connection management
 - `frontend/src/hooks/useWebSocketEvents.ts` - WebSocket event handlers
 - `frontend/package.json` - Next.js 15.5.2 with TypeScript and Socket.IO
@@ -84,13 +86,13 @@ A tablet-based food calling and kitchen management system designed to streamline
 - **WebSocket**: Socket.IO for real-time communication
 - **Backend Port**: 3333
 - **Frontend Port**: 3000
-- **Server IP**: 137.184.15.223 (DigitalOcean)
+- **Server**: DigitalOcean Droplet
 - **Database File**: `backend/tmp/db.sqlite3`
 - **Migration Status**: All 4 migrations completed successfully
 - **API Status**: All endpoints working with WebSocket events
 - **Frontend Status**: Running with Tailwind CSS and WebSocket integration
-- **Deployment Status**: Live and accessible at http://137.184.15.223:3000
-- **Environment Config**: Frontend configured with server API URLs
+- **Deployment Status**: Live and accessible via configured domain/IP
+- **Environment Config**: Frontend configured with server API URLs from env
 - **Test Data**: 5 Panda Express dishes (including 10-second test item)
 
 ### API Testing Results:
@@ -336,7 +338,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:3333
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd table
+   cd blimp1
    ```
 
 2. **Install frontend dependencies**
@@ -378,8 +380,8 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:3333
    ```
 
 8. **Open your browser**
-   - **Local Development**: Navigate to `http://localhost:3000` to view the application
-   - **Live Server**: Navigate to `http://137.184.15.223:3000` to view the deployed application
+   - **Local Development**: Navigate to `http://localhost:3000`
+   - **Live Server**: Use your configured domain/IP
 
 ### One-command Bootstrap (Local Dev)
 
@@ -482,19 +484,16 @@ pm2 restart all && pm2 save
 ## 📁 Project Structure
 
 ```
-table/
+project/
 ├── frontend/          # Next.js 15 Frontend
-│   ├── app/          # Next.js 15 App Router
-│   │   ├── (routes)/ # Route groups
-│   │   │   ├── table/     # Table section pages
-│   │   │   ├── kitchen/   # Kitchen page
-│   │   │   └── manager/   # Manager page
-│   │   ├── components/    # Reusable UI components
-│   │   │   ├── TableSection/    # Table section tablet components
-│   │   │   ├── Kitchen/         # Kitchen tablet components
-│   │   │   └── Manager/         # Manager control components
-│   │   ├── lib/          # Utility functions and configurations
+│   ├── src/app/       # Next.js App Router
+│   │   ├── table/     # Table section pages
+│   │   ├── boh/       # BOH pages (incl. settings)
 │   │   └── ...
+│   ├── src/components/
+│   ├── src/contexts/
+│   ├── src/hooks/
+│   ├── src/lib/
 │   ├── public/       # Static assets
 │   └── package.json  # Frontend dependencies
 ├── backend/          # AdonisJS 6.19.0 Backend
@@ -525,22 +524,35 @@ table/
 This project follows **API-Driven Development** approach:
 
 ### API Endpoints Structure
-- **Base URL**: `http://localhost:3333/api` (development) | `http://137.184.15.223:3333/api` (production)
-- **Authentication**: JWT-based authentication
+- **Base URL**: `/api` in development (Next.js rewrite) | `${NEXT_PUBLIC_API_URL}/api` in production
+- **Authentication**: Cookie-based session (httpOnly) after sign-in
 - **Data Format**: JSON
-- **Polling**: Frontend polls API every 5 seconds
-- **Environment**: Frontend automatically detects server vs local environment
+- **Polling**: Frontend polls API every 5 seconds (plus WebSocket events)
+- **Environment**: All URLs come from env; no hardcoded addresses
 
 ### Main API Routes
 
-#### Menu Items
+#### Auth
+```
+POST   /api/auth/sign-up-invite      # Register using invite code
+POST   /api/auth/sign-in             # Sign in (sets cookie)
+POST   /api/auth/logout              # Logout (clears cookie)
+GET    /api/auth/me                  # Current user and memberships
+```
+
+#### Invites (protected)
+```
+POST   /api/invites                  # Create invite (role-based rules)
+```
+
+#### Menu Items (protected)
 ```
 GET    /api/menu-items              # Get all menu items
 GET    /api/menu-items/:id          # Get specific menu item
 PUT    /api/menu-items/:id          # Update menu item status
 ```
 
-#### Orders
+#### Orders (protected)
 ```
 GET    /api/orders                  # Get all orders
 POST   /api/orders                  # Create new order
@@ -549,14 +561,14 @@ PUT    /api/orders/:id              # Update order status
 DELETE /api/orders/:id              # Delete order
 ```
 
-#### Table Sections
+#### Table Sections (protected)
 ```
 GET    /api/table-sections          # Get all table sections data
 GET    /api/table-sections/:id      # Get specific table section
 GET    /api/table-sections/:id/orders # Get orders for specific table section
 ```
 
-#### Kitchen
+#### Kitchen (protected)
 ```
 GET    /api/kitchen/orders          # Get all kitchen orders
 GET    /api/kitchen/orders/pending  # Get pending orders
@@ -566,7 +578,7 @@ POST   /api/kitchen/orders/:id/cancel-timer   # Cancel cooking timer
 POST   /api/kitchen/orders/:id/complete       # Mark order as done
 ```
 
-#### System Status
+#### System Status (protected)
 ```
 GET    /api/status                  # Get system status
 GET    /api/status/table-sections   # Get all table sections status
@@ -866,3 +878,242 @@ The system manages 5 core Panda Express dishes:
 ---
 
 **Note**: This README will be updated as the project develops and new features are added.
+
+## 🔐 Roles & Authorization
+
+This project uses role-based access control with invitations. Self-registration without an invite is not allowed.
+
+### Roles hierarchy
+- admin: full access everywhere
+- ops_lead: manages only their circle (their black_shirts and all restaurants owned by those black_shirts)
+- black_shirt: manages only their own restaurants and associates
+- associate: basic role (future pages)
+
+Notes:
+- Hierarchy is fixed: admin > ops_lead > black_shirt > associate
+- waiter role is not used
+
+### Data model (RBAC & scope)
+- users: id, email, password, full_name, role (enum)
+- restaurants: id, name (globally unique), owner_user_id (black_shirt owner) — soft delete enabled
+- user_restaurants: id, user_id, restaurant_id — membership (many-to-many), supports multiple memberships for users
+- lead_relations: id, lead_user_id (ops_lead), black_shirt_user_id — defines ops_lead circle
+- invitations: id, code (uuid), role (enum), created_by_user_id, restaurant_id (nullable), used_at, expires_at (nullable). Invite is single-use and does not expire by default
+- audit_log: id, actor_user_id, action, entity_type, entity_id, payload (json), created_at — records all important actions
+
+### Access scope rules
+- admin: unrestricted
+- ops_lead: full control ONLY over their circle:
+  - circle = all black_shirts linked via lead_relations + all restaurants owned by those black_shirts + associates in those restaurants
+  - cannot take (reassign) black_shirt from another ops_lead (only admin can)
+- black_shirt:
+  - control limited to restaurants they own and associates within those restaurants
+  - can create unlimited restaurants they own
+  - can create associates and attach them to their restaurants
+- associate: access only to the restaurants where they have membership (future pages)
+
+Restaurants temporarily without a black_shirt owner are considered managed by admin and the corresponding ops_lead from the original circle.
+
+### Invitations & registration
+- Self-register: disabled (always via invite)
+- Invite for black_shirt: created by ops_lead (role=black_shirt, restaurant_id=null). After registration, black_shirt creates their restaurants and becomes owner
+- Invite for associate: created by black_shirt (role=associate, restaurant_id=required). On registration, membership is created in that restaurant. Multiple memberships are supported
+- Invite properties: single-use, no expiration by default (can be extended later)
+
+### Soft delete & reassignment
+- Soft delete for users and restaurants (deleted_at)
+- Deleting a black_shirt:
+  - We reassign their restaurants and associates per admin/ops_lead decision
+  - Option A: transfer restaurants to another black_shirt in the same ops_lead circle
+  - Option B: keep restaurants without black_shirt (temporarily managed by admin and the same ops_lead)
+- Ops_lead cannot take black_shirt from another ops_lead; only admin may reassign lead_relations
+
+### Middleware & policies (backend)
+- ensureRole(...roles): checks user.role
+- ensureRestaurantMembership(restaurantId): ensures the user is member/owner; admin bypasses
+- ensureLeadAccess(restaurantId): ensures ops_lead has access because the restaurant owner is their black_shirt
+- High-level abilities:
+  - manageUsersInRestaurant: admin; ops_lead (in circle); black_shirt (only associates in own restaurants)
+  - manageRestaurants: admin; ops_lead (restaurants in circle); black_shirt (own restaurants)
+
+### Policies / Access Control (Backend)
+- AccessControlService centralizes checks:
+  - `canManageRestaurants(user, restaurant)`
+  - `canManageUsersInRestaurant(user, restaurant, targetRole)`
+  - `isMemberOfRestaurant(user, restaurantId)`
+- Middleware:
+  - `role`: ensures user has one of allowed roles
+  - `restaurantAccess`: ensures access by membership/ownership or ops_lead circle
+
+### Progress
+- [x] Route protection applied across `/api` groups with `auth` and role checks
+
+### Auth endpoints (contract)
+- POST /auth/sign-in → 200 { user, role, restaurant_ids[] } (sets/returns token)
+- POST /auth/logout → 204
+- GET /auth/me → 200 { user, role, restaurant_ids[], circle? } or 401
+- POST /auth/sign-up-invite → 201 { user, role, restaurant_ids[] }
+- POST /invites → 201 { code, role, restaurant_id? }
+
+#### Implemented endpoints
+- [x] POST `/api/auth/sign-up-invite`
+  - Body: `{ code, email, password, full_name? }`
+  - Behavior: single-use invite, no expiry by default; attaches associate to `restaurant_id` if present; if invite role is `black_shirt` and inviter is ops_lead/admin, auto-links in `lead_relations`
+- [x] POST `/api/auth/sign-in`
+  - Body: `{ email, password }`
+  - Returns: `{ user, token }`
+- [x] POST `/api/auth/logout`
+- [x] GET `/api/auth/me`
+  - Returns: `{ user, restaurant_ids[] }`
+- [x] POST `/api/invites`
+  - Body:
+    - Invite black_shirt (ops_lead/admin): `{ role: 'black_shirt' }`
+    - Invite associate (black_shirt/ops_lead/admin): `{ role: 'associate', restaurant_id }`
+  - Validations:
+    - black_shirt invites only by ops_lead/admin
+    - associate invites: black_shirt → only own restaurant; ops_lead → only restaurants in his circle (or orphan)
+
+### Middleware registered
+- [x] `role` → ensureRole(...roles)
+- [x] `restaurantAccess` → ensure access via membership/ownership or ops_lead circle
+
+All network addresses are configured via environment variables, not hard-coded.
+
+### Frontend behavior
+- Auth guarded routes and UI:
+  - BOH and management pages require auth; redirect unauthenticated to /login
+  - Show/hide navigation items based on role and membership
+- After login, fetch /auth/me and cache role + restaurant_ids to drive UI and redirects
+- All requests use credentials (httpOnly cookie) and backend URL from env
+
+---
+
+### ✅ RBAC Implementation TODO
+
+- [x] Backend: Database & Models
+  - [x] users: add `role` enum (admin | ops_lead | black_shirt | associate)
+  - [x] restaurants: add `owner_user_id` (black_shirt); enable soft delete
+  - [x] user_restaurants: (user_id, restaurant_id) many-to-many membership (unique pair)
+  - [x] lead_relations: (lead_user_id[ops_lead], black_shirt_user_id)
+  - [x] invitations: (code, role, created_by_user_id, restaurant_id?, used_at, expires_at nullable)
+  - [x] audit_log: (actor_user_id, action, entity_type, entity_id, payload JSON)
+  - [x] Enable soft delete for users as well
+
+- [ ] Backend: Auth & Invites
+  - [ ] POST /auth/register-by-invite (single-use code, no expiry by default)
+  - [ ] POST /auth/login (httpOnly cookie token)
+  - [ ] POST /auth/logout (clear token)
+  - [ ] GET /auth/me → { user, role, restaurant_ids[], circle: { black_shirt_ids[], restaurant_ids[] } }
+  - [ ] POST /invites (create invite):
+    - [ ] ops_lead → black_shirt (restaurant_id null)
+    - [ ] black_shirt → associate (restaurant_id required)
+
+- [ ] Backend: Access Control
+  - [x] Middleware: ensureRole(...roles)
+  - [x] Middleware: ensureRestaurantAccess(restaurantId)
+  - [ ] Policies: manageUsersInRestaurant, manageRestaurants per agreed rules
+
+- [ ] Backend: Management APIs
+  - [ ] ops_lead: manage black_shirts and associates within circle
+  - [ ] black_shirt: manage associates in own restaurants; create restaurants
+  - [ ] Admin-only: reassign black_shirt between ops_leads
+  - [ ] Transfer restaurants on black_shirt removal (orphan allowed; managed by admin + respective ops_lead)
+
+- [ ] Backend: Audit Logging
+  - [x] Log `invite_create`, `register_by_invite`, `login`, `logout`
+  - [ ] Log role changes, membership add/remove, restaurant create/update/delete, transfers
+
+- [ ] Frontend: Auth & Guards
+  - [ ] API client with credentials (cookie) and env URLs
+  - [ ] Pages: /sign-in, /sign-up-invite
+  - [ ] Fetch /auth/me in layout; store role + restaurant_ids
+  - [ ] Route guards and role-based navigation visibility
+
+- [ ] Frontend: Dashboards (MVP)
+  - [ ] ops_lead: list black_shirts and their restaurants; basic management actions
+  - [ ] black_shirt: manage own restaurants and associates
+
+- [ ] Testing & Seeds
+  - [ ] Seeds for sample roles and relations
+  - [ ] E2E flow: invite → register → login → access protected routes
+
+- [ ] Config
+  - [ ] CORS with credentials, cookie flags (Secure/SameSite in prod)
+  - [ ] All URLs from env (no hardcoded addresses)
+
+#### Implemented in this step
+- Migrations
+  - `backend/database/migrations/1758800000000_add_role_and_deleted_to_users_table.ts`
+  - `backend/database/migrations/1758800000001_add_owner_and_deleted_to_restaurants_table.ts`
+  - `backend/database/migrations/1758800000002_create_user_restaurants_table.ts`
+  - `backend/database/migrations/1758800000003_create_lead_relations_table.ts`
+  - `backend/database/migrations/1758800000004_create_invitations_table.ts`
+  - `backend/database/migrations/1758800000005_create_audit_log_table.ts`
+- Models
+  - `backend/app/models/user.ts` (role, soft delete)
+  - `backend/app/models/restaurant.ts` (ownerUserId, soft delete)
+  - `backend/app/models/user_restaurant.ts`
+  - `backend/app/models/lead_relation.ts`
+  - `backend/app/models/invitation.ts`
+- Middleware
+  - `backend/app/middleware/ensure_role_middleware.ts`
+  - `backend/app/middleware/ensure_restaurant_access_middleware.ts`
+
+---
+
+### cURL quick test (Auth & Invites)
+
+```bash
+# Base URL
+BASE=http://localhost:3333 # dev backend
+
+# 1) Sign up via invite (pre-created code)
+INVITE_CODE=REPLACE_WITH_CODE
+curl -i -X POST "$BASE/api/auth/sign-up-invite" \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"'$INVITE_CODE'","email":"user@example.com","password":"pass123"}'
+
+# 2) Sign in
+curl -s "$BASE/api/auth/sign-in" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","password":"pass123"}' | tee /tmp/login.json
+TOKEN=$(node -e "let d=require('fs').readFileSync('/tmp/login.json','utf8');try{let j=JSON.parse(d);console.log(j.token?.token||j.token)}catch(e){console.log('')} ")
+
+# 3) Me (Bearer token)
+curl -i "$BASE/api/auth/me" -H "Authorization: Bearer $TOKEN"
+
+# 4) Create invite (requires auth)
+# 4a) Invite black_shirt (ops_lead/admin)
+curl -i -X POST "$BASE/api/invites" \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"role":"black_shirt"}'
+
+# 4b) Invite associate (black_shirt/ops_lead/admin), restaurant scoped
+curl -i -X POST "$BASE/api/invites" \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"role":"associate","restaurant_id":123}'
+```
+
+Notes:
+- Replace `INVITE_CODE` with an actual code (see Invites API or DB).
+- The sign-in response contains `{ token: { token: "..." } }`. Use that string as Bearer.
+- All protected routes require `Authorization: Bearer $TOKEN`.
+
+---
+
+### Authorization with Bouncer
+- Integrated `@adonisjs/bouncer` with initialize middleware (available as `ctx.bouncer`).
+- Abilities defined in `backend/app/abilities/main.ts`:
+  - `manageRestaurants(user, restaurant)`
+  - `manageUsersInRestaurant(user, restaurant, targetRole)`
+- Use inside controllers for fine-grained checks:
+```ts
+import { manageRestaurants, manageUsersInRestaurant } from '#abilities/main'
+// await bouncer.authorize(manageRestaurants, restaurant)
+// await bouncer.authorize(manageUsersInRestaurant, restaurant, 'associate')
+```
+- Official guide: [AdonisJS Authorization](https://docs.adonisjs.com/guides/security/authorization#authorization)
+
+---
