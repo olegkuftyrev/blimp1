@@ -26,6 +26,28 @@ export type AuthUser = {
   job_title?: string;
 };
 
+export type TeamMember = {
+  id: number;
+  email: string;
+  fullName?: string | null;
+  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate';
+  jobTitle?: string;
+  restaurants?: Restaurant[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Restaurant = {
+  id: number;
+  name: string;
+  address: string;
+  phone: string;
+  isActive: boolean;
+  ownerUserId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // IDP Types
 export type IDPRole = {
   id: number;
@@ -171,6 +193,8 @@ export const AuthAPI = {
       method: 'POST',
       body: JSON.stringify({ role, restaurant_id: restaurantId }),
     }),
+  getTeamMembers: () =>
+    apiFetch<{ success: boolean; data: TeamMember[]; message?: string }>('users/team'),
 };
 
 export const IDPAPI = {
@@ -189,6 +213,10 @@ export const IDPAPI = {
   // Get current user's active assessment or create new one
   getCurrentAssessment: () =>
     apiFetch<{ data: IDPAssessment; message: string }>('simple-auth/idp/assessment/current'),
+
+  // Get a specific user's assessment (with permission check)
+  getUserAssessment: (userId: number) =>
+    apiFetch<{ data: { user: AuthUser; assessment: IDPAssessment | null; scores?: IDPCompetencyScores }; message: string }>(`idp/assessment/user/${userId}`),
 
   // Save assessment answers
   saveAnswers: (answers: { [questionId: number]: 'yes' | 'no' }) =>

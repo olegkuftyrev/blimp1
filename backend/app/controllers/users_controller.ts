@@ -54,6 +54,92 @@ export default class UsersController {
   }
 
   /**
+   * Get team members for the current user's restaurants
+   */
+  async getTeamMembers(ctx: HttpContext) {
+    try {
+      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      
+      // Check permission using policy
+      const userPolicy = new UserPolicy()
+      if (!(await userPolicy.viewUsersList(currentUser))) {
+        return ctx.response.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to view team members'
+        })
+      }
+
+      let teamMembers: User[] = []
+
+      if (currentUser.role === 'admin') {
+        // Admin can see all users
+        teamMembers = await User.query()
+          .whereNull('deleted_at')
+          .orderBy('created_at', 'desc')
+      } else {
+        // For non-admin users, get users from their assigned restaurants
+        const userRestaurants = await UserRestaurant.query()
+          .where('user_id', currentUser.id)
+          .preload('restaurant')
+
+        if (userRestaurants.length === 0) {
+          return ctx.response.json({
+            success: true,
+            data: []
+          })
+        }
+
+        // Get all user IDs from the same restaurants
+        const restaurantIds = userRestaurants.map(ur => ur.restaurantId)
+        const teamUserIds = await UserRestaurant.query()
+          .whereIn('restaurant_id', restaurantIds)
+          .select('user_id')
+          .distinct()
+
+        const userIds = teamUserIds.map(ur => ur.userId)
+
+        // Get users from the same restaurants, excluding the current user
+        teamMembers = await User.query()
+          .whereIn('id', userIds)
+          .where('id', '!=', currentUser.id)
+          .whereNull('deleted_at')
+          .orderBy('created_at', 'desc')
+      }
+
+      // For each user, get their restaurant assignments
+      const teamMembersWithRestaurants = await Promise.all(
+        teamMembers.map(async (user) => {
+          if (user.role !== 'admin') {
+            const userRestaurants = await UserRestaurant.query()
+              .where('user_id', user.id)
+              .preload('restaurant')
+
+            return {
+              ...user.toJSON(),
+              restaurants: userRestaurants.map((ur) => ur.restaurant)
+            }
+          }
+          return user.toJSON()
+        })
+      )
+
+      return ctx.response.json({
+        success: true,
+        data: teamMembersWithRestaurants
+      })
+    } catch (error) {
+      if (error.message === 'Unauthorized') {
+        return // Response already sent
+      }
+      return ctx.response.status(500).json({
+        success: false,
+        message: 'Failed to fetch team members',
+        error: error.message
+      })
+    }
+  }
+
+  /**
    * Get all users with their restaurant assignments
    */
   async index(ctx: HttpContext) {

@@ -36,6 +36,7 @@ router.group(() => {
   router
     .group(() => {
       router.get('/', '#controllers/users_controller.index')
+      router.get('/team', '#controllers/users_controller.getTeamMembers')
       router.post('/', '#controllers/users_controller.store')
       router.put('/:id', '#controllers/users_controller.update')
       router.delete('/:id', '#controllers/users_controller.destroy')
@@ -1104,6 +1105,7 @@ router.group(() => {
       
       // Assessment management
       router.get('/assessment/current', '#controllers/idp_controller.getCurrentAssessment')
+      router.get('/assessment/user/:userId', '#controllers/idp_controller.getUserAssessment')
       router.post('/assessment/answers', '#controllers/idp_controller.saveAnswers')
       router.post('/assessment/complete', '#controllers/idp_controller.completeAssessment')
       

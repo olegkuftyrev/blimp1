@@ -120,6 +120,96 @@ export default class IdpController {
   }
 
   /**
+   * Get a specific user's IDP assessment (with permission check)
+   */
+  async getUserAssessment({ auth, params, response }: HttpContext) {
+    try {
+      const currentUser = auth.user!
+      const targetUserId = parseInt(params.userId)
+      
+      if (isNaN(targetUserId)) {
+        return response.status(400).json({ error: 'Invalid user ID' })
+      }
+
+      // Check if current user has permission to view this user's IDP
+      // Same permissions as viewing team members
+      if (currentUser.role === 'associate') {
+        return response.status(403).json({ error: 'Insufficient permissions' })
+      }
+
+      let hasPermission = false
+      
+      if (currentUser.role === 'admin') {
+        hasPermission = true
+      } else {
+        // For non-admin users, check if they share restaurants with the target user
+        const UserRestaurant = await import('#models/user_restaurant')
+        const currentUserRestaurants = await UserRestaurant.default.query()
+          .where('user_id', currentUser.id)
+          .select('restaurant_id')
+        
+        const targetUserRestaurants = await UserRestaurant.default.query()
+          .where('user_id', targetUserId)
+          .select('restaurant_id')
+        
+        const currentRestaurantIds = currentUserRestaurants.map(ur => ur.restaurantId)
+        const targetRestaurantIds = targetUserRestaurants.map(ur => ur.restaurantId)
+        
+        // Check if they share any restaurants
+        hasPermission = currentRestaurantIds.some(id => targetRestaurantIds.includes(id))
+      }
+
+      if (!hasPermission) {
+        return response.status(403).json({ error: 'You can only view IDPs of your team members' })
+      }
+
+      // Find the target user
+      const User = await import('#models/user')
+      const targetUser = await User.default.find(targetUserId)
+      
+      if (!targetUser) {
+        return response.status(404).json({ error: 'User not found' })
+      }
+
+      // Find active assessment for the target user
+      let assessment = await IdpAssessment.query()
+        .where('userId', targetUserId)
+        .where('isActive', true)
+        .whereNull('deletedAt')
+        .preload('role')
+        .preload('answers', (answerQuery) => {
+          answerQuery.preload('question')
+        })
+        .first()
+
+      if (!assessment) {
+        return response.ok({
+          data: {
+            user: targetUser,
+            assessment: null,
+            message: 'No active assessment found for this user'
+          }
+        })
+      }
+
+      // Get competency scores for the assessment
+      const scores = await assessment.getCompetencyScores()
+
+      return response.ok({
+        data: {
+          user: targetUser,
+          assessment,
+          scores
+        },
+        message: 'User assessment retrieved successfully'
+      })
+    } catch (error) {
+      console.error('Error fetching user assessment:', error)
+      return response.status(500).json({ error: 'Failed to fetch user assessment' })
+    }
+  }
+
+  /**
    * Save assessment answers
    */
   async saveAnswers({ auth, request, response }: HttpContext) {

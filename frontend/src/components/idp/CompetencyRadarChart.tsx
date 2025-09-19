@@ -1,9 +1,21 @@
 "use client"
 
+import { TrendingUp } from "lucide-react"
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   ChartConfig,
   ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
 } from "@/components/ui/chart"
 
 interface CompetencyData {
@@ -23,7 +35,7 @@ interface CompetencyRadarChartProps {
 const chartConfig = {
   score: {
     label: "Score",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig
 
@@ -49,36 +61,43 @@ export function CompetencyRadarChart({
     return null;
   }
 
+  const totalScore = data.reduce((sum, item) => sum + item.score, 0);
+  const maxPossibleScore = data.length * Math.max(...data.map(d => d.score), 1);
+  const averageScore = data.length > 0 ? (totalScore / data.length).toFixed(1) : 0;
+
   return (
-    <div className={className}>
-      <ChartContainer
-        config={chartConfig}
-        className="mx-auto aspect-square max-w-sm w-full"
-      >
-        <RadarChart data={data}>
-          <PolarGrid 
-            stroke="hsl(var(--border))" 
-            strokeWidth={1}
-            opacity={0.3}
-          />
-          <PolarAngleAxis 
-            dataKey="competency"
-            tick={{ 
-              fontSize: 12, 
-              fill: 'hsl(var(--foreground))',
-              textAnchor: 'middle',
-              fontWeight: 500
-            }}
-          />
-          <Radar
-            dataKey="score"
-            fill="hsl(var(--primary))"
-            fillOpacity={0.2}
-            stroke="hsl(var(--primary))"
-            strokeWidth={2}
-          />
-        </RadarChart>
-      </ChartContainer>
-    </div>
+    <Card className={className}>
+      <CardHeader className="items-center pb-4">
+        <CardTitle>Competency Assessment</CardTitle>
+        <CardDescription>
+          Your performance across different competency areas
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pb-0">
+        <ChartContainer
+          config={chartConfig}
+          className="mx-auto aspect-square max-h-[250px]"
+        >
+          <RadarChart data={data}>
+            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <PolarAngleAxis dataKey="competency" />
+            <PolarGrid />
+            <Radar
+              dataKey="score"
+              fill="var(--color-score)"
+              fillOpacity={0.6}
+            />
+          </RadarChart>
+        </ChartContainer>
+      </CardContent>
+      <CardFooter className="flex-col gap-2 text-sm">
+        <div className="flex items-center gap-2 leading-none font-medium">
+          Average score: {averageScore} <TrendingUp className="h-4 w-4" />
+        </div>
+        <div className="text-muted-foreground flex items-center gap-2 leading-none">
+          Total competencies assessed: {data.length}
+        </div>
+      </CardFooter>
+    </Card>
   );
 }
