@@ -764,7 +764,7 @@ router.group(() => {
       // Get IDP role with competencies
       const IdpRole = await import('#models/idp_role')
       const role = await IdpRole.default.query()
-        .where('userRole', userRole)
+        .where('user_role', userRole)
         .where('isActive', true)
         .preload('competencies', (competencyQuery) => {
           competencyQuery
@@ -839,7 +839,7 @@ router.group(() => {
         // Find role based on user's role
         const IdpRole = await import('#models/idp_role')
         const role = await IdpRole.default.query()
-          .where('userRole', user.role)
+          .where('user_role', user.role)
           .where('isActive', true)
           .first()
 
@@ -1091,6 +1091,127 @@ router.group(() => {
     } catch (error: any) {
       console.error('Error resetting IDP assessment:', error)
       return response.status(500).json({ error: 'Failed to reset IDP assessment' })
+    }
+  })
+  
+  // Get a specific user's IDP assessment (with permission check)
+  router.get('/simple-auth/idp/assessment/user/:userId', async ({ request, response, params }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      // Find current user
+      const User = await import('#models/user')
+      const currentUser = await User.default.find(tokenRecord.tokenable_id)
+      if (!currentUser) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      const targetUserId = parseInt(params.userId)
+      if (isNaN(targetUserId)) {
+        return response.status(400).json({ error: 'Invalid user ID' })
+      }
+
+      // Check if current user has permission to view this user's IDP
+      // Same permissions as viewing team members
+      let hasPermission = false
+      
+      if (currentUser.role === 'admin') {
+        hasPermission = true
+      } else {
+        // For non-admin users, check if they share restaurants with the target user
+        const UserRestaurant = await import('#models/user_restaurant')
+        const currentUserRestaurants = await UserRestaurant.default.query()
+          .where('user_id', currentUser.id)
+          .select('restaurant_id')
+        
+        const targetUserRestaurants = await UserRestaurant.default.query()
+          .where('user_id', targetUserId)
+          .select('restaurant_id')
+        
+        const currentRestaurantIds = currentUserRestaurants.map(ur => ur.restaurantId)
+        const targetRestaurantIds = targetUserRestaurants.map(ur => ur.restaurantId)
+        
+        // Check if they share any restaurants
+        hasPermission = currentRestaurantIds.some(id => targetRestaurantIds.includes(id))
+      }
+
+      if (!hasPermission) {
+        return response.status(403).json({ error: 'You can only view IDPs of your team members' })
+      }
+
+      // Find the target user
+      const targetUser = await User.default.find(targetUserId)
+      if (!targetUser) {
+        return response.status(404).json({ error: 'User not found' })
+      }
+
+      // Find active assessment for the target user
+      const IdpAssessment = await import('#models/idp_assessment')
+      let assessment = await IdpAssessment.default.query()
+        .where('userId', targetUserId)
+        .where('isActive', true)
+        .whereNull('deletedAt')
+        .preload('role', (roleQuery) => {
+          roleQuery.preload('competencies', (competencyQuery) => {
+            competencyQuery
+              .where('isActive', true)
+              .orderBy('sortOrder')
+              .preload('questions', (questionQuery) => {
+                questionQuery.where('isActive', true).orderBy('sortOrder')
+              })
+              .preload('actions', (actionQuery) => {
+                actionQuery.where('isActive', true).orderBy('sortOrder')
+              })
+              .preload('descriptions', (descQuery) => {
+                descQuery.where('isActive', true).orderBy('sortOrder')
+              })
+          })
+        })
+        .preload('answers', (answerQuery) => {
+          answerQuery.preload('question')
+        })
+        .first()
+
+      if (!assessment) {
+        return response.ok({
+          data: {
+            user: targetUser,
+            assessment: null,
+            message: 'No active assessment found for this user'
+          }
+        })
+      }
+
+      // Get competency scores for the assessment
+      const scores = await assessment.getCompetencyScores()
+
+      return response.ok({
+        data: {
+          user: targetUser,
+          assessment,
+          scores
+        },
+        message: 'User assessment retrieved successfully'
+      })
+    } catch (error: any) {
+      console.error('Error fetching user assessment:', error)
+      return response.status(500).json({ error: 'Failed to fetch user assessment' })
     }
   })
   

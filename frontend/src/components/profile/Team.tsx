@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Mail, Briefcase, Shield, Eye, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { User, Mail, Briefcase, Shield, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AuthAPI, TeamMember, IDPAPI, IDPAssessment, IDPCompetencyScores } from '@/lib/api';
+import { AuthAPI, TeamMember } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { IDPDevelopmentPlanTable } from '@/components/idp/IDPDevelopmentPlanTable';
 
 const getRoleDisplayName = (role: string) => {
   switch (role) {
@@ -31,17 +31,10 @@ const getRoleBadgeColor = (role: string) => {
 
 export default function Team() {
   const { user: currentUser } = useAuth();
+  const router = useRouter();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // IDP view state
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUser, setSelectedUser] = useState<TeamMember | null>(null);
-  const [idpAssessment, setIdpAssessment] = useState<IDPAssessment | null>(null);
-  const [idpScores, setIdpScores] = useState<IDPCompetencyScores>({});
-  const [idpLoading, setIdpLoading] = useState(false);
-  const [idpError, setIdpError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTeamMembers();
@@ -69,41 +62,8 @@ export default function Team() {
     }
   };
 
-  const loadUserIDP = async (userId: number) => {
-    try {
-      setIdpLoading(true);
-      setIdpError(null);
-      
-      const response = await IDPAPI.getUserAssessment(userId);
-      
-      if (response.data) {
-        setIdpAssessment(response.data.assessment);
-        setIdpScores(response.data.scores || {});
-        
-        // Find the user from team members
-        const user = teamMembers.find(member => member.id === userId);
-        setSelectedUser(user || null);
-        setSelectedUserId(userId);
-      } else {
-        throw new Error(response.message || 'Failed to load user IDP');
-      }
-      
-    } catch (err: any) {
-      console.error('Failed to load user IDP:', err);
-      setIdpError(err.message || 'Failed to load user IDP');
-      setIdpAssessment(null);
-      setIdpScores({});
-    } finally {
-      setIdpLoading(false);
-    }
-  };
-
-  const closeIDPView = () => {
-    setSelectedUserId(null);
-    setSelectedUser(null);
-    setIdpAssessment(null);
-    setIdpScores({});
-    setIdpError(null);
+  const handleViewIDP = (userId: number) => {
+    router.push(`/profile?tab=user-idp&userId=${userId}`);
   };
 
   if (loading) {
@@ -201,9 +161,8 @@ export default function Team() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => loadUserIDP(member.id)}
+                    onClick={() => handleViewIDP(member.id)}
                     className="w-full"
-                    disabled={idpLoading}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     View IDP
@@ -229,106 +188,6 @@ export default function Team() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
-
-      {/* IDP View Section */}
-      {selectedUserId && (
-        <div className="mt-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold">
-                IDP for {selectedUser?.fullName || 'Unknown User'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {selectedUser?.role && getRoleDisplayName(selectedUser.role)} • {selectedUser?.email}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={closeIDPView}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Close IDP View
-            </Button>
-          </div>
-
-          {idpLoading ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-lg text-muted-foreground">Loading IDP data...</p>
-              </CardContent>
-            </Card>
-          ) : idpError ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-lg text-destructive mb-2">Error loading IDP</p>
-                <p className="text-muted-foreground">{idpError}</p>
-              </CardContent>
-            </Card>
-          ) : idpAssessment ? (
-            <div className="space-y-4">
-              {/* Assessment Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Assessment Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium">Status</p>
-                      <Badge variant={idpAssessment.status === 'completed' ? 'default' : 'secondary'}>
-                        {idpAssessment.status.charAt(0).toUpperCase() + idpAssessment.status.slice(1)}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Last Updated</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(idpAssessment.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Development Plan Table */}
-              {idpAssessment.status === 'completed' && idpScores && idpAssessment.role?.competencies && (
-                <IDPDevelopmentPlanTable
-                  competencyScores={idpAssessment.role.competencies.map(comp => ({
-                    id: comp.id,
-                    score: idpScores[comp.id.toString()] || 0,
-                    questions: comp.questions || [],
-                    actions: comp.actions || [],
-                    label: comp.label
-                  }))}
-                  answers={idpAssessment.answers?.reduce((acc, answer) => {
-                    acc[answer.questionId] = answer.answer;
-                    return acc;
-                  }, {} as { [questionId: number]: 'yes' | 'no' }) || {}}
-                />
-              )}
-
-              {idpAssessment.status !== 'completed' && (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <p className="text-lg text-muted-foreground">
-                      This user's IDP assessment is not yet completed.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-lg text-muted-foreground">
-                  No active IDP assessment found for this user.
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
     </div>

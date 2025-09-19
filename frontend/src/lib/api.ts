@@ -216,7 +216,7 @@ export const IDPAPI = {
 
   // Get a specific user's assessment (with permission check)
   getUserAssessment: (userId: number) =>
-    apiFetch<{ data: { user: AuthUser; assessment: IDPAssessment | null; scores?: IDPCompetencyScores }; message: string }>(`idp/assessment/user/${userId}`),
+    apiFetch<{ data: { user: AuthUser; assessment: IDPAssessment | null; scores?: IDPCompetencyScores }; message: string }>(`simple-auth/idp/assessment/user/${userId}`),
 
   // Save assessment answers
   saveAnswers: (answers: { [questionId: number]: 'yes' | 'no' }) =>
