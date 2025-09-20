@@ -13,7 +13,7 @@ module.exports = {
         HOST: '0.0.0.0',
         PORT: '3333',
         APP_NAME: 'blimp-backend',
-        APP_URL: 'http://146.190.53.83:3333',
+        APP_URL: 'http://10.124.0.2:3333',
         APP_KEY: 'YgnOBzI7fZsasQDUSL94JE7ae_dBLv5-',
         LOG_LEVEL: 'info',
         SESSION_DRIVER: 'cookie',
@@ -33,9 +33,9 @@ module.exports = {
       watch: false,
       env: {
         NODE_ENV: 'production',
-        NEXT_PUBLIC_API_URL: 'http://146.190.53.83:3333',
-        NEXT_PUBLIC_WS_URL: 'ws://146.190.53.83:3333',
-        NEXT_PUBLIC_BACKEND_URL: 'http://146.190.53.83:3333'
+        NEXT_PUBLIC_API_URL: 'http://10.124.0.2:3333',
+        NEXT_PUBLIC_WS_URL: 'ws://10.124.0.2:3333',
+        NEXT_PUBLIC_BACKEND_URL: 'http://10.124.0.2:3333'
       },
       kill_timeout: 5000,
     }
@@ -43,7 +43,7 @@ module.exports = {
   deploy: {
     production: {
       user: 'root',
-      host: '146.190.53.83',
+      host: '10.124.0.2',
       ref: 'origin/main',
       repo: 'git@github.com:olegkuftyrev/blimp1.git',
       path: '/opt/blimp1',
