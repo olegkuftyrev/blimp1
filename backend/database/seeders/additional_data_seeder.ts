@@ -119,6 +119,13 @@ export default class extends BaseSeeder {
           password: 'password123',
           role: 'associate' as const,
           jobTitle: 'Hourly Associate' as const
+        },
+        {
+          fullName: 'Tylene Parker',
+          email: 'tylene.parker@pandarg.com',
+          password: 'tylene2874',
+          role: 'black_shirt' as const,
+          jobTitle: 'SM/GM/TL' as const
         }
       ]
 
