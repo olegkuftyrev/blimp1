@@ -119,16 +119,7 @@ function IDPPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 items-stretch">
           {/* Left Column - Radar Chart */}
           <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Competency Profile
-              </CardTitle>
-              <CardDescription>
-                Visual representation of your competency scores
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 flex items-center justify-center">
+            <CardContent className="flex flex-col">
               <CompetencyRadarChart 
                 competencies={competencies}
                 answers={answers}

@@ -110,9 +110,9 @@ export default function AuthPage() {
             </form>
             <div className="bg-muted relative hidden md:block">
               <img
-                src="/placeholder.svg"
-                alt="Image"
-                className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                src="/login-form.png"
+                alt="Дирижабль - авторизация"
+                className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
           </CardContent>

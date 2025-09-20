@@ -67,6 +67,36 @@ const jobTitleLabels = {
 
 function StaffManagementContent() {
   const { user: currentUser } = useAuth();
+  
+  // Helper function to get available roles based on current user
+  const getAvailableRoles = () => {
+    if (!currentUser) return [];
+    
+    switch (currentUser.role) {
+      case 'admin':
+        return Object.entries(roleLabels);
+      case 'ops_lead':
+        return Object.entries(roleLabels).filter(([value]) => ['black_shirt', 'associate'].includes(value));
+      case 'black_shirt':
+        return [['associate', 'Associate']]; // Only associate
+      case 'associate':
+        return [['associate', 'Associate']]; // Only associate
+      default:
+        return [];
+    }
+  };
+  
+  // Helper function to get available job titles based on role being created
+  const getAvailableJobTitles = (role: string) => {
+    if (role === 'associate') {
+      // Associates typically have these job titles
+      return Object.entries(jobTitleLabels).filter(([value]) => 
+        ['Hourly Associate', 'AM', 'Chef'].includes(value)
+      );
+    }
+    // For other roles, show all job titles
+    return Object.entries(jobTitleLabels);
+  };
   const [users, setUsers] = useState<User[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,26 +125,19 @@ function StaffManagementContent() {
     checkUserRole();
   }, []);
 
-  // Check if user has permission to access Staff Management
-  if (currentUser && currentUser.role === 'associate') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
-          <p className="text-muted-foreground mb-4">
-            You don't have permission to access Staff Management.
-          </p>
-          <Link href="/dashboard">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Auto-set role for restricted users when dialog opens
+  useEffect(() => {
+    if (isCreateDialogOpen && currentUser) {
+      const availableRoles = getAvailableRoles();
+      if (availableRoles.length === 1) {
+        // If user can only create one type of role, auto-select it
+        setNewUser(prev => ({ ...prev, role: availableRoles[0][0] }));
+      }
+    }
+  }, [isCreateDialogOpen, currentUser]);
+
+  // Staff Management is now accessible to all authenticated users
+  // Backend policies will handle specific permissions for different actions
 
   const checkUserRole = async () => {
     try {
@@ -351,19 +374,31 @@ function StaffManagementContent() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="role">Role *</Label>
-                      <Select value={newUser.role} onValueChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(roleLabels).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {getAvailableRoles().length > 1 ? (
+                      <div>
+                        <Label htmlFor="role">Role *</Label>
+                        <Select value={newUser.role} onValueChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableRoles().map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div>
+                        <Label htmlFor="role">Role *</Label>
+                        <div className="flex items-center h-10 px-3 py-2 border border-input bg-background rounded-md text-sm">
+                          {getAvailableRoles()[0]?.[1] || 'Associate'}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          You can only create {getAvailableRoles()[0]?.[1] || 'Associate'} users
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="jobTitle">Job Title *</Label>
                       <Select value={newUser.jobTitle} onValueChange={(value) => setNewUser(prev => ({ ...prev, jobTitle: value }))}>
@@ -371,11 +406,16 @@ function StaffManagementContent() {
                           <SelectValue placeholder="Select job title" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(jobTitleLabels).map(([value, label]) => (
+                          {getAvailableJobTitles(newUser.role).map(([value, label]) => (
                             <SelectItem key={value} value={value}>{label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {newUser.role === 'associate' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Job titles available for Associates
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -446,19 +486,31 @@ function StaffManagementContent() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="editRole">Role *</Label>
-                      <Select value={editUser.role} onValueChange={(value) => setEditUser(prev => ({ ...prev, role: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(roleLabels).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {getAvailableRoles().length > 1 ? (
+                      <div>
+                        <Label htmlFor="editRole">Role *</Label>
+                        <Select value={editUser.role} onValueChange={(value) => setEditUser(prev => ({ ...prev, role: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableRoles().map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div>
+                        <Label htmlFor="editRole">Role *</Label>
+                        <div className="flex items-center h-10 px-3 py-2 border border-input bg-background rounded-md text-sm">
+                          {roleLabels[editUser.role as keyof typeof roleLabels] || 'Associate'}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Role cannot be changed
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="editJobTitle">Job Title *</Label>
                       <Select value={editUser.jobTitle} onValueChange={(value) => setEditUser(prev => ({ ...prev, jobTitle: value }))}>
@@ -466,11 +518,16 @@ function StaffManagementContent() {
                           <SelectValue placeholder="Select job title" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(jobTitleLabels).map(([value, label]) => (
+                          {getAvailableJobTitles(editUser.role).map(([value, label]) => (
                             <SelectItem key={value} value={value}>{label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {editUser.role === 'associate' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Job titles available for Associates
+                        </p>
+                      )}
                     </div>
                   </div>
 

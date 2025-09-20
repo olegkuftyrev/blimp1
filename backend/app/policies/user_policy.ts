@@ -61,6 +61,11 @@ export default class UserPolicy extends BasePolicy {
       return await this.shareRestaurant(currentUser, targetUser)
     }
 
+    // Associate can edit other associate profiles in shared restaurants
+    if (currentUser.role === 'associate' && targetUser.role === 'associate') {
+      return await this.shareRestaurant(currentUser, targetUser)
+    }
+
     return false
   }
 
@@ -113,6 +118,11 @@ export default class UserPolicy extends BasePolicy {
       return await this.shareRestaurant(currentUser, targetUser)
     }
 
+    // Associate can manage other associates in shared restaurants
+    if (currentUser.role === 'associate' && targetUser.role === 'associate') {
+      return await this.shareRestaurant(currentUser, targetUser)
+    }
+
     return false
   }
 
@@ -141,10 +151,10 @@ export default class UserPolicy extends BasePolicy {
   /**
    * Check if user can view the list of all users
    */
-  async viewUsersList(user: User): Promise<AuthorizerResponse> {
-    // Only admin, ops_lead, and black_shirt can view users list
-    // Associates should not have access to Staff Management at all
-    return ['admin', 'ops_lead', 'black_shirt'].includes(user.role)
+  async viewUsersList(_user: User): Promise<AuthorizerResponse> {
+    // All authenticated users can view the staff list
+    // Specific actions (create, edit, delete) will have their own restrictions
+    return true
   }
 
   /**
@@ -163,6 +173,11 @@ export default class UserPolicy extends BasePolicy {
 
     // Black Shirt can ONLY create associate users (NOT other black_shirt, ops_lead, or admin)
     if (user.role === 'black_shirt' && targetRole) {
+      return targetRole === 'associate'
+    }
+
+    // Associate can create other associate users
+    if (user.role === 'associate' && targetRole) {
       return targetRole === 'associate'
     }
 

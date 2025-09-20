@@ -165,12 +165,12 @@ function DashboardContent() {
         };
       }
       if (module.id === 'staff') {
-        const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
+        const isAuthorized = ['admin', 'ops_lead', 'black_shirt'].includes(user.role);
         return {
           ...module,
-          badge: isAuthorized ? 'Active' : 'Restricted',
+          badge: isAuthorized ? 'Active' : 'Unlocked for Store Manager and above',
           description: isAuthorized ? 'User creation, role assignment, and restaurant access' : 'Unlocked for Store Manager and above',
-          isActive: isAuthorized
+          isActive: true // Always active now since all users can access staff management
         };
       }
       return module;
@@ -206,7 +206,7 @@ function DashboardContent() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            Restaurant Management Dashboard
+            Blimp.One - Dashboard
           </h1>
           <p className="text-muted-foreground text-lg">
             Manage all aspects of your restaurant operations from one central location
@@ -222,10 +222,10 @@ function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {[...categorizedModules.management, ...categorizedModules.profitLoss, ...categorizedModules.helpers, ...categorizedModules.others].filter(m => m.isActive).length}
+                {[...categorizedModules.management, ...(categorizedModules.profitLoss || []), ...categorizedModules.helpers, ...categorizedModules.others].filter(m => m.isActive).length}
               </div>
               <p className="text-xs text-muted-foreground">
-                of {[...categorizedModules.management, ...categorizedModules.profitLoss, ...categorizedModules.helpers, ...categorizedModules.others].length} total modules
+                of {[...categorizedModules.management, ...(categorizedModules.profitLoss || []), ...categorizedModules.helpers, ...categorizedModules.others].length} total modules
               </p>
             </CardContent>
           </Card>
@@ -313,8 +313,8 @@ function DashboardContent() {
                         Open Module
                       </Link>
                     ) : (
-                      // Hide button for Staff Management and Pay Structure if restricted, show "Coming Soon" for others
-                      !['staff', 'pay-structure'].includes(module.id) && (
+                      // Hide button for Pay Structure if restricted, show "Coming Soon" for others (Staff Management is always accessible now)
+                      !['pay-structure'].includes(module.id) && (
                         <button
                           disabled
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
@@ -331,11 +331,11 @@ function DashboardContent() {
         </div>
 
         {/* Profit & Loss */}
-        {categorizedModules.profitLoss.length > 0 && (
+        {(categorizedModules.profitLoss && categorizedModules.profitLoss.length > 0) && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">Profit & Loss</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categorizedModules.profitLoss.map((module) => {
+              {categorizedModules.profitLoss?.map((module) => {
                 const IconComponent = module.icon;
                 return (
                   <Card 

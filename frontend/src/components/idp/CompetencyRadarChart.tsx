@@ -2,15 +2,6 @@
 
 import { TrendingUp } from "lucide-react"
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   ChartConfig,
   ChartContainer,
@@ -35,7 +26,10 @@ interface CompetencyRadarChartProps {
 const chartConfig = {
   score: {
     label: "Score",
-    color: "var(--chart-1)",
+    theme: {
+      light: "hsl(220 70% 50%)", // Blue for light theme
+      dark: "hsl(220 70% 60%)",  // Lighter blue for dark theme
+    },
   },
 } satisfies ChartConfig
 
@@ -66,14 +60,14 @@ export function CompetencyRadarChart({
   const averageScore = data.length > 0 ? (totalScore / data.length).toFixed(1) : 0;
 
   return (
-    <Card className={className}>
-      <CardHeader className="items-center pb-4">
-        <CardTitle>Competency Assessment</CardTitle>
-        <CardDescription>
+    <div className={className}>
+      <div className="text-center pb-4 mb-4">
+        <h3 className="text-lg font-semibold">Competency Assessment</h3>
+        <p className="text-sm text-muted-foreground">
           Your performance across different competency areas
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pb-0">
+        </p>
+      </div>
+      <div className="pb-0">
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[250px]"
@@ -89,15 +83,15 @@ export function CompetencyRadarChart({
             />
           </RadarChart>
         </ChartContainer>
-      </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 leading-none font-medium">
+      </div>
+      <div className="flex-col gap-2 text-sm mt-4">
+        <div className="flex items-center justify-center gap-2 leading-none font-medium">
           Average score: {averageScore} <TrendingUp className="h-4 w-4" />
         </div>
-        <div className="text-muted-foreground flex items-center gap-2 leading-none">
+        <div className="text-muted-foreground flex items-center justify-center gap-2 leading-none">
           Total competencies assessed: {data.length}
         </div>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
