@@ -294,11 +294,6 @@ export default function MyProfile() {
               Edit
             </Button>
           )}
-          
-          <Button onClick={handleLogout} variant="destructive" size="sm">
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
         </div>
       </CardContent>
     </Card>

@@ -21,7 +21,8 @@ import {
   MessageSquare,
   Shield,
   Banknote,
-  BookOpen
+  BookOpen,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +39,7 @@ import {
 
 const ImprovedNavigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
@@ -367,6 +368,15 @@ const ImprovedNavigation = () => {
                           <div className="px-1">
                             <InlineThemeToggle />
                           </div>
+                          <div className="px-1 mt-2">
+                            <button
+                              onClick={logout}
+                              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent transition-colors text-red-600 hover:text-red-700 w-full"
+                            >
+                              <LogOut className="h-4 w-4" />
+                              <span className="text-sm font-medium">Sign Off</span>
+                            </button>
+                          </div>
                         </li>
                       </ul>
                     </NavigationMenuContent>
@@ -646,6 +656,17 @@ const ImprovedNavigation = () => {
               {/* Theme Toggle */}
               <div className="px-1">
                 <InlineThemeToggle />
+              </div>
+              
+              {/* Sign Off */}
+              <div className="px-1 mt-2">
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent transition-colors text-red-600 hover:text-red-700 w-full"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="text-sm font-medium">Sign Off</span>
+                </button>
               </div>
             </div>
 
