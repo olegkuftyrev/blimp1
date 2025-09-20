@@ -148,33 +148,39 @@ export default class RolesPerformancesController {
         })
       }
 
-      // Save the answer for this specific item
-      const userAnswer = await UserPerformanceAnswer.updateOrCreate(
-        {
-          userId: user.id,
-          performanceItemId: performanceItemId
-        },
-        {
-          userId: user.id,
-          performanceItemId: performanceItemId,
-          answer: answer,
-          globalQuestionId: performanceItem.globalQuestionId
-        }
-      )
-
-      // Update all other items with the same global question ID
-      await UserPerformanceAnswer.query()
-        .where('userId', user.id)
+      // Find all performance items with the same global question ID
+      const allSameQuestionItems = await PerformanceItem.query()
         .where('globalQuestionId', performanceItem.globalQuestionId)
-        .whereNot('performanceItemId', performanceItemId)
-        .update({ answer: answer })
+
+      // Save/update answers for ALL items with the same global question ID
+      for (const item of allSameQuestionItems) {
+        await UserPerformanceAnswer.updateOrCreate(
+          {
+            userId: user.id,
+            performanceItemId: item.id
+          },
+          {
+            userId: user.id,
+            performanceItemId: item.id,
+            answer: answer,
+            globalQuestionId: performanceItem.globalQuestionId
+          }
+        )
+      }
+
+      // Get the main answer for response
+      const userAnswer = await UserPerformanceAnswer.query()
+        .where('userId', user.id)
+        .where('performanceItemId', performanceItemId)
+        .first()
 
       return response.ok({
         success: true,
         data: {
           message: 'Answer saved successfully',
           answer: userAnswer,
-          syncedGlobally: true
+          syncedGlobally: true,
+          syncedItemsCount: allSameQuestionItems.length
         }
       })
     } catch (error) {
@@ -213,7 +219,7 @@ export default class RolesPerformancesController {
         })
       }
 
-      // Count total items and answered items
+      // Count total items and yes answers
       let totalItems = 0
       let answeredItems = 0
       let yesAnswers = 0
@@ -236,8 +242,9 @@ export default class RolesPerformancesController {
       yesAnswers = answers.filter(a => a.answer === 'yes').length
       noAnswers = answers.filter(a => a.answer === 'no').length
 
-      const progressPercentage = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
-      const yesPercentage = answeredItems > 0 ? Math.round((yesAnswers / answeredItems) * 100) : 0
+      // Progress is based on "Yes" answers, not total answered
+      const progressPercentage = totalItems > 0 ? Math.round((yesAnswers / totalItems) * 100) : 0
+      const yesPercentage = totalItems > 0 ? Math.round((yesAnswers / totalItems) * 100) : 0
 
       return response.ok({
         success: true,
@@ -250,7 +257,7 @@ export default class RolesPerformancesController {
           yesAnswers,
           noAnswers,
           yesPercentage,
-          isCompleted: answeredItems === totalItems
+          isCompleted: yesAnswers === totalItems
         }
       })
     } catch (error) {
@@ -295,7 +302,7 @@ export default class RolesPerformancesController {
 
         const answeredItems = answers.length
         const yesAnswers = answers.filter(a => a.answer === 'yes').length
-        const progressPercentage = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+        const progressPercentage = totalItems > 0 ? Math.round((yesAnswers / totalItems) * 100) : 0
 
         progressData.push({
           roleId: role.id,
@@ -304,7 +311,7 @@ export default class RolesPerformancesController {
           answeredItems,
           progressPercentage,
           yesAnswers,
-          isCompleted: answeredItems === totalItems
+          isCompleted: yesAnswers === totalItems
         })
       }
 
