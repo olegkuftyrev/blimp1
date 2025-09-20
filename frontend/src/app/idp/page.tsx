@@ -11,8 +11,9 @@ import { CompetencyCard } from '@/components/idp/CompetencyCard';
 import { AssessmentStatus } from '@/components/idp/AssessmentStatus';
 import { CompetencyRadarChart } from '@/components/idp/CompetencyRadarChart';
 import { useRouter } from 'next/navigation';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function IDPPage() {
+function IDPPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const { 
@@ -345,5 +346,13 @@ export default function IDPPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function IDPPage() {
+  return (
+    <ProtectedRoute>
+      <IDPPageContent />
+    </ProtectedRoute>
   );
 }

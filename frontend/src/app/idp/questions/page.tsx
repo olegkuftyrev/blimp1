@@ -17,8 +17,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useIDP';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function QuestionsPage() {
+function QuestionsPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const { 
@@ -358,5 +359,13 @@ export default function QuestionsPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function QuestionsPage() {
+  return (
+    <ProtectedRoute>
+      <QuestionsPageContent />
+    </ProtectedRoute>
   );
 }
