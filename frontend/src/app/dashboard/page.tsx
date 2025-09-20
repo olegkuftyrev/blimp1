@@ -53,6 +53,16 @@ const modules: ModuleCard[] = [
     isActive: true
   },
   {
+    id: 'pay-structure',
+    title: 'Pay Structure',
+    description: 'Manage hourly pay rates across all regions and roles',
+    icon: Banknote,
+    href: '/pay-structure',
+    color: 'bg-cyan-500',
+    badge: 'Active',
+    isActive: true
+  },
+  {
     id: 'analytics',
     title: 'Analytics & Reports',
     description: 'Sales reports, performance metrics, and insights',
@@ -64,8 +74,8 @@ const modules: ModuleCard[] = [
   },
   {
     id: 'inventory',
-    title: 'Inventory Management',
-    description: 'Stock tracking, suppliers, and procurement',
+    title: 'Roles Performance',
+    description: 'Performance tracking, role assessment, and team analytics',
     icon: ClipboardList,
     href: '/inventory',
     color: 'bg-purple-500',
@@ -83,16 +93,6 @@ const modules: ModuleCard[] = [
     isActive: false
   },
   {
-    id: 'pay-structure',
-    title: 'Pay Structure',
-    description: 'Manage hourly pay rates across all regions and roles',
-    icon: Banknote,
-    href: '/pay-structure',
-    color: 'bg-cyan-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
     id: 'idp',
     title: 'Individual Development Plant',
     description: 'Personal and professional development planning and tracking',
@@ -104,8 +104,8 @@ const modules: ModuleCard[] = [
   },
   {
     id: 'delivery',
-    title: 'Delivery & Logistics',
-    description: 'Delivery tracking, driver management, and logistics',
+    title: '1k Usage',
+    description: 'Usage analytics, metrics tracking, and performance insights',
     icon: Truck,
     href: '/delivery',
     color: 'bg-yellow-500',
@@ -114,8 +114,8 @@ const modules: ModuleCard[] = [
   },
   {
     id: 'customer',
-    title: 'Customer Management',
-    description: 'Customer feedback, loyalty programs, and reviews',
+    title: 'SMG Analytics',
+    description: 'Service management analytics, customer insights, and feedback analysis',
     icon: MessageSquare,
     href: '/customer',
     color: 'bg-pink-500',
@@ -124,8 +124,8 @@ const modules: ModuleCard[] = [
   },
   {
     id: 'compliance',
-    title: 'Compliance & Safety',
-    description: 'Health regulations, safety protocols, and audits',
+    title: 'Grow Camp',
+    description: 'Training programs, skill development, and growth initiatives',
     icon: Shield,
     href: '/compliance',
     color: 'bg-red-500',
@@ -134,8 +134,8 @@ const modules: ModuleCard[] = [
   },
   {
     id: 'scheduling',
-    title: 'Scheduling & Events',
-    description: 'Reservations, events, and table management',
+    title: 'Blimp Store',
+    description: 'Store management, inventory, and product catalog',
     icon: Calendar,
     href: '/scheduling',
     color: 'bg-indigo-500',
@@ -147,26 +147,58 @@ const modules: ModuleCard[] = [
 function DashboardContent() {
   const { user } = useAuth();
   
-  // Filter modules based on user role
-  const getVisibleModules = () => {
-    if (!user) return modules;
+  // Filter modules based on user role and organize by categories
+  const getCategorizedModules = () => {
+    if (!user) return { management: modules.slice(0, 3), helpers: [], others: [] };
     
     let filteredModules = modules;
     
-    // Associates should not see Staff Management
-    if (user.role === 'associate') {
-      filteredModules = filteredModules.filter(module => module.id !== 'staff');
-    }
+    // Both Pay Structure and Staff Management are visible to all but with different properties based on role
+    filteredModules = filteredModules.map(module => {
+      if (module.id === 'pay-structure') {
+        const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
+        return {
+          ...module,
+          badge: isAuthorized ? 'Active' : 'Restricted',
+          description: isAuthorized ? 'Manage hourly pay rates across all regions and roles' : 'Unlocked for ACO and above',
+          isActive: isAuthorized
+        };
+      }
+      if (module.id === 'staff') {
+        const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
+        return {
+          ...module,
+          badge: isAuthorized ? 'Active' : 'Restricted',
+          description: isAuthorized ? 'User creation, role assignment, and restaurant access' : 'Unlocked for Store Manager and above',
+          isActive: isAuthorized
+        };
+      }
+      return module;
+    });
     
-    // Only admin and ops_lead should see Pay Structure
-    if (!['admin', 'ops_lead'].includes(user.role)) {
-      filteredModules = filteredModules.filter(module => module.id !== 'pay-structure');
-    }
+    // Organize modules into categories
+    const managementModules = filteredModules.slice(0, 3); // First 3 modules
+    const profitLossModules = filteredModules.filter(m => ['analytics', 'finance'].includes(m.id));
+    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance'].includes(m.id));
+    // Sort helpers modules to put IDP first
+    helpersModules.sort((a, b) => {
+      if (a.id === 'idp') return -1;
+      if (b.id === 'idp') return 1;
+      return 0;
+    });
+    const othersModules = filteredModules.filter(m => 
+      !managementModules.includes(m) && !helpersModules.includes(m) && !profitLossModules.includes(m)
+    );
     
-    return filteredModules;
+    return {
+      management: managementModules,
+      profitLoss: profitLossModules,
+      helpers: helpersModules,
+      others: othersModules
+    };
   };
   
-  const visibleModules = getVisibleModules();
+  const categorizedModules = getCategorizedModules();
   
   return (
     <div className="min-h-screen bg-background p-6">
@@ -190,10 +222,10 @@ function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {visibleModules.filter(m => m.isActive).length}
+                {[...categorizedModules.management, ...categorizedModules.profitLoss, ...categorizedModules.helpers, ...categorizedModules.others].filter(m => m.isActive).length}
               </div>
               <p className="text-xs text-muted-foreground">
-                of {visibleModules.length} total modules
+                of {[...categorizedModules.management, ...categorizedModules.profitLoss, ...categorizedModules.helpers, ...categorizedModules.others].length} total modules
               </p>
             </CardContent>
           </Card>
@@ -238,11 +270,11 @@ function DashboardContent() {
           </Card>
         </div>
 
-        {/* Modules Grid */}
+        {/* Management Modules */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold text-foreground mb-4">Management Modules</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleModules.map((module) => {
+            {categorizedModules.management.map((module) => {
               const IconComponent = module.icon;
               return (
                 <Card 
@@ -263,8 +295,8 @@ function DashboardContent() {
                       </div>
                       {module.badge && (
                         <Badge 
-                          variant={module.isActive ? "default" : "secondary"}
-                          className={module.isActive ? "bg-green-500" : ""}
+                          variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
+                          className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
                         >
                           {module.badge}
                         </Badge>
@@ -281,12 +313,15 @@ function DashboardContent() {
                         Open Module
                       </Link>
                     ) : (
-                      <button
-                        disabled
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
-                      >
-                        Coming Soon
-                      </button>
+                      // Hide button for Staff Management and Pay Structure if restricted, show "Coming Soon" for others
+                      !['staff', 'pay-structure'].includes(module.id) && (
+                        <button
+                          disabled
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+                        >
+                          Coming Soon
+                        </button>
+                      )
                     )}
                   </CardContent>
                 </Card>
@@ -294,6 +329,177 @@ function DashboardContent() {
             })}
           </div>
         </div>
+
+        {/* Profit & Loss */}
+        {categorizedModules.profitLoss.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-foreground mb-4">Profit & Loss</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categorizedModules.profitLoss.map((module) => {
+                const IconComponent = module.icon;
+                return (
+                  <Card 
+                    key={module.id} 
+                    className={`transition-all hover:shadow-lg ${
+                      module.isActive 
+                        ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
+                        : 'opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-lg ${module.color}`}>
+                            <IconComponent className="h-6 w-6 text-white" />
+                          </div>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                        </div>
+                        {module.badge && (
+                          <Badge 
+                            variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
+                            className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
+                          >
+                            {module.badge}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground mb-4">{module.description}</p>
+                      {module.isActive ? (
+                        <Link
+                          href={module.href}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                        >
+                          Open Module
+                        </Link>
+                      ) : (
+                        <button
+                          disabled
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+                        >
+                          Coming Soon
+                        </button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Continuous Learning */}
+        {categorizedModules.helpers.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-foreground mb-4">Continuous Learning</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categorizedModules.helpers.map((module) => {
+                const IconComponent = module.icon;
+                return (
+                  <Card 
+                    key={module.id} 
+                    className={`transition-all hover:shadow-lg ${
+                      module.isActive 
+                        ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
+                        : 'opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-lg ${module.color}`}>
+                            <IconComponent className="h-6 w-6 text-white" />
+                          </div>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                        </div>
+                        {module.badge && (
+                          <Badge 
+                            variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
+                            className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
+                          >
+                            {module.badge}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground mb-4">{module.description}</p>
+                      {module.isActive ? (
+                        <Link
+                          href={module.href}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                        >
+                          Access Module
+                        </Link>
+                      ) : (
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-50">
+                          Restricted Access
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Others */}
+        {categorizedModules.others.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-foreground mb-4">Others</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categorizedModules.others.map((module) => {
+                const IconComponent = module.icon;
+                return (
+                  <Card 
+                    key={module.id} 
+                    className={`transition-all hover:shadow-lg ${
+                      module.isActive 
+                        ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
+                        : 'opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-lg ${module.color}`}>
+                            <IconComponent className="h-6 w-6 text-white" />
+                          </div>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                        </div>
+                        {module.badge && (
+                          <Badge 
+                            variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
+                            className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
+                          >
+                            {module.badge}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground mb-4">{module.description}</p>
+                      {module.isActive ? (
+                        <Link
+                          href={module.href}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                        >
+                          Access Module
+                        </Link>
+                      ) : (
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-50">
+                          Restricted Access
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="bg-card rounded-lg p-6">

@@ -134,6 +134,11 @@ export default function AppBreadcrumb({ customItems, className = "" }: AppBreadc
       currentPath += `/${segment}`;
       const isLast = index === segments.length - 1;
       
+      // Skip if this is just '/dashboard' since we already added it
+      if (currentPath === '/dashboard') {
+        return;
+      }
+      
       // Handle dynamic routes
       let routeKey = currentPath;
       if (segment.match(/^\d+$/)) {
