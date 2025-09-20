@@ -4,6 +4,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LabelList, RadialBar, RadialBarChart } from "recharts";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { 
   Users, 
   ClipboardList, 
@@ -160,6 +162,81 @@ function RolesPerformancePageContent() {
         </div>
       )}
 
+      {/* Charts Section */}
+      {progress && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Role Distribution Chart */}
+          <Card className="bg-card text-card-foreground">
+            <CardHeader className="items-center pb-2">
+              <CardTitle className="text-sm font-medium">Role Progress</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-2">
+              <ChartContainer
+                config={{
+                  answeredItems: {
+                    label: "Answered Items",
+                    color: "var(--chart-1)",
+                  },
+                }}
+                className="mx-auto aspect-square max-h-[250px]"
+              >
+                <RadialBarChart
+                  data={progress.roles.map((roleProgress, index) => {
+                    // Use the same logic as card background colors
+                    let color;
+                    if (roleProgress.progressPercentage === 100) {
+                      color = "#16a34a"; // green-600 for 100%
+                    } else if (roleProgress.progressPercentage >= 50) {
+                      color = "#2563eb"; // blue-600 for ≥ 50%
+                    } else if (roleProgress.progressPercentage > 0) {
+                      color = "#eab308"; // yellow-600 for > 0%
+                    } else {
+                      color = "#6b7280"; // gray-500 for 0%
+                    }
+                    
+                    return {
+                      role: roles.find(r => r.id === roleProgress.roleId)?.displayName || `Role ${roleProgress.roleId}`,
+                      answeredItems: roleProgress.yesAnswers,
+                      fill: color,
+                    };
+                  })}
+                  startAngle={-90}
+                  endAngle={270}
+                  innerRadius={30}
+                  outerRadius={110}
+                >
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel nameKey="role" />}
+                  />
+                  <RadialBar dataKey="answeredItems" background>
+                    <LabelList
+                      position="insideStart"
+                      dataKey="role"
+                      className="fill-white capitalize mix-blend-luminosity"
+                      fontSize={11}
+                    />
+                  </RadialBar>
+                </RadialBarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Placeholder Card */}
+          <Card className="bg-card text-card-foreground">
+            <CardHeader className="items-center pb-2">
+              <CardTitle className="text-sm font-medium">Coming Soon</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center h-[250px]">
+              <div className="text-center text-muted-foreground">
+                <p className="text-sm">Additional insights</p>
+                <p className="text-xs mt-1">Will be added here</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Roles List */}
       <Card className="bg-card text-card-foreground">
         <CardHeader>
@@ -189,30 +266,31 @@ function RolesPerformancePageContent() {
                       {/* Header with title and badge */}
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">{role.displayName}</h3>
-                        {roleProgress?.isCompleted && (
-                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Completed
-                          </Badge>
-                        )}
-                        {roleProgress && !roleProgress.isCompleted && roleProgress.progressPercentage > 0 && (
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-800">
-                            <Clock className="h-3 w-3 mr-1" />
-                            In Progress
-                          </Badge>
-                        )}
+                        {(() => {
+                          if (!roleProgress) return null;
+                          const isCompleted = roleProgress.answeredItems === roleProgress.totalItems && roleProgress.answeredItems > 0;
+                          
+                          if (isCompleted) {
+                            return (
+                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Completed
+                              </Badge>
+                            );
+                          } else if (roleProgress.progressPercentage > 0) {
+                            return (
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-800">
+                                <Clock className="h-3 w-3 mr-1" />
+                                In Progress
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                       
                       {/* Description */}
                       <p className="text-muted-foreground text-sm">{role.description}</p>
-                      
-                      {/* Training time */}
-                      {role.trainingTimeFrame && (
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 inline mr-1" />
-                          Training Time: {role.trainingTimeFrame}
-                        </p>
-                      )}
 
                       {/* Progress stats */}
                       {roleProgress && (
@@ -239,11 +317,6 @@ function RolesPerformancePageContent() {
                           </div>
                         </div>
                       )}
-                      
-                      {/* Click indicator */}
-                      <div className="flex justify-end">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -265,12 +338,6 @@ function RolesPerformancePageContent() {
                   
                   {/* Description */}
                   <p className="text-muted-foreground text-sm">Performance assessment for Black Shirts</p>
-                  
-                  {/* Training time */}
-                  <p className="text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 inline mr-1" />
-                    Training Time: Coming soon
-                  </p>
 
                   {/* Not available status */}
                   <div className="flex items-center justify-between pt-2 border-t">
@@ -280,11 +347,6 @@ function RolesPerformancePageContent() {
                         —
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Lock indicator */}
-                  <div className="flex justify-end">
-                    <Lock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   </div>
                 </div>
               </CardContent>

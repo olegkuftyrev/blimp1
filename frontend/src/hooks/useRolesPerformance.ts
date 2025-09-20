@@ -160,13 +160,14 @@ export function useRolePerformance(roleId: number) {
 export const RolesPerformanceUtils = {
   // Get section progress
   getSectionProgress: (section: any, answers: UserPerformanceAnswer) => {
-    if (!section.items?.length) return { totalItems: 0, answeredItems: 0, percentage: 0 };
+    if (!section.items?.length) return { totalItems: 0, answeredItems: 0, yesAnswers: 0, percentage: 0 };
     
     const totalItems = section.items.length;
     const answeredItems = section.items.filter((item: any) => answers[item.id]).length;
+    const yesAnswers = section.items.filter((item: any) => answers[item.id] === 'yes').length;
     const percentage = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0;
     
-    return { totalItems, answeredItems, percentage };
+    return { totalItems, answeredItems, yesAnswers, percentage };
   },
 
   // Get progress color based on percentage

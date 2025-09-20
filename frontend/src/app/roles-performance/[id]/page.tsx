@@ -193,7 +193,7 @@ function RoleDetailPageContent() {
       )}
 
       {/* Sections */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {role.sections.map((section) => {
           const sectionProgress = RolesPerformanceUtils.getSectionProgress(section, answers);
           const isExpanded = expandedSections.has(section.id);
@@ -217,9 +217,9 @@ function RoleDetailPageContent() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {sectionProgress.percentage}%
-                    </span>
+                    <Badge variant="outline" className="font-medium">
+                      {sectionProgress.yesAnswers}/{sectionProgress.totalItems}
+                    </Badge>
                     {isExpanded ? (
                       <ChevronDown className="h-5 w-5 text-muted-foreground" />
                     ) : (
