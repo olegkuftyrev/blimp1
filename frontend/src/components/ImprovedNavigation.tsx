@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { ColorModeButton } from '@/components/ui/color-mode';
+import { InlineThemeToggle } from '@/components/ui/theme-toggle';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -78,6 +78,7 @@ const ImprovedNavigation = () => {
     });
   };
 
+
   // Get display name for user
   const getUserDisplayName = () => {
     if (!user) return 'Profile';
@@ -124,8 +125,14 @@ const ImprovedNavigation = () => {
     <nav className="bg-background border-b shadow-sm relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex justify-between items-center h-16">
-          {/* Empty left space for centering */}
-          <div className="flex-1"></div>
+          {/* Logo */}
+          <div className="flex-1">
+            <Link href="/dashboard" className="flex items-center">
+              <span className="text-xl font-bold text-foreground hover:text-primary transition-colors">
+                BLIMP.ONE
+              </span>
+            </Link>
+          </div>
           
           {/* Desktop Menu - Centered */}
           <div className="hidden md:block">
@@ -306,36 +313,71 @@ const ImprovedNavigation = () => {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
-                {/* Profile */}
-                <NavigationMenuItem>
-                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                    <Link 
-                      href="/profile"
-                      className={cn(
-                        "flex items-center gap-2",
-                        isActive('/profile') && "bg-accent text-accent-foreground"
-                      )}
-                    >
-                      <User className="h-4 w-4" />
-                      {isLoading ? 'Loading...' : getUserDisplayName()}
-                    </Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
 
               </NavigationMenuList>
             </NavigationMenu>
           </div>
 
-          {/* Right side - Theme Toggle */}
-          <div className="flex-1 flex justify-end">
-            <div className="hidden md:block">
-              <ColorModeButton />
+          {/* Right side - Profile & Theme Toggle */}
+          <div className="flex-1 flex justify-end items-center gap-3">
+            <div className="hidden md:flex items-center gap-3">
+              {/* Profile with dropdown */}
+              <NavigationMenu onValueChange={onNavChange}>
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger 
+                      className={cn(
+                        "submenu-trigger flex items-center gap-2 px-3 py-2 text-sm font-medium",
+                        isActive('/profile') && "bg-accent text-accent-foreground"
+                      )}
+                    >
+                      <User className="h-4 w-4" />
+                      <span className="hidden lg:inline">
+                        {isLoading ? 'Loading...' : getUserDisplayName()}
+                      </span>
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid w-[280px] gap-2 p-4">
+                        <ListItem 
+                          href="/profile?tab=my-profile" 
+                          title="My Profile"
+                          icon={<User className="h-4 w-4" />}
+                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
+                        >
+                          View and edit your personal information
+                        </ListItem>
+                        <ListItem 
+                          href="/profile?tab=idp" 
+                          title="Individual Development Plan"
+                          icon={<BookOpen className="h-4 w-4" />}
+                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
+                        >
+                          Track your professional development goals
+                        </ListItem>
+                        <ListItem 
+                          href="/profile?tab=team" 
+                          title="Team Management"
+                          icon={<Users className="h-4 w-4" />}
+                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
+                        >
+                          Manage your team and staff members
+                        </ListItem>
+                        <li>
+                          <div className="border-t my-2"></div>
+                          <div className="px-1">
+                            <InlineThemeToggle />
+                          </div>
+                        </li>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
             </div>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center gap-2">
-            <ColorModeButton />
+          <div className="md:hidden">
             <button
               onClick={toggleMobileMenu}
               className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
@@ -558,9 +600,9 @@ const ImprovedNavigation = () => {
             </div>
 
             {/* Profile */}
-            <div className="border-t pt-2 mt-4">
+            <div className="border-t pt-2 mt-4 space-y-1">
               <Link
-                href="/profile"
+                href="/profile?tab=my-profile"
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium transition-colors",
                   isActive('/profile')
@@ -572,6 +614,39 @@ const ImprovedNavigation = () => {
                 <User className="h-4 w-4" />
                 {isLoading ? 'Loading...' : getUserDisplayName()}
               </Link>
+              
+              <Link
+                href="/profile?tab=idp"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                  isActive('/profile')
+                    ? "bg-accent text-accent-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+                onClick={closeMobileMenu}
+              >
+                <BookOpen className="h-4 w-4" />
+                Individual Development Plan
+              </Link>
+              
+              <Link
+                href="/profile?tab=team"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                  isActive('/profile')
+                    ? "bg-accent text-accent-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+                onClick={closeMobileMenu}
+              >
+                <Users className="h-4 w-4" />
+                Team Management
+              </Link>
+              
+              {/* Theme Toggle */}
+              <div className="px-1">
+                <InlineThemeToggle />
+              </div>
             </div>
 
           </div>
