@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import MyProfile from '@/components/profile/MyProfile';
 import Team from '@/components/profile/Team';
@@ -35,7 +36,15 @@ function ProfilePageContent() {
 export default function ProfilePage() {
   return (
     <ProtectedRoute>
-      <ProfilePageContent />
+      <Suspense fallback={
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center">
+            <p className="text-lg text-muted-foreground">Loading profile...</p>
+          </div>
+        </div>
+      }>
+        <ProfilePageContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

@@ -34,7 +34,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         NEXT_PUBLIC_API_URL: 'http://146.190.53.83:3333',
-        NEXT_PUBLIC_WS_URL: 'http://146.190.53.83:3333',
+        NEXT_PUBLIC_WS_URL: 'ws://146.190.53.83:3333',
         NEXT_PUBLIC_BACKEND_URL: 'http://146.190.53.83:3333'
       },
       kill_timeout: 5000,

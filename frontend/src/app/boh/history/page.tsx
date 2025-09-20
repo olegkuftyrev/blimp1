@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { History, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
@@ -262,7 +262,13 @@ function BohHistoryPageContent() {
 export default function BohHistoryPage() {
   return (
     <ProtectedRoute>
-      <BohHistoryPageContent />
+      <Suspense fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <p className="text-2xl text-muted-foreground">Loading history...</p>
+        </div>
+      }>
+        <BohHistoryPageContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

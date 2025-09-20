@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -41,7 +42,9 @@ export default function RootLayout({
                 <ConditionalSidebar>
                   <main className="flex-1">
                     <div className="container mx-auto px-4 pt-4">
-                      <AppBreadcrumb />
+                      <Suspense fallback={<div className="h-8" />}>
+                        <AppBreadcrumb />
+                      </Suspense>
                     </div>
                     {children}
                   </main>
