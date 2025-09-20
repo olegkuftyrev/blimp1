@@ -5,7 +5,7 @@ import "./globals.css";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Provider } from "@/components/ui/provider";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/ImprovedNavigation";
 import AppBreadcrumb from "@/components/AppBreadcrumb";
 import { ConditionalSidebar } from "@/components/ConditionalSidebar";
 
