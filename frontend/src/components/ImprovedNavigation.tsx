@@ -46,7 +46,7 @@ const ImprovedNavigation = () => {
   const isBohActive = () => pathname.startsWith('/boh');
   const isManagementActive = () => pathname.startsWith('/kitchen') || pathname.startsWith('/staff') || pathname.startsWith('/pay-structure');
   const isProfitLossActive = () => pathname.startsWith('/analytics') || pathname.startsWith('/finance');
-  const isLearningActive = () => pathname.startsWith('/idp') || pathname.startsWith('/inventory') || pathname.startsWith('/compliance');
+  const isLearningActive = () => pathname.startsWith('/idp') || pathname.startsWith('/roles-performance') || pathname.startsWith('/inventory') || pathname.startsWith('/compliance');
   const isOthersActive = () => pathname.startsWith('/delivery') || pathname.startsWith('/customer') || pathname.startsWith('/scheduling');
 
   const toggleMobileMenu = () => {
@@ -254,12 +254,12 @@ const ImprovedNavigation = () => {
                         Personal and professional development planning
                       </ListItem>
                       <ListItem 
-                        href="/inventory" 
+                        href="/roles-performance" 
                         title="Roles Performance"
                         icon={<ClipboardList className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/inventory') && "bg-accent text-accent-foreground")}
+                        className={cn(isActive('/roles-performance') && "bg-accent text-accent-foreground")}
                       >
-                        Performance tracking, role assessment (Coming Soon)
+                        Performance tracking, role assessment, and team analytics
                       </ListItem>
                       <ListItem 
                         href="/compliance" 
@@ -532,10 +532,10 @@ const ImprovedNavigation = () => {
                   Individual Development Plan
                 </Link>
                 <Link
-                  href="/inventory"
+                  href="/roles-performance"
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/inventory')
+                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                    isActive('/roles-performance')
                       ? "bg-accent text-accent-foreground"
                       : "text-foreground hover:bg-accent hover:text-accent-foreground"
                   )}

@@ -1,0 +1,340 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import RolePerformance from '#models/role_performance'
+import PerformanceSection from '#models/performance_section'
+import PerformanceItem from '#models/performance_item'
+import UserPerformanceAnswer from '#models/user_performance_answer'
+
+export default class RolesPerformancesController {
+  /**
+   * Get all available roles
+   */
+  async index({ response }: HttpContext) {
+    try {
+      const roles = await RolePerformance.query()
+        .where('isActive', true)
+        .orderBy('sortOrder', 'asc')
+        .select(['id', 'name', 'displayName', 'description', 'trainingTimeFrame', 'sortOrder'])
+
+      return response.ok({
+        success: true,
+        data: roles
+      })
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to fetch roles',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Get role details with sections and items
+   */
+  async show({ params, response }: HttpContext) {
+    try {
+      const role = await RolePerformance.query()
+        .where('id', params.id)
+        .where('isActive', true)
+        .preload('sections', (sectionsQuery) => {
+          sectionsQuery
+            .orderBy('sortOrder', 'asc')
+            .preload('items', (itemsQuery) => {
+              itemsQuery.orderBy('sortOrder', 'asc')
+            })
+        })
+        .first()
+
+      if (!role) {
+        return response.notFound({
+          success: false,
+          message: 'Role not found'
+        })
+      }
+
+      return response.ok({
+        success: true,
+        data: role
+      })
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to fetch role details',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Get user's answers for a specific role
+   */
+  async getUserAnswers({ params, auth, response }: HttpContext) {
+    try {
+      const user = auth.user!
+      const roleId = params.id
+
+      // Get all items for this role
+      const role = await RolePerformance.query()
+        .where('id', roleId)
+        .preload('sections', (sectionsQuery) => {
+          sectionsQuery.preload('items')
+        })
+        .first()
+
+      if (!role) {
+        return response.notFound({
+          success: false,
+          message: 'Role not found'
+        })
+      }
+
+      // Get all performance item IDs for this role
+      const performanceItemIds: number[] = []
+      role.sections.forEach(section => {
+        section.items.forEach(item => {
+          performanceItemIds.push(item.id)
+        })
+      })
+
+      // Get user's answers for these items
+      const answers = await UserPerformanceAnswer.query()
+        .where('userId', user.id)
+        .whereIn('performanceItemId', performanceItemIds)
+
+      // Create a map of item ID to answer
+      const answersMap: Record<number, string> = {}
+      answers.forEach(answer => {
+        answersMap[answer.performanceItemId] = answer.answer
+      })
+
+      return response.ok({
+        success: true,
+        data: {
+          roleId: roleId,
+          userId: user.id,
+          answers: answersMap
+        }
+      })
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to fetch user answers',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Save user's answer to a performance item
+   */
+  async saveAnswer({ request, auth, response }: HttpContext) {
+    try {
+      const user = auth.user!
+      const { performanceItemId, answer } = request.only(['performanceItemId', 'answer'])
+
+      if (!['yes', 'no'].includes(answer)) {
+        return response.badRequest({
+          success: false,
+          message: 'Answer must be either "yes" or "no"'
+        })
+      }
+
+      // Get the performance item to get its global question ID
+      const performanceItem = await PerformanceItem.find(performanceItemId)
+      if (!performanceItem) {
+        return response.notFound({
+          success: false,
+          message: 'Performance item not found'
+        })
+      }
+
+      // Save the answer for this specific item
+      const userAnswer = await UserPerformanceAnswer.updateOrCreate(
+        {
+          userId: user.id,
+          performanceItemId: performanceItemId
+        },
+        {
+          userId: user.id,
+          performanceItemId: performanceItemId,
+          answer: answer,
+          globalQuestionId: performanceItem.globalQuestionId
+        }
+      )
+
+      // Update all other items with the same global question ID
+      await UserPerformanceAnswer.query()
+        .where('userId', user.id)
+        .where('globalQuestionId', performanceItem.globalQuestionId)
+        .whereNot('performanceItemId', performanceItemId)
+        .update({ answer: answer })
+
+      return response.ok({
+        success: true,
+        data: {
+          message: 'Answer saved successfully',
+          answer: userAnswer,
+          syncedGlobally: true
+        }
+      })
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to save answer',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Get user's progress for a specific role
+   */
+  async getUserProgress({ params, auth, response }: HttpContext) {
+    try {
+      const user = auth.user!
+      const roleId = params.id
+
+      // Get role with all items
+      const role = await RolePerformance.query()
+        .where('id', roleId)
+        .preload('sections', (sectionsQuery) => {
+          sectionsQuery
+            .orderBy('sortOrder', 'asc')
+            .preload('items', (itemsQuery) => {
+              itemsQuery.orderBy('sortOrder', 'asc')
+            })
+        })
+        .first()
+
+      if (!role) {
+        return response.notFound({
+          success: false,
+          message: 'Role not found'
+        })
+      }
+
+      // Count total items and answered items
+      let totalItems = 0
+      let answeredItems = 0
+      let yesAnswers = 0
+      let noAnswers = 0
+
+      const performanceItemIds: number[] = []
+      role.sections.forEach(section => {
+        section.items.forEach(item => {
+          totalItems++
+          performanceItemIds.push(item.id)
+        })
+      })
+
+      // Get user's answers
+      const answers = await UserPerformanceAnswer.query()
+        .where('userId', user.id)
+        .whereIn('performanceItemId', performanceItemIds)
+
+      answeredItems = answers.length
+      yesAnswers = answers.filter(a => a.answer === 'yes').length
+      noAnswers = answers.filter(a => a.answer === 'no').length
+
+      const progressPercentage = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+      const yesPercentage = answeredItems > 0 ? Math.round((yesAnswers / answeredItems) * 100) : 0
+
+      return response.ok({
+        success: true,
+        data: {
+          roleId: roleId,
+          roleName: role.displayName,
+          totalItems,
+          answeredItems,
+          progressPercentage,
+          yesAnswers,
+          noAnswers,
+          yesPercentage,
+          isCompleted: answeredItems === totalItems
+        }
+      })
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to fetch user progress',
+        error: error.message
+      })
+    }
+  }
+
+  /**
+   * Get user's overall progress across all roles
+   */
+  async getOverallProgress({ auth, response }: HttpContext) {
+    try {
+      const user = auth.user!
+
+      const roles = await RolePerformance.query()
+        .where('isActive', true)
+        .preload('sections', (sectionsQuery) => {
+          sectionsQuery.preload('items')
+        })
+        .orderBy('sortOrder', 'asc')
+
+      const progressData = []
+
+      for (const role of roles) {
+        let totalItems = 0
+        const performanceItemIds: number[] = []
+
+        role.sections.forEach(section => {
+          section.items.forEach(item => {
+            totalItems++
+            performanceItemIds.push(item.id)
+          })
+        })
+
+        const answers = await UserPerformanceAnswer.query()
+          .where('userId', user.id)
+          .whereIn('performanceItemId', performanceItemIds)
+
+        const answeredItems = answers.length
+        const yesAnswers = answers.filter(a => a.answer === 'yes').length
+        const progressPercentage = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+
+        progressData.push({
+          roleId: role.id,
+          roleName: role.displayName,
+          totalItems,
+          answeredItems,
+          progressPercentage,
+          yesAnswers,
+          isCompleted: answeredItems === totalItems
+        })
+      }
+
+      // Calculate overall statistics
+      const totalItemsAcrossRoles = progressData.reduce((sum, role) => sum + role.totalItems, 0)
+      const totalAnsweredAcrossRoles = progressData.reduce((sum, role) => sum + role.answeredItems, 0)
+      const totalYesAnswers = progressData.reduce((sum, role) => sum + role.yesAnswers, 0)
+      const overallProgressPercentage = totalItemsAcrossRoles > 0 ? Math.round((totalAnsweredAcrossRoles / totalItemsAcrossRoles) * 100) : 0
+      const completedRoles = progressData.filter(role => role.isCompleted).length
+
+      return response.ok({
+        success: true,
+        data: {
+          roles: progressData,
+          overall: {
+            totalRoles: roles.length,
+            completedRoles,
+            totalItemsAcrossRoles,
+            totalAnsweredAcrossRoles,
+            totalYesAnswers,
+            overallProgressPercentage
+          }
+        }
+      })
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to fetch overall progress',
+        error: error.message
+      })
+    }
+  }
+}

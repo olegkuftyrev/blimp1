@@ -73,14 +73,14 @@ const modules: ModuleCard[] = [
     isActive: false
   },
   {
-    id: 'inventory',
+    id: 'roles-performance',
     title: 'Roles Performance',
     description: 'Performance tracking, role assessment, and team analytics',
     icon: ClipboardList,
-    href: '/inventory',
+    href: '/roles-performance',
     color: 'bg-purple-500',
-    badge: 'Coming Soon',
-    isActive: false
+    badge: 'Active',
+    isActive: true
   },
   {
     id: 'finance',

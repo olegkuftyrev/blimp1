@@ -1215,6 +1215,210 @@ router.group(() => {
     }
   })
   
+  // Simple auth - Roles Performance endpoints (temporary for testing)
+  router.get('/simple-auth/roles-performance', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+      
+      // Get roles
+      const RolePerformance = await import('#models/role_performance')
+      const roles = await RolePerformance.default.query()
+        .where('isActive', true)
+        .orderBy('sortOrder', 'asc')
+        .select(['id', 'name', 'displayName', 'description', 'trainingTimeFrame', 'sortOrder'])
+
+      return response.ok({
+        success: true,
+        data: roles
+      })
+    } catch (error: any) {
+      console.error('Error fetching roles:', error)
+      return response.status(500).json({ error: 'Failed to fetch roles' })
+    }
+  })
+
+  router.get('/simple-auth/roles-performance/progress/overall', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Use the controller logic
+      const RolesPerformancesController = await import('#controllers/roles_performances_controller')
+      const controller = new RolesPerformancesController.default()
+      
+      // Mock the HttpContext for the controller
+      const mockContext = { auth: { user }, response }
+      return await controller.getOverallProgress(mockContext as any)
+      
+    } catch (error: any) {
+      console.error('Error fetching overall progress:', error)
+      return response.status(500).json({ error: 'Failed to fetch overall progress' })
+    }
+  })
+
+  router.get('/simple-auth/roles-performance/:id', async ({ request, response, params }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      // Use the controller logic
+      const RolesPerformancesController = await import('#controllers/roles_performances_controller')
+      const controller = new RolesPerformancesController.default()
+      
+      // Mock the HttpContext for the controller
+      const mockContext = { params, response }
+      return await controller.show(mockContext as any)
+      
+    } catch (error: any) {
+      console.error('Error fetching role:', error)
+      return response.status(500).json({ error: 'Failed to fetch role' })
+    }
+  })
+
+  router.get('/simple-auth/roles-performance/:id/answers', async ({ request, response, params }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Use the controller logic
+      const RolesPerformancesController = await import('#controllers/roles_performances_controller')
+      const controller = new RolesPerformancesController.default()
+      
+      // Mock the HttpContext for the controller
+      const mockContext = { params, auth: { user }, response }
+      return await controller.getUserAnswers(mockContext as any)
+      
+    } catch (error: any) {
+      console.error('Error fetching answers:', error)
+      return response.status(500).json({ error: 'Failed to fetch answers' })
+    }
+  })
+
+  router.get('/simple-auth/roles-performance/:id/progress', async ({ request, response, params }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Use the controller logic
+      const RolesPerformancesController = await import('#controllers/roles_performances_controller')
+      const controller = new RolesPerformancesController.default()
+      
+      // Mock the HttpContext for the controller
+      const mockContext = { params, auth: { user }, response }
+      return await controller.getUserProgress(mockContext as any)
+      
+    } catch (error: any) {
+      console.error('Error fetching progress:', error)
+      return response.status(500).json({ error: 'Failed to fetch progress' })
+    }
+  })
+
+  router.post('/simple-auth/roles-performance/answer', async ({ request, response }) => {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return response.status(401).json({ error: 'No Bearer token provided' })
+      }
+      
+      const token = authHeader.substring(7)
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default.from('auth_access_tokens').where('hash', token).first()
+      
+      if (!tokenRecord) {
+        return response.status(401).json({ error: 'Invalid token' })
+      }
+
+      const User = await import('#models/user')
+      const user = await User.default.find(tokenRecord.tokenable_id)
+      if (!user) {
+        return response.status(401).json({ error: 'User not found' })
+      }
+
+      // Use the controller logic
+      const RolesPerformancesController = await import('#controllers/roles_performances_controller')
+      const controller = new RolesPerformancesController.default()
+      
+      // Mock the HttpContext for the controller
+      const mockContext = { request, auth: { user }, response }
+      return await controller.saveAnswer(mockContext as any)
+      
+    } catch (error: any) {
+      console.error('Error saving answer:', error)
+      return response.status(500).json({ error: 'Failed to save answer' })
+    }
+  })
+  
   // IDP (Individual Development Plant) - Available for all authenticated users
   router
     .group(() => {
@@ -1235,6 +1439,19 @@ router.group(() => {
       router.get('/:id', '#controllers/idp_controller.show')
     })
     .prefix('/idp')
+    .use(middleware.auth())
+
+  // Roles Performance endpoints (protected)
+  router
+    .group(() => {
+      router.get('/', '#controllers/roles_performances_controller.index')
+      router.get('/progress/overall', '#controllers/roles_performances_controller.getOverallProgress')
+      router.get('/:id', '#controllers/roles_performances_controller.show')
+      router.get('/:id/answers', '#controllers/roles_performances_controller.getUserAnswers')
+      router.get('/:id/progress', '#controllers/roles_performances_controller.getUserProgress')
+      router.post('/answer', '#controllers/roles_performances_controller.saveAnswer')
+    })
+    .prefix('/roles-performance')
     .use(middleware.auth())
   
   // Manual token test

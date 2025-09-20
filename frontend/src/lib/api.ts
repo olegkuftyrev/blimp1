@@ -48,6 +48,64 @@ export type Restaurant = {
   updatedAt: string;
 };
 
+// Roles Performance Types
+export type RolePerformance = {
+  id: number;
+  name: string;
+  displayName: string;
+  description: string;
+  trainingTimeFrame?: string | null;
+  sortOrder: number;
+};
+
+export type PerformanceSection = {
+  id: number;
+  title: string;
+  description?: string | null;
+  sortOrder: number;
+  items: PerformanceItem[];
+};
+
+export type PerformanceItem = {
+  id: number;
+  text: string;
+  description?: string | null;
+  sortOrder: number;
+  globalQuestionId: string;
+};
+
+export type RolePerformanceWithSections = RolePerformance & {
+  sections: PerformanceSection[];
+};
+
+export type UserPerformanceAnswer = {
+  [itemId: number]: 'yes' | 'no';
+};
+
+export type RoleProgress = {
+  roleId: number;
+  roleName: string;
+  totalItems: number;
+  answeredItems: number;
+  progressPercentage: number;
+  yesAnswers: number;
+  noAnswers: number;
+  yesPercentage: number;
+  isCompleted: boolean;
+};
+
+export type OverallProgress = {
+  roles: RoleProgress[];
+  overall: {
+    totalRoles: number;
+    completedRoles: number;
+    totalItemsAcrossRoles: number;
+    totalAnsweredAcrossRoles: number;
+    totalYesAnswers: number;
+    overallProgressPercentage: number;
+  };
+};
+
 // IDP Types
 export type IDPRole = {
   id: number;
@@ -240,4 +298,33 @@ export const IDPAPI = {
   // Legacy endpoint for basic info
   getBasicInfo: () =>
     apiFetch<{ data: any[]; message: string }>('idp'),
+};
+
+export const RolesPerformanceAPI = {
+  // Get all available roles
+  getRoles: () =>
+    apiFetch<{ success: boolean; data: RolePerformance[] }>('simple-auth/roles-performance'),
+
+  // Get role details with sections and items
+  getRole: (roleId: number) =>
+    apiFetch<{ success: boolean; data: RolePerformanceWithSections }>(`simple-auth/roles-performance/${roleId}`),
+
+  // Get user's answers for a specific role
+  getUserAnswers: (roleId: number) =>
+    apiFetch<{ success: boolean; data: { roleId: number; userId: number; answers: UserPerformanceAnswer } }>(`simple-auth/roles-performance/${roleId}/answers`),
+
+  // Save user's answer to a performance item
+  saveAnswer: (performanceItemId: number, answer: 'yes' | 'no') =>
+    apiFetch<{ success: boolean; data: { message: string; answer: any; syncedGlobally: boolean } }>('simple-auth/roles-performance/answer', {
+      method: 'POST',
+      body: JSON.stringify({ performanceItemId, answer }),
+    }),
+
+  // Get user's progress for a specific role
+  getUserProgress: (roleId: number) =>
+    apiFetch<{ success: boolean; data: RoleProgress }>(`simple-auth/roles-performance/${roleId}/progress`),
+
+  // Get user's overall progress across all roles
+  getOverallProgress: () =>
+    apiFetch<{ success: boolean; data: OverallProgress }>('simple-auth/roles-performance/progress/overall'),
 };
