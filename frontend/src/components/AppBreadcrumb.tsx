@@ -38,6 +38,8 @@ const routeConfig: Record<string, BreadcrumbConfig> = {
   '/profile': { label: 'Profile', icon: Users },
   '/auth': { label: 'Authentication', icon: Users },
   '/idp': { label: 'IDP - Individual Development Plant', icon: BookOpen },
+  '/roles-performance': { label: 'Roles Performance', icon: BookOpen },
+  '/roles-performance/[id]': { label: 'Role Assessment', icon: BookOpen },
   '/pay-structure': { label: 'Pay Structure', icon: BarChart3 },
 };
 
@@ -51,22 +53,28 @@ export default function AppBreadcrumb({ customItems, className = "" }: AppBreadc
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
 
-  // Fetch restaurants for context
+  // Fetch restaurants and roles for context
   useEffect(() => {
-    const fetchRestaurants = async () => {
+    const fetchData = async () => {
       try {
-        const response = await apiFetch<{data: any[]}>('simple-auth/restaurants');
-        setRestaurants(response.data || []);
+        const [restaurantsResponse, rolesResponse] = await Promise.all([
+          apiFetch<{data: any[]}>('simple-auth/restaurants'),
+          apiFetch<{data: any[]}>('simple-auth/roles-performance')
+        ]);
+        setRestaurants(restaurantsResponse.data || []);
+        setRoles(rolesResponse.data || []);
       } catch (error) {
-        console.error('Error fetching restaurants for breadcrumb:', error);
-        // Set empty array on error to prevent breadcrumb issues
+        console.error('Error fetching data for breadcrumb:', error);
+        // Set empty arrays on error to prevent breadcrumb issues
         setRestaurants([]);
+        setRoles([]);
       }
     };
 
     if (user) {
-      fetchRestaurants();
+      fetchData();
     }
   }, [user]);
 
@@ -154,6 +162,20 @@ export default function AppBreadcrumb({ customItems, className = "" }: AppBreadc
               label: restaurant.name,
               href: isLast ? undefined : currentPath,
               icon: ChefHat,
+            });
+            return; // Skip the default handling
+          }
+        }
+        
+        // Try to get role name for roles-performance routes
+        if (currentPath.includes('/roles-performance/') && roles.length > 0) {
+          const roleId = parseInt(segment);
+          const role = roles.find(r => r.id === roleId);
+          if (role) {
+            breadcrumbs.push({
+              label: role.displayName,
+              href: isLast ? undefined : currentPath,
+              icon: BookOpen,
             });
             return; // Skip the default handling
           }

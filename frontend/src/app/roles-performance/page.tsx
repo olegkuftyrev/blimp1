@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Clock,
   CheckCircle,
-  Circle
+  Circle,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -29,6 +30,22 @@ function RolesPerformancePageContent() {
   const handleRoleClick = (roleId: number) => {
     router.push(`/roles-performance/${roleId}`);
   };
+
+  // Define custom order for roles
+  const roleOrder = {
+    'counter_help': 1,
+    'counter_help_cross_trained': 2,
+    'kitchen_help': 3,
+    'cook': 4,
+    'shift_lead': 5,
+  };
+
+  // Sort roles according to custom order
+  const sortedRoles = [...roles].sort((a, b) => {
+    const orderA = roleOrder[a.name as keyof typeof roleOrder] || 999;
+    const orderB = roleOrder[b.name as keyof typeof roleOrder] || 999;
+    return orderA - orderB;
+  });
 
 
   if (!user) {
@@ -155,8 +172,8 @@ function RolesPerformancePageContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {roles.map((role) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {sortedRoles.map((role) => {
               const roleProgress = progress?.roles.find(p => p.roleId === role.id);
               
               return (
@@ -168,63 +185,110 @@ function RolesPerformancePageContent() {
                   onClick={() => handleRoleClick(role.id)}
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold">{role.displayName}</h3>
-                          {roleProgress?.isCompleted && (
-                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Completed
-                            </Badge>
-                          )}
-                          {roleProgress && !roleProgress.isCompleted && roleProgress.progressPercentage > 0 && (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-800">
-                              <Clock className="h-3 w-3 mr-1" />
-                              In Progress
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <p className="text-muted-foreground mb-3">{role.description}</p>
-                        
-                        {role.trainingTimeFrame && (
-                          <p className="text-sm text-muted-foreground mb-3">
-                            <Clock className="h-4 w-4 inline mr-1" />
-                            Training Time: {role.trainingTimeFrame}
-                          </p>
+                    <div className="space-y-4">
+                      {/* Header with title and badge */}
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">{role.displayName}</h3>
+                        {roleProgress?.isCompleted && (
+                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Completed
+                          </Badge>
                         )}
-
-                        {roleProgress && (
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Circle className="h-4 w-4" />
-                              <span>{roleProgress.answeredItems} of {roleProgress.totalItems} skills assessed</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Award className="h-4 w-4 text-green-600 dark:text-green-400" />
-                              <span>{roleProgress.yesAnswers} skills mastered</span>
-                            </div>
-                          </div>
+                        {roleProgress && !roleProgress.isCompleted && roleProgress.progressPercentage > 0 && (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            In Progress
+                          </Badge>
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-4">
-                        {roleProgress && (
+                      {/* Description */}
+                      <p className="text-muted-foreground text-sm">{role.description}</p>
+                      
+                      {/* Training time */}
+                      {role.trainingTimeFrame && (
+                        <p className="text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4 inline mr-1" />
+                          Training Time: {role.trainingTimeFrame}
+                        </p>
+                      )}
+
+                      {/* Progress stats */}
+                      {roleProgress && (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Circle className="h-4 w-4" />
+                            <span>{roleProgress.answeredItems} of {roleProgress.totalItems} skills assessed</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Award className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <span>{roleProgress.yesAnswers} skills mastered</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Progress percentage */}
+                      {roleProgress && (
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="text-sm text-muted-foreground">Progress</div>
                           <div className="text-right">
-                            <div className={`text-2xl font-bold ${RolesPerformanceUtils.getProgressColor(roleProgress.progressPercentage)}`}>
+                            <div className={`text-xl font-bold ${RolesPerformanceUtils.getProgressColor(roleProgress.progressPercentage)}`}>
                               {roleProgress.progressPercentage}%
                             </div>
-                            <div className="text-xs text-muted-foreground">Complete</div>
                           </div>
-                        )}
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      
+                      {/* Click indicator */}
+                      <div className="flex justify-end">
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
+            
+            {/* Hardcoded Black Shirt Role - Coming Soon */}
+            <Card className="bg-gray-100 border-gray-200 dark:bg-gray-900 dark:border-gray-700 opacity-75 cursor-not-allowed">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {/* Header with title and badge */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400">Black Shirt</h3>
+                    <Badge variant="outline" className="bg-gray-200 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600">
+                      <Lock className="h-3 w-3 mr-1" />
+                      Coming Soon
+                    </Badge>
+                  </div>
+                  
+                  {/* Description */}
+                  <p className="text-muted-foreground text-sm">Performance assessment for Black Shirts</p>
+                  
+                  {/* Training time */}
+                  <p className="text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 inline mr-1" />
+                    Training Time: Coming soon
+                  </p>
+
+                  {/* Not available status */}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="text-sm text-muted-foreground">Status</div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-gray-400 dark:text-gray-500">
+                        —
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Lock indicator */}
+                  <div className="flex justify-end">
+                    <Lock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>
