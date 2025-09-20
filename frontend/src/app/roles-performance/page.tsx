@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LabelList, RadialBar, RadialBarChart } from "recharts";
+import { LabelList, RadialBar, RadialBarChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { 
   Users, 
@@ -222,16 +222,103 @@ function RolesPerformancePageContent() {
             </CardContent>
           </Card>
 
-          {/* Placeholder Card */}
+          {/* Skills Mastered Bar Chart */}
           <Card className="bg-card text-card-foreground">
-            <CardHeader className="items-center pb-2">
-              <CardTitle className="text-sm font-medium">Coming Soon</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Skills Mastered</CardTitle>
+              <CardDescription className="text-xs">Number of mastered skills per role</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center justify-center h-[250px]">
-              <div className="text-center text-muted-foreground">
-                <p className="text-sm">Additional insights</p>
-                <p className="text-xs mt-1">Will be added here</p>
-              </div>
+            <CardContent className="pb-2">
+              <ChartContainer
+                config={{
+                  skills: {
+                    label: "Skills Mastered",
+                    color: "var(--chart-2)",
+                  },
+                  label: {
+                    color: "var(--background)",
+                  },
+                }}
+                className="h-[250px]"
+              >
+                <BarChart
+                  accessibilityLayer
+                  data={progress?.roles.map((roleProgress) => {
+                    const role = roles.find(r => r.id === roleProgress.roleId);
+                    
+                    // Use the same logic as radial chart colors
+                    let color;
+                    if (roleProgress.progressPercentage === 100) {
+                      color = "#16a34a"; // green-600 for 100%
+                    } else if (roleProgress.progressPercentage >= 50) {
+                      color = "#2563eb"; // blue-600 for ≥ 50%
+                    } else if (roleProgress.progressPercentage > 0) {
+                      color = "#eab308"; // yellow-600 for > 0%
+                    } else {
+                      color = "#6b7280"; // gray-500 for 0%
+                    }
+                    
+                    return {
+                      role: role?.displayName || `Role ${roleProgress.roleId}`,
+                      skills: roleProgress.yesAnswers,
+                      fill: color,
+                    };
+                  }) || []}
+                  layout="vertical"
+                  margin={{
+                    right: 16,
+                  }}
+                >
+                  <CartesianGrid horizontal={false} />
+                  <YAxis
+                    dataKey="role"
+                    type="category"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value.length > 12 ? value.slice(0, 12) + '...' : value}
+                    hide
+                  />
+                  <XAxis dataKey="skills" type="number" hide />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="line" />}
+                  />
+                  <Bar
+                    dataKey="skills"
+                    layout="vertical"
+                    radius={4}
+                  >
+                    {progress?.roles.map((roleProgress, index) => (
+                      <Cell key={`cell-${index}`} fill={(() => {
+                        if (roleProgress.progressPercentage === 100) {
+                          return "#16a34a"; // green-600 for 100%
+                        } else if (roleProgress.progressPercentage >= 50) {
+                          return "#2563eb"; // blue-600 for ≥ 50%
+                        } else if (roleProgress.progressPercentage > 0) {
+                          return "#eab308"; // yellow-600 for > 0%
+                        } else {
+                          return "#6b7280"; // gray-500 for 0%
+                        }
+                      })()} />
+                    ))}
+                    <LabelList
+                      dataKey="role"
+                      position="insideLeft"
+                      offset={8}
+                      className="fill-white font-medium"
+                      fontSize={12}
+                    />
+                    <LabelList
+                      dataKey="skills"
+                      position="right"
+                      offset={8}
+                      className="fill-foreground font-bold"
+                      fontSize={12}
+                    />
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>
