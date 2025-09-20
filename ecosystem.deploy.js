@@ -13,7 +13,7 @@ module.exports = {
         HOST: '0.0.0.0',
         PORT: '3333',
         APP_NAME: 'blimp-backend',
-        APP_URL: 'http://64.23.169.176:3333',
+        APP_URL: 'http://146.190.53.83:3333',
         APP_KEY: 'YgnOBzI7fZsasQDUSL94JE7ae_dBLv5-',
         LOG_LEVEL: 'info',
         SESSION_DRIVER: 'cookie',
@@ -43,9 +43,9 @@ module.exports = {
   deploy: {
     production: {
       user: 'root',
-      host: '64.23.169.176',
+      host: '146.190.53.83',
       ref: 'origin/main',
-      repo: 'https://github.com/olegkuftyrev/blimp1.git', // Замени на свой репозиторий
+      repo: 'git@github.com:olegkuftyrev/blimp1.git',
       path: '/opt/blimp1',
       'pre-deploy-local': '',
       'post-deploy': 'cd /opt/blimp1 && chmod +x scripts/prod-build.sh && ./scripts/prod-build.sh && pm2 reload ecosystem.config.cjs --update-env && pm2 save',

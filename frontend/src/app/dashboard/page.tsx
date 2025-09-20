@@ -84,7 +84,7 @@ const modules: ModuleCard[] = [
   },
   {
     id: 'finance',
-    title: 'Financial Management',
+    title: 'P&L Practice Tests',
     description: 'Revenue tracking, expenses, and financial reports',
     icon: DollarSign,
     href: '/finance',

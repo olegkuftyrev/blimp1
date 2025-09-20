@@ -13,7 +13,7 @@ module.exports = {
         HOST: '0.0.0.0',
         PORT: '3333',
         APP_NAME: 'blimp-backend',
-        APP_URL: 'http://64.23.169.176:3333',
+        APP_URL: 'http://146.190.53.83:3333',
         APP_KEY: 'YgnOBzI7fZsasQDUSL94JE7ae_dBLv5-',
         LOG_LEVEL: 'info',
         SESSION_DRIVER: 'cookie',
@@ -32,7 +32,10 @@ module.exports = {
       exec_mode: 'fork',
       watch: false,
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        NEXT_PUBLIC_API_URL: 'http://146.190.53.83:3333',
+        NEXT_PUBLIC_WS_URL: 'http://146.190.53.83:3333',
+        NEXT_PUBLIC_BACKEND_URL: 'http://146.190.53.83:3333'
       },
       kill_timeout: 5000,
     }
