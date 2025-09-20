@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Deploying to new server (10.124.0.2)..."
+echo "🚀 Deploying to server (146.190.53.83)..."
 
 # Ensure we have the latest changes
 echo "📝 Committing any local changes..."
@@ -13,7 +13,7 @@ git push origin main
 
 # Deploy to server
 echo "🔧 Deploying to server..."
-sshpass -p '2vcDpu-4gb-120gb-intel' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@10.124.0.2 "
+sshpass -p '2d68ac59e57a73fe9725f095d6' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@146.190.53.83 "
     echo '📁 Setting up project directory...'
     mkdir -p /opt/blimp1
     
@@ -38,6 +38,6 @@ sshpass -p '2vcDpu-4gb-120gb-intel' ssh -o StrictHostKeyChecking=no -o UserKnown
 "
 
 echo "✅ Deployment completed!"
-echo "🌐 App: http://10.124.0.2"
-echo "🔌 API: http://10.124.0.2/api/menu-items"
-echo "📊 PM2 Status: sshpass -p '2vcDpu-4gb-120gb-intel' ssh root@10.124.0.2 'pm2 status'"
+echo "🌐 App: http://146.190.53.83"
+echo "🔌 API: http://146.190.53.83/api/menu-items"
+echo "📊 PM2 Status: sshpass -p '2d68ac59e57a73fe9725f095d6' ssh root@146.190.53.83 'pm2 status'"
