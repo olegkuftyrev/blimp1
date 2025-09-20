@@ -179,11 +179,13 @@ function DashboardContent() {
     // Organize modules into categories
     const managementModules = filteredModules.slice(0, 3); // First 3 modules
     const profitLossModules = filteredModules.filter(m => ['analytics', 'finance'].includes(m.id));
-    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance'].includes(m.id));
-    // Sort helpers modules to put IDP first
+    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance'].includes(m.id));
+    // Sort helpers modules to put IDP first, roles-performance third
     helpersModules.sort((a, b) => {
       if (a.id === 'idp') return -1;
       if (b.id === 'idp') return 1;
+      if (a.id === 'roles-performance') return 2;
+      if (b.id === 'roles-performance') return -2;
       return 0;
     });
     const othersModules = filteredModules.filter(m => 
