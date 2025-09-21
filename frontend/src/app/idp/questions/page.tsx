@@ -37,7 +37,7 @@ function QuestionsPageContent() {
 
   // Calculate progress
   const overallProgress = IDPUtils.getOverallProgress(competencies, answers);
-  const totalQuestions = competencies.reduce((sum, comp) => sum + (comp.questions?.length || 0), 0);
+  const totalQuestions = competencies.reduce((sum: any, comp: any) => sum + (comp.questions?.length || 0), 0);
   const answeredQuestions = Object.keys(answers).length;
 
   // Check if competency is complete
@@ -59,14 +59,14 @@ function QuestionsPageContent() {
       const smartAnswers: { [questionId: number]: 'yes' | 'no' } = {};
       
       // First, set all answers to "yes"
-      competencies.forEach((comp) => {
-        comp.questions?.forEach((q) => {
+      competencies.forEach((comp: any) => {
+        comp.questions?.forEach((q: any) => {
           smartAnswers[q.id] = "yes";
         });
       });
       
       // Randomly select 3 competencies to have development needs
-      const competencyIds = competencies.map(comp => comp.id);
+      const competencyIds = competencies.map((comp: any) => comp.id);
       const competenciesToChange: number[] = [];
       
       // Randomly select 3 unique competencies
@@ -80,7 +80,7 @@ function QuestionsPageContent() {
       
       // For each selected competency, change at least 3 questions to "no"
       competenciesToChange.forEach(compId => {
-        const comp = competencies.find(c => c.id === compId);
+        const comp = competencies.find((c: any) => c.id === compId);
         if (comp && comp.questions && comp.questions.length >= 3) {
           // Randomly select at least 3 questions to change to "no"
           const questionIndices: number[] = [];
@@ -102,7 +102,9 @@ function QuestionsPageContent() {
       });
       
       // Save all answers at once
-      await updateAnswer(Object.keys(smartAnswers)[0], Object.values(smartAnswers)[0]); // This will trigger a re-render
+      const firstQuestionId = parseInt(Object.keys(smartAnswers)[0]);
+      const firstAnswer = Object.values(smartAnswers)[0] as 'yes' | 'no';
+      await updateAnswer(firstQuestionId, firstAnswer); // This will trigger a re-render
       
       // Update all answers in sequence (could be optimized later)
       for (const [questionIdStr, answer] of Object.entries(smartAnswers)) {
@@ -199,7 +201,7 @@ function QuestionsPageContent() {
 
           {/* Competencies */}
           <div className="space-y-6">
-            {competencies.map((competency, index) => {
+            {competencies.map((competency: any, index: any) => {
               const prevCompleted = index === 0 || isCompetencyComplete(competencies[index - 1]);
               const isDisabled = !prevCompleted;
               const progress = IDPUtils.getCompetencyProgress(competency, answers);
@@ -259,8 +261,8 @@ function QuestionsPageContent() {
                     {!isDisabled && competency.descriptions && competency.descriptions.length > 0 && (
                       <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
                         {competency.descriptions
-                          .filter(desc => desc.type === 'overview')
-                          .map(desc => (
+                          .filter((desc: any) => desc.type === 'overview')
+                          .map((desc: any) => (
                             <p key={desc.id} className="text-sm text-muted-foreground">
                               {desc.content}
                             </p>
@@ -279,7 +281,7 @@ function QuestionsPageContent() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {competency.questions?.map((question, qIndex) => {
+                        {competency.questions?.map((question: any, qIndex: any) => {
                           const currentAnswer = answers[question.id];
                           
                           return (

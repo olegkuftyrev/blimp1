@@ -22,12 +22,25 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
-import { useRolesPerformance, RolesPerformanceUtils } from '@/hooks/useRolesPerformance';
+import { useSWRRolesPerformance, RolesPerformanceUtils } from '@/hooks/useSWRRolesPerformance';
+
+// Color scheme for progress visualization
+const getProgressColor = (progressPercentage: number): string => {
+  if (progressPercentage === 100) {
+    return "#16a34a"; // green-600 for 100%
+  } else if (progressPercentage >= 50) {
+    return "#2563eb"; // blue-600 for ≥ 50%
+  } else if (progressPercentage > 0) {
+    return "#eab308"; // yellow-600 for > 0%
+  } else {
+    return "#6b7280"; // gray-500 for 0%
+  }
+};
 
 function RolesPerformancePageContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const { roles, progress, loading, error } = useRolesPerformance();
+  const { roles, progress, loading, error } = useSWRRolesPerformance();
 
   const handleRoleClick = (roleId: number) => {
     router.push(`/roles-performance/${roleId}`);
@@ -183,16 +196,7 @@ function RolesPerformancePageContent() {
                 <RadialBarChart
                   data={progress.roles.map((roleProgress, index) => {
                     // Use the same logic as card background colors
-                    let color;
-                    if (roleProgress.progressPercentage === 100) {
-                      color = "#16a34a"; // green-600 for 100%
-                    } else if (roleProgress.progressPercentage >= 50) {
-                      color = "#2563eb"; // blue-600 for ≥ 50%
-                    } else if (roleProgress.progressPercentage > 0) {
-                      color = "#eab308"; // yellow-600 for > 0%
-                    } else {
-                      color = "#6b7280"; // gray-500 for 0%
-                    }
+                    const color = getProgressColor(roleProgress.progress);
                     
                     return {
                       role: roles.find(r => r.id === roleProgress.roleId)?.displayName || `Role ${roleProgress.roleId}`,
@@ -247,16 +251,7 @@ function RolesPerformancePageContent() {
                     const role = roles.find(r => r.id === roleProgress.roleId);
                     
                     // Use the same logic as radial chart colors
-                    let color;
-                    if (roleProgress.progressPercentage === 100) {
-                      color = "#16a34a"; // green-600 for 100%
-                    } else if (roleProgress.progressPercentage >= 50) {
-                      color = "#2563eb"; // blue-600 for ≥ 50%
-                    } else if (roleProgress.progressPercentage > 0) {
-                      color = "#eab308"; // yellow-600 for > 0%
-                    } else {
-                      color = "#6b7280"; // gray-500 for 0%
-                    }
+                    const color = getProgressColor(roleProgress.progress);
                     
                     return {
                       role: role?.displayName || `Role ${roleProgress.roleId}`,
@@ -290,17 +285,7 @@ function RolesPerformancePageContent() {
                     radius={4}
                   >
                     {progress?.roles.map((roleProgress, index) => (
-                      <Cell key={`cell-${index}`} fill={(() => {
-                        if (roleProgress.progressPercentage === 100) {
-                          return "#16a34a"; // green-600 for 100%
-                        } else if (roleProgress.progressPercentage >= 50) {
-                          return "#2563eb"; // blue-600 for ≥ 50%
-                        } else if (roleProgress.progressPercentage > 0) {
-                          return "#eab308"; // yellow-600 for > 0%
-                        } else {
-                          return "#6b7280"; // gray-500 for 0%
-                        }
-                      })()} />
+                      <Cell key={`cell-${index}`}                       fill={getProgressColor(roleProgress.progress)} />
                     ))}
                     <LabelList
                       dataKey="role"

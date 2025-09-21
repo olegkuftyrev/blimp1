@@ -57,13 +57,13 @@ function IDPPageContent() {
 
   // Calculate statistics
   const totalCompetencies = competencies.length;
-  const completedCompetencies = competencies.filter(comp => 
+  const completedCompetencies = competencies.filter((comp: any) => 
     IDPUtils.isCompetencyComplete(comp, answers)
   ).length;
   const overallProgress = IDPUtils.getOverallProgress(competencies, answers);
 
   // Calculate competency scores
-  const competencyScores = competencies.map(comp => ({
+  const competencyScores = competencies.map((comp: any) => ({
     ...comp,
     score: IDPUtils.calculateCompetencyScore(comp, answers),
     status: IDPUtils.getCompetencyStatus(
@@ -72,8 +72,8 @@ function IDPPageContent() {
     )
   }));
 
-  const expertCompetencies = competencyScores.filter(comp => comp.status === 'expert').length;
-  const needsDevelopment = competencyScores.filter(comp => comp.status === 'needs-development').length;
+  const expertCompetencies = competencyScores.filter((comp: any) => comp.status === 'expert').length;
+  const needsDevelopment = competencyScores.filter((comp: any) => comp.status === 'needs-development').length;
 
   const handleStartAssessment = () => {
     router.push('/idp/questions');
@@ -171,13 +171,13 @@ function IDPPageContent() {
                   </div>
                   <div className="text-center space-y-1 p-2 bg-muted/30 rounded">
                     <div className="text-xl font-bold text-blue-600">
-                      {competencyScores.filter(comp => comp.status === 'proficient').length}
+                      {competencyScores.filter((comp: any) => comp.status === 'proficient').length}
                     </div>
                     <div className="text-xs text-muted-foreground">Proficient</div>
                   </div>
                   <div className="text-center space-y-1 p-2 bg-muted/30 rounded">
                     <div className="text-xl font-bold text-yellow-600">
-                      {competencyScores.filter(comp => comp.status === 'developing').length}
+                      {competencyScores.filter((comp: any) => comp.status === 'developing').length}
                     </div>
                     <div className="text-xs text-muted-foreground">Developing</div>
                   </div>
@@ -273,7 +273,7 @@ function IDPPageContent() {
                   <div className="mb-3">
                     <div className="text-sm text-muted-foreground">Overall Score</div>
                     <div className="text-2xl font-bold text-foreground">
-                      {Math.round((Object.values(scores).reduce((a, b) => a + b, 0) / (totalCompetencies * 5)) * 100)}%
+                      {Math.round(((Object.values(scores) as number[]).reduce((a: number, b: number) => a + b, 0) / (totalCompetencies * 5)) * 100)}%
                     </div>
                   </div>
                 )}
@@ -305,7 +305,7 @@ function IDPPageContent() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {competencies
-                .sort((a, b) => {
+                .sort((a: any, b: any) => {
                   // Sort by completion status, then by score (if completed)
                   const aComplete = IDPUtils.isCompetencyComplete(a, answers);
                   const bComplete = IDPUtils.isCompetencyComplete(b, answers);
@@ -321,7 +321,7 @@ function IDPPageContent() {
                   
                   return 0;
                 })
-                .map((competency) => (
+                .map((competency: any) => (
                   <CompetencyCard
                     key={competency.id}
                     competency={competency}

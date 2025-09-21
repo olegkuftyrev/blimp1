@@ -10,6 +10,506 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 
+// Test endpoint to verify routes are loading
+router.get('/test', ({ response }) => {
+  return response.json({ message: 'Routes are working!', timestamp: new Date().toISOString() })
+})
+
+// Quick fix for auth login
+router.post('/simple-auth/login', async ({ request, response }) => {
+  const email = request.input('email') as string
+  const password = request.input('password') as string
+  
+  if (!email || !password) {
+    return response.badRequest({ error: 'email and password are required' })
+  }
+
+  // Simple hardcoded auth for testing
+  if (email === 'admin@example.com' && password === 'pA55w0rd!') {
+    const token = 'test_token_' + Date.now()
+    return response.json({
+      user: { 
+        id: 1, 
+        email: 'admin@example.com', 
+        fullName: 'Admin User', 
+        role: 'admin' 
+      },
+      token: token
+    })
+  }
+  
+  return response.unauthorized({ error: 'Invalid credentials' })
+})
+
+// Quick fix for auth me
+router.get('/simple-auth/me', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    user: { 
+      id: 1, 
+      email: 'admin@example.com', 
+      fullName: 'Admin User', 
+      role: 'admin' 
+    },
+    restaurant_ids: [1]
+  })
+})
+
+// Quick fix for roles-performance
+router.get('/simple-auth/roles-performance', async ({ response }) => {
+  return response.json({
+    success: true,
+    data: [
+      { id: 1, name: 'counter_help', displayName: 'Counter Help', description: 'Front counter operations', sortOrder: 1 },
+      { id: 2, name: 'counter_help_cross_trained', displayName: 'Counter Help Cross-Trained', description: 'Cross-trained front counter operations', sortOrder: 2 },
+      { id: 3, name: 'cook', displayName: 'Cook', description: 'Kitchen cooking operations', sortOrder: 3 },
+      { id: 4, name: 'kitchen_help', displayName: 'Kitchen Help', description: 'Kitchen support operations', sortOrder: 4 },
+      { id: 5, name: 'shift_lead', displayName: 'Shift Lead', description: 'Shift leadership and management', sortOrder: 5 }
+    ]
+  })
+})
+
+router.get('/simple-auth/roles-performance/progress/overall', async ({ response }) => {
+  try {
+    const itemCounts: { [key: number]: number } = { 1: 45, 2: 52, 3: 48, 4: 38, 5: 55 }
+    const roleNames: { [key: number]: string } = { 1: 'counter_help', 2: 'counter_help_cross_trained', 3: 'cook', 4: 'kitchen_help', 5: 'shift_lead' }
+    
+    // Calculate real progress for each role
+    const roles = []
+    let totalItemsAcrossRoles = 0
+    let totalAnsweredAcrossRoles = 0
+    let totalYesAnswers = 0
+    let completedRoles = 0
+  
+  for (let roleId = 1; roleId <= 5; roleId++) {
+    const key = `role_${roleId}_user_1`
+    const answers = userAnswers.get(key) || {}
+    const totalItems = itemCounts[roleId] || 0
+    const answeredItems = Object.keys(answers).length
+    const yesAnswers = Object.values(answers).filter(answer => answer === 'yes').length
+    const progress = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+    
+    // Role is completed if 100% answered
+    if (progress === 100) completedRoles++
+    
+    roles.push({
+      roleId: roleId,
+      roleName: roleNames[roleId],
+      progress: progress,
+      totalItems: totalItems,
+      answeredItems: answeredItems,
+      yesAnswers: yesAnswers
+    })
+    
+    totalItemsAcrossRoles += totalItems
+    totalAnsweredAcrossRoles += answeredItems
+    totalYesAnswers += yesAnswers
+  }
+  
+  const overallProgressPercentage = totalItemsAcrossRoles > 0 
+    ? Math.round((totalAnsweredAcrossRoles / totalItemsAcrossRoles) * 100) 
+    : 0
+  
+  const result = {
+    success: true,
+    data: {
+      roles: roles,
+      overall: {
+        totalRoles: 5,
+        completedRoles: completedRoles,
+        totalItemsAcrossRoles: totalItemsAcrossRoles,
+        totalAnsweredAcrossRoles: totalAnsweredAcrossRoles,
+        totalYesAnswers: totalYesAnswers,
+        overallProgressPercentage: overallProgressPercentage
+      }
+    }
+  }
+  
+    console.log('📊 Overall progress calculated:', result.data.overall)
+    return response.json(result)
+  } catch (error) {
+    console.error('💥 Error in overall progress endpoint:', error)
+    return response.status(500).json({
+      success: false,
+      error: 'Internal server error while calculating progress',
+      details: error.message
+    })
+  }
+})
+
+// Individual role performance endpoints
+router.get('/simple-auth/roles-performance/:id', async ({ params, response }) => {
+  const roleId = parseInt(params.id)
+  
+  // Mock data based on roleId
+  const roleData: { [key: number]: any } = {
+    1: { name: 'counter_help', displayName: 'Counter Help', sections: generateMockSections('Counter Help', 45) },
+    2: { name: 'counter_help_cross_trained', displayName: 'Counter Help Cross-Trained', sections: generateMockSections('Counter Help Cross-Trained', 52) },
+    3: { name: 'cook', displayName: 'Cook', sections: generateMockSections('Cook', 48) },
+    4: { name: 'kitchen_help', displayName: 'Kitchen Help', sections: generateMockSections('Kitchen Help', 38) },
+    5: { name: 'shift_lead', displayName: 'Shift Lead', sections: generateMockSections('Shift Lead', 55) }
+  }
+  
+  const role = roleData[roleId]
+  if (!role) {
+    return response.status(404).json({ error: 'Role not found' })
+  }
+  
+  return response.json({
+    success: true,
+    data: {
+      id: roleId,
+      ...role,
+      sortOrder: roleId
+    }
+  })
+})
+
+router.get('/simple-auth/roles-performance/:id/answers', async ({ params, response }) => {
+  const roleId = parseInt(params.id)
+  
+  // Get answers from in-memory storage
+  const key = `role_${roleId}_user_1` // user_1 is hardcoded for now
+  const answers = userAnswers.get(key) || {}
+  
+  console.log('📖 Backend: Loading answers for role', roleId, ':', answers)
+  
+  return response.json({
+    success: true,
+    data: {
+      roleId: roleId,
+      answers: answers
+    }
+  })
+})
+
+router.get('/simple-auth/roles-performance/:id/progress', async ({ params, response }) => {
+  const roleId = parseInt(params.id)
+  
+  const itemCounts: { [key: number]: number } = { 1: 45, 2: 52, 3: 48, 4: 38, 5: 55 }
+  const totalItems = itemCounts[roleId] || 50
+  
+  // Calculate real progress from saved answers
+  const key = `role_${roleId}_user_1`
+  const answers = userAnswers.get(key) || {}
+  const answeredItems = Object.keys(answers).length
+  const yesAnswers = Object.values(answers).filter(answer => answer === 'yes').length
+  const noAnswers = Object.values(answers).filter(answer => answer === 'no').length
+  const progress = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+  
+  const progressData = {
+    roleId: roleId,
+    totalItems: totalItems,
+    answeredItems: answeredItems,
+    yesAnswers: yesAnswers,
+    noAnswers: noAnswers,
+    progress: progress
+  }
+  
+  console.log('📊 Backend: Progress for role', roleId, ':', progressData)
+  
+  return response.json({
+    success: true,
+    data: progressData
+  })
+})
+
+// Helper function to generate mock sections
+function generateMockSections(roleName: string, itemCount: number) {
+  const sectionsCount = Math.ceil(itemCount / 10) // ~10 items per section
+  const sections = []
+  
+  for (let i = 1; i <= sectionsCount; i++) {
+    const itemsInSection = Math.min(10, itemCount - (i - 1) * 10)
+    const items = []
+    
+    for (let j = 1; j <= itemsInSection; j++) {
+      items.push({
+        id: (i - 1) * 10 + j,
+        description: `${roleName} skill ${(i - 1) * 10 + j}`,
+        isRequired: true
+      })
+    }
+    
+    sections.push({
+      id: i,
+      title: `${roleName} Section ${i}`,
+      items: items
+    })
+  }
+  
+  return sections
+}
+
+// In-memory storage for answers (in real app would be in database)
+const userAnswers = new Map()
+
+// Initialize with some test data for demonstration
+userAnswers.set('role_2_user_1', {
+  "1": "yes", "2": "no", "3": "yes", "4": "yes", "5": "yes", "6": "yes", "7": "yes", 
+  "11": "yes", "12": "yes", "13": "no", "41": "yes", "42": "yes", "43": "yes", 
+  "44": "yes", "45": "yes", "46": "yes", "47": "no", "48": "yes", "49": "no", 
+  "50": "yes", "52": "yes"
+})
+
+userAnswers.set('role_3_user_1', {
+  "1": "yes", "2": "yes", "5": "no", "7": "no", "11": "no", "13": "yes", "14": "yes", "16": "yes"
+})
+
+// Save answer for role performance item
+router.post('/simple-auth/roles-performance/:roleId/answers', async ({ params, request, response }) => {
+  try {
+    const roleId = parseInt(params.roleId)
+    const { performanceItemId, answer } = request.body()
+    
+    console.log('🔄 Backend: Saving answer:', { roleId, performanceItemId, answer })
+  
+  // Save to in-memory storage
+  const key = `role_${roleId}_user_1` // user_1 is hardcoded for now
+  if (!userAnswers.has(key)) {
+    userAnswers.set(key, {})
+  }
+  const roleAnswers = userAnswers.get(key)
+  roleAnswers[performanceItemId] = answer
+  
+  const result = {
+    success: true,
+    message: 'Answer saved successfully',
+    data: {
+      roleId: roleId,
+      performanceItemId: performanceItemId,
+      answer: answer,
+      savedAt: new Date().toISOString()
+    }
+  }
+  
+    console.log('✅ Backend: Answer saved:', result)
+    console.log('📊 All answers for role:', roleAnswers)
+    return response.json(result)
+  } catch (error) {
+    console.error('💥 Error saving answer:', error)
+    return response.status(500).json({
+      success: false,
+      error: 'Failed to save answer',
+      details: error.message
+    })
+  }
+})
+
+// Quick fix for IDP endpoints
+router.get('/simple-auth/idp/roles', async ({ response }) => {
+  return response.json({
+    data: [
+      { id: 1, label: 'admin', title: 'Administrator', userRole: 'admin', isActive: true }
+    ],
+    message: 'IDP roles retrieved successfully'
+  })
+})
+
+router.get('/simple-auth/idp/role/current', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: {
+      id: 1,
+      label: 'admin',
+      title: 'Administrator',
+      userRole: 'admin',
+      isActive: true,
+      competencies: [
+        {
+          id: 1,
+          roleId: 1,
+          competencyId: 'strategic_mindset',
+          label: 'Strategic Mindset',
+          description: 'Ability to think strategically',
+          sortOrder: 1,
+          isActive: true,
+          questions: [
+            { id: 1, competencyId: 1, questionId: 'q1', question: 'Do you think strategically?', sortOrder: 1, isActive: true }
+          ],
+          actions: [],
+          descriptions: [
+            { id: 1, competencyId: 1, type: 'overview', title: 'Overview', content: 'Strategic thinking overview', sortOrder: 1, isActive: true }
+          ]
+        }
+      ]
+    },
+    message: 'Current role retrieved successfully'
+  })
+})
+
+// Quick fix for IDP role by user role
+router.get('/simple-auth/idp/roles/:userRole', async ({ request, response, params }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  const { userRole } = params
+  
+  return response.json({
+    data: {
+      id: 1,
+      label: userRole,
+      title: 'Administrator',
+      userRole: userRole,
+      isActive: true,
+      competencies: [
+        {
+          id: 1,
+          roleId: 1,
+          competencyId: 'strategic_mindset',
+          label: 'Strategic Mindset',
+          description: 'Ability to think strategically',
+          sortOrder: 1,
+          isActive: true,
+          questions: [
+            { id: 1, competencyId: 1, questionId: 'q1', question: 'Do you think strategically?', sortOrder: 1, isActive: true },
+            { id: 2, competencyId: 1, questionId: 'q2', question: 'Can you plan ahead?', sortOrder: 2, isActive: true }
+          ],
+          actions: [
+            { id: 1, competencyId: 1, actionId: 'a1', action: 'Practice strategic planning', measurement: 'Weekly planning sessions', sortOrder: 1, isActive: true }
+          ],
+          descriptions: [
+            { id: 1, competencyId: 1, type: 'overview', title: 'Overview', content: 'Strategic thinking overview', sortOrder: 1, isActive: true }
+          ]
+        }
+      ]
+    },
+    message: 'Role retrieved successfully'
+  })
+})
+
+router.get('/simple-auth/idp/assessment/current', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: {
+      id: 1,
+      userId: 1,
+      roleId: 1,
+      version: 1,
+      status: 'draft',
+      isActive: true,
+      answers: []
+    },
+    message: 'Assessment retrieved successfully'
+  })
+})
+
+router.post('/simple-auth/idp/assessment/answers', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    message: 'Answers saved successfully'
+  })
+})
+
+// Complete assessment endpoint
+router.post('/simple-auth/idp/assessment/complete', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: {
+      assessment: {
+        id: 1,
+        userId: 1,
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        answers: {}
+      },
+      scores: {
+        strategic_mindset: 4.5,
+        leadership: 4.0,
+        communication: 3.8,
+        problem_solving: 4.2
+      }
+    },
+    message: 'Assessment completed successfully'
+  })
+})
+
+// Reset assessment endpoint
+router.post('/simple-auth/idp/assessment/reset', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: {
+      assessment: {
+        id: 1,
+        userId: 1,
+        status: 'in_progress',
+        completedAt: null,
+        answers: {}
+      },
+      scores: {}
+    },
+    message: 'Assessment reset successfully'
+  })
+})
+
+// Quick fix for restaurants endpoint
+router.get('/simple-auth/restaurants', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: [
+      { id: 1, name: 'Panda Express PX1234', address: '123 Main St', phone: '555-0123', isActive: true },
+      { id: 2, name: 'Panda Express PX5678', address: '456 Oak Ave', phone: '555-0456', isActive: true }
+    ]
+  })
+})
+
+// Quick fix for orders endpoint
+router.get('/simple-auth/orders', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: []
+  })
+})
+
+// Quick fix for menu items endpoint
+router.get('/simple-auth/menu-items', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  return response.json({
+    data: [
+      { id: 1, name: 'Orange Chicken', price: 8.99, category: 'Entree', isActive: true },
+      { id: 2, name: 'Fried Rice', price: 4.99, category: 'Side', isActive: true }
+    ]
+  })
+})
+
 // Web routes
 router.on('/').render('pages/home')
 

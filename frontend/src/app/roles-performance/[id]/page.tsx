@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useRolePerformance, RolesPerformanceUtils } from '@/hooks/useRolesPerformance';
+import { useSWRRolePerformance, RolesPerformanceUtils } from '@/hooks/useSWRRolesPerformance';
 
 function RoleDetailPageContent() {
   const params = useParams();
@@ -27,7 +27,7 @@ function RoleDetailPageContent() {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
 
   const roleId = parseInt(params.id as string);
-  const { role, answers, progress, loading, error, savingAnswer, saveAnswer } = useRolePerformance(roleId);
+  const { role, answers, progress, loading, error, savingAnswer, saveAnswer } = useSWRRolePerformance(roleId);
 
   // Auto-expand sections with unanswered questions when data loads
   useEffect(() => {
