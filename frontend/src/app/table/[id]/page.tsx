@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { apiFetch } from '@/lib/api';
+import { useSWRMenuItems, useSWRTableOrders, useSWRTableCreateOrder } from '@/hooks/useSWRTable';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface MenuItem {
@@ -49,18 +49,22 @@ function TableSectionContent() {
   const tableId = params.id as string;
   const restaurantId = searchParams.get('restaurant_id') || '1';
 
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { menuItems, loading: menuLoading, error: menuError } = useSWRMenuItems(restaurantId);
+  const { orders, loading: ordersLoading, error: ordersError, mutate: mutateOrders } = useSWRTableOrders(restaurantId, tableId);
+  const { createOrder, isCreating, createError } = useSWRTableCreateOrder(() => {
+    console.log('🔄 Order created callback - refreshing orders...');
+    mutateOrders();
+  });
+  
   const [, setSentOrders] = useState<Record<string, boolean>>({});
   const [, setNow] = useState<number>(Date.now());
+
+  const loading = menuLoading || ordersLoading;
+  const error = menuError || ordersError || createError;
 
   const { joinTable, leaveTable, isConnected } = useWebSocket();
 
   useEffect(() => {
-    fetchMenuItems();
-    fetchOrders();
-
     if (isConnected) {
       joinTable(parseInt(tableId));
     }
@@ -68,17 +72,17 @@ function TableSectionContent() {
     return () => {
       leaveTable(parseInt(tableId));
     };
-  }, [tableId, restaurantId, isConnected, joinTable, leaveTable]);
+  }, [tableId, isConnected, joinTable, leaveTable]);
 
   // Fallback polling: refresh orders every 2 seconds only if WebSocket is not connected
   useEffect(() => {
     if (!isConnected) {
       const interval = setInterval(() => {
-        fetchOrders();
+        mutateOrders();
       }, 2000);
       return () => clearInterval(interval);
     }
-  }, [isConnected]);
+  }, [isConnected, mutateOrders]);
 
   // Live tick to update remaining time while any order is cooking
   useEffect(() => {
@@ -89,29 +93,7 @@ function TableSectionContent() {
     return () => clearInterval(id);
   }, [orders]);
 
-  const fetchMenuItems = async () => {
-    try {
-      const data = await apiFetch<{data: MenuItem[]}>(`simple-auth/menu-items?restaurant_id=${restaurantId}`);
-      // Show all menu items for the selected restaurant
-      setMenuItems(data.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching menu items:', error);
-      setMenuItems([]); // Set empty array on error
-      setLoading(false);
-    }
-  };
-
-  const fetchOrders = async () => {
-    try {
-      const data = await apiFetch<{data: Order[]}>(`simple-auth/orders?restaurant_id=${restaurantId}`);
-      setOrders(data.data || []);
-      // Timer management is handled by backend
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      setOrders([]); // Set empty array on error
-    }
-  };
+  // Removed fetchMenuItems and fetchOrders - now handled by SWR
 
   // WebSocket event handlers
   type BackendOrder = {
@@ -161,7 +143,7 @@ function TableSectionContent() {
         if (prev.some((o) => o.id === ord.id)) return prev.map((o) => (o.id === ord.id ? ord : o));
         return [...prev, ord];
       });
-      fetchOrders();
+      mutateOrders();
     }
   };
 
@@ -170,7 +152,7 @@ function TableSectionContent() {
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
       setOrders((prev) => prev.map((order) => (order.id === ord.id ? ord : order)));
-      fetchOrders();
+      mutateOrders();
     }
   };
 
@@ -179,7 +161,7 @@ function TableSectionContent() {
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
       setOrders((prev) => prev.map((order) => (order.id === ord.id ? ord : order)));
-      fetchOrders();
+      mutateOrders();
     }
   };
 
@@ -216,7 +198,7 @@ function TableSectionContent() {
     console.log('⏰ Timer started event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      fetchOrders();
+      mutateOrders();
     }
   };
 
@@ -224,7 +206,7 @@ function TableSectionContent() {
     console.log('⏰ Timer expired event received:', event);
     const ord = normalizeOrder(event.order);
     if (ord.tableSection === parseInt(tableId)) {
-      fetchOrders();
+      mutateOrders();
     }
   };
 
@@ -324,25 +306,36 @@ function TableSectionContent() {
     }
   };
 
-  const createOrder = async (menuItemId: number, batchNumber: number) => {
+  const handleCreateOrder = async (menuItemId: number, batchNumber: number) => {
+    console.log('🔄 Button clicked - Creating order:', { menuItemId, batchNumber, tableId, restaurantId });
+    
     const menuItem = menuItems.find((item) => item.id === menuItemId);
-    if (!menuItem) return;
+    if (!menuItem) {
+      console.error('❌ Menu item not found:', menuItemId);
+      return;
+    }
+    
     const batchSize = getBatchSize(menuItem, batchNumber);
+    console.log('📊 Order details:', { menuItem: menuItem.itemTitle, batchSize, tableSection: tableId });
+    
     try {
-      await apiFetch('simple-auth/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          tableSection: parseInt(tableId),
-          menuItemId: menuItemId,
-          batchSize: batchSize,
-          batchNumber: batchNumber,
-          restaurantId: parseInt(restaurantId),
-        }),
-      });
-      // UI updates via WebSocket
+      const orderData = {
+        tableSection: parseInt(tableId),
+        menuItemId: menuItemId,
+        batchSize: batchSize,
+        restaurantId: parseInt(restaurantId),
+      };
+      
+      console.log('🚀 Sending order data:', orderData);
+      const result = await createOrder(orderData);
+      console.log('✅ Order created successfully:', result);
+      
+      // Force immediate refresh of orders
+      await mutateOrders(); // Wait for refresh to complete
+      console.log('🔄 Orders refreshed after creation');
     } catch (error) {
-      console.error('Error creating order:', error);
-      alert('Error creating order');
+      console.error('❌ Error creating order:', error);
+      alert('Error creating order: ' + error.message);
     }
   };
 
@@ -388,15 +381,14 @@ function TableSectionContent() {
     const table = parseInt(tableId);
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-        const resp = await fetch(`${apiUrl}/api/orders?restaurant_id=${restaurantId}`);
-        const json = await resp.json();
-        const list: BackendOrder[] = Array.isArray(json.data) ? (json.data as BackendOrder[]) : [];
-        const normalized: Order[] = list.map(normalizeOrder);
-        const found = normalized.find(
+        // Use current orders from SWR
+        const found = orders.find(
           (o) => o.tableSection === table && o.menuItemId === menuItemId && o.batchSize === batchSizeCount
         );
         if (found) return found;
+        
+        // Refresh orders and try again
+        mutateOrders();
       } catch {}
       await sleep(250);
     }
@@ -407,19 +399,15 @@ function TableSectionContent() {
     if (!confirm('Are you sure you want to delete ALL orders? This action cannot be undone.')) return;
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-      const response = await fetch(`${apiUrl}/api/orders`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('🗑️ All orders deleted successfully:', result);
-        // Orders will be cleared via WebSocket event
-      } else {
-        alert('Failed to delete all orders');
+      // Delete all orders for this table
+      for (const order of orders) {
+        await apiFetch(`simple-auth/orders/${order.id}`, {
+          method: 'DELETE',
+        });
       }
+      
+      console.log('🗑️ All orders deleted successfully');
+      mutateOrders(); // Refresh orders list
     } catch (error) {
       console.error('Error deleting all orders:', error);
       alert('Error deleting all orders');
@@ -466,12 +454,29 @@ function TableSectionContent() {
                 {[1, 2, 3].map((batchNumber) => {
                   const order = orders.find((o) => o.menuItemId === item.id && o.batchNumber === batchNumber);
                   const isSent = Boolean(order);
+                  
+                  // Debug logging
+                  if (process.env.NODE_ENV === 'development' && item.id === 1 && batchNumber === 1) {
+                    console.log('🔍 Button state debug:', { 
+                      menuItemId: item.id, 
+                      batchNumber, 
+                      existingOrder: order,
+                      isSent,
+                      totalOrders: orders.length,
+                      menuItemsCount: menuItems.length
+                    });
+                  }
 
                   return (
                     <div key={batchNumber} className="flex space-x-2">
                       <Button
                         className="flex-1"
-                        onClick={() => createOrder(item.id, batchNumber)}
+                        onClick={() => {
+                          console.log('🖱️ Batch button clicked:', { itemId: item.id, batchNumber, isSent });
+                          if (!isSent) {
+                            handleCreateOrder(item.id, batchNumber);
+                          }
+                        }}
                         disabled={isSent}
                         variant="outline"
                         size="sm"

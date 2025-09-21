@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import apiClient from '@/lib/axios';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import type { 
   RolePerformance, 
   RolePerformanceWithSections, 

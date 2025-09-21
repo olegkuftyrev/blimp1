@@ -248,6 +248,9 @@ function generateMockSections(roleName: string, itemCount: number) {
 // In-memory storage for answers (in real app would be in database)
 const userAnswers = new Map()
 
+// In-memory storage for orders (in real app would be in database)
+const ordersStorage = new Map()
+
 // Initialize with some test data for demonstration
 userAnswers.set('role_2_user_1', {
   "1": "yes", "2": "no", "3": "yes", "4": "yes", "5": "yes", "6": "yes", "7": "yes", 
@@ -490,23 +493,204 @@ router.get('/simple-auth/orders', async ({ request, response }) => {
     return response.status(401).json({ error: 'No Bearer token provided' })
   }
   
+  const restaurantId = request.qs().restaurant_id
+  console.log('🍽️ Loading orders for restaurant:', restaurantId)
+  
+  // Get orders from in-memory storage + some initial mock data
+  const storageKey = `orders_restaurant_${restaurantId || 'all'}`
+  let allOrders = ordersStorage.get(storageKey) || []
+  
+  // Add some initial mock data if storage is empty
+  if (allOrders.length === 0) {
+    const initialOrders = [
+      { id: 1, restaurantId: 1, tableSection: 1, status: 'preparing', batchSize: 2, timerStart: new Date(Date.now() - 15 * 60000).toISOString(), menuItem: { itemTitle: 'Orange Chicken' }, menuItemId: 1 },
+      { id: 2, restaurantId: 1, tableSection: 3, status: 'ready', batchSize: 1, timerEnd: new Date(Date.now() - 5 * 60000).toISOString(), menuItem: { itemTitle: 'Beef Broccoli' }, menuItemId: 2 },
+      { id: 3, restaurantId: 1, tableSection: 2, status: 'pending', batchSize: 3, menuItem: { itemTitle: 'Fried Rice' }, menuItemId: 3 },
+      { id: 4, restaurantId: 2, tableSection: 4, status: 'preparing', batchSize: 1, timerStart: new Date(Date.now() - 8 * 60000).toISOString(), menuItem: { itemTitle: 'Sweet & Sour Pork' }, menuItemId: 5 },
+      { id: 5, restaurantId: 2, tableSection: 1, status: 'pending', batchSize: 2, menuItem: { itemTitle: 'Chow Mein' }, menuItemId: 6 }
+    ]
+    ordersStorage.set(storageKey, initialOrders)
+    allOrders = initialOrders
+  }
+  
+  // Filter by restaurant if provided
+  const filteredOrders = restaurantId 
+    ? allOrders.filter(order => order.restaurantId === parseInt(restaurantId))
+    : allOrders
+  
   return response.json({
-    data: []
+    data: filteredOrders
   })
 })
 
-// Quick fix for menu items endpoint
-router.get('/simple-auth/menu-items', async ({ request, response }) => {
+// Create new order endpoint
+router.post('/simple-auth/orders', async ({ request, response }) => {
   const authHeader = request.header('authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return response.status(401).json({ error: 'No Bearer token provided' })
   }
   
+  const { restaurantId, tableSection, menuItemId, batchSize } = request.body()
+  console.log('🍽️ Creating new order:', { restaurantId, tableSection, menuItemId, batchSize })
+  
+  // Generate new order ID
+  const newOrderId = Date.now()
+  
+  const newOrder = {
+    id: newOrderId,
+    restaurantId: parseInt(restaurantId),
+    tableSection: parseInt(tableSection),
+    status: 'pending',
+    batchSize: parseInt(batchSize),
+    batchNumber: 1, // Default to batch 1, should be calculated properly
+    menuItemId: parseInt(menuItemId),
+    menuItem: {
+      id: parseInt(menuItemId),
+      itemTitle: `Menu Item ${menuItemId}`, // Mock menu item title
+      batchBreakfast: 1,
+      batchLunch: 2,
+      batchDowntime: 1,
+      batchDinner: 2,
+      cookingTimeBatch1: 8,
+      cookingTimeBatch2: 10,
+      cookingTimeBatch3: 12,
+      status: 'available'
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  
+  // Save to in-memory storage
+  const storageKey = `orders_restaurant_${restaurantId}`
+  const existingOrders = ordersStorage.get(storageKey) || []
+  existingOrders.push(newOrder)
+  ordersStorage.set(storageKey, existingOrders)
+  
+  console.log('✅ Order created and saved:', newOrder)
+  console.log('📊 Total orders for restaurant:', existingOrders.length)
+  
   return response.json({
-    data: [
-      { id: 1, name: 'Orange Chicken', price: 8.99, category: 'Entree', isActive: true },
-      { id: 2, name: 'Fried Rice', price: 4.99, category: 'Side', isActive: true }
-    ]
+    success: true,
+    data: newOrder,
+    message: 'Order created successfully'
+  })
+})
+
+// Menu items endpoint - use real controller
+router.get('/simple-auth/menu-items', '#controllers/menu_item_controller.index')
+
+// BOH endpoints for order management
+router.post('/simple-auth/orders/:id/start-timer', async ({ request, response, params }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  const orderId = parseInt(params.id)
+  const { cookingTime } = request.body()
+  
+  console.log('⏰ Starting timer for order:', { orderId, cookingTime })
+  
+  // Update order in storage
+  const allStorageKeys = Array.from(ordersStorage.keys())
+  let orderFound = false
+  
+  for (const key of allStorageKeys) {
+    const orders = ordersStorage.get(key) || []
+    const orderIndex = orders.findIndex(o => o.id === orderId)
+    
+    if (orderIndex !== -1) {
+      orders[orderIndex] = {
+        ...orders[orderIndex],
+        status: 'cooking',
+        timerStart: new Date().toISOString(),
+        timerEnd: new Date(Date.now() + cookingTime * 60000).toISOString()
+      }
+      ordersStorage.set(key, orders)
+      orderFound = true
+      console.log('✅ Order updated in storage:', orders[orderIndex])
+      break
+    }
+  }
+  
+  if (!orderFound) {
+    console.log('⚠️ Order not found in storage:', orderId)
+  }
+  
+  return response.json({
+    success: true,
+    data: {
+      orderId: orderId,
+      timerStart: new Date().toISOString(),
+      timerEnd: new Date(Date.now() + cookingTime * 60000).toISOString(),
+      status: 'cooking'
+    },
+    message: 'Timer started successfully'
+  })
+})
+
+router.post('/simple-auth/orders/:id/complete', async ({ request, response, params }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  const orderId = parseInt(params.id)
+  
+  console.log('✅ Completing order:', orderId)
+  
+  return response.json({
+    success: true,
+    data: {
+      orderId: orderId,
+      status: 'ready',
+      completedAt: new Date().toISOString()
+    },
+    message: 'Order completed successfully'
+  })
+})
+
+router.delete('/simple-auth/orders/:id', async ({ request, response, params }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  const orderId = parseInt(params.id)
+  
+  console.log('🗑️ Deleting order:', orderId)
+  
+  return response.json({
+    success: true,
+    data: {
+      orderId: orderId,
+      deletedAt: new Date().toISOString()
+    },
+    message: 'Order deleted successfully'
+  })
+})
+
+// BOH history endpoint
+router.get('/simple-auth/orders-history', async ({ request, response }) => {
+  const authHeader = request.header('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'No Bearer token provided' })
+  }
+  
+  const restaurantId = request.qs().restaurant_id
+  
+  // Mock historical orders
+  const historyOrders = [
+    { id: 101, restaurantId: 1, tableSection: 1, status: 'completed', menuItem: { itemTitle: 'Orange Chicken' }, batchSize: 2, duration: 8, completedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { id: 102, restaurantId: 2, tableSection: 3, status: 'completed', menuItem: { itemTitle: 'Sweet & Sour Pork' }, batchSize: 1, duration: 12, completedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() }
+  ]
+  
+  const filteredHistory = restaurantId 
+    ? historyOrders.filter(order => order.restaurantId === parseInt(restaurantId))
+    : historyOrders
+  
+  return response.json({
+    data: filteredHistory
   })
 })
 

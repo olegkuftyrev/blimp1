@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 interface Restaurant {
   id: number;
@@ -20,35 +20,17 @@ interface Restaurant {
 
 function KitchenModuleContent() {
   const { user } = useAuth();
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { restaurants, loading, error } = useSWRRestaurants();
 
   useEffect(() => {
-    fetchRestaurants();
-  }, []);
-
-  const fetchRestaurants = async () => {
-    try {
-      setLoading(true);
-      const response = await apiFetch<{data: Restaurant[]}>('simple-auth/restaurants');
-      const restaurantList = response.data || [];
-      setRestaurants(restaurantList);
-
-      // If user has access to only one restaurant, auto-redirect to kitchen dashboard
-      if (restaurantList.length === 1) {
-        // Small delay to show the page briefly, then redirect
-        setTimeout(() => {
-          window.location.href = `/kitchen/${restaurantList[0].id}`;
-        }, 1000);
-      }
-    } catch (err: any) {
-      console.error('Error fetching restaurants:', err);
-      setError('Failed to load restaurants');
-    } finally {
-      setLoading(false);
+    // If user has access to only one restaurant, auto-redirect to kitchen dashboard
+    if (restaurants.length === 1 && !loading) {
+      // Small delay to show the page briefly, then redirect
+      setTimeout(() => {
+        window.location.href = `/kitchen/${restaurants[0].id}`;
+      }, 1000);
     }
-  };
+  }, [restaurants, loading]);
 
   if (loading) {
     return (

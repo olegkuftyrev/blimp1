@@ -19,7 +19,7 @@ import {
   Circle,
   Lock
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { useSWRRolesPerformance, RolesPerformanceUtils } from '@/hooks/useSWRRolesPerformance';

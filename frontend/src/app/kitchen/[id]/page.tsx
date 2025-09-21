@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSWRRestaurants, useSWROrders, findRestaurantById } from '@/hooks/useSWRKitchen';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 interface Restaurant {
   id: number;
@@ -36,46 +36,12 @@ function RestaurantKitchenContent() {
   const { user } = useAuth();
   const restaurantId = params.id as string;
   
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (restaurantId) {
-      fetchRestaurantData();
-      fetchOrders();
-    }
-  }, [restaurantId]);
-
-  const fetchRestaurantData = async () => {
-    try {
-      const response = await apiFetch<{data: Restaurant[]}>('simple-auth/restaurants');
-      const restaurants = response.data || [];
-      const currentRestaurant = restaurants.find(r => r.id === parseInt(restaurantId));
-      
-      if (currentRestaurant) {
-        setRestaurant(currentRestaurant);
-      } else {
-        setError('Restaurant not found or access denied');
-      }
-    } catch (err: any) {
-      console.error('Error fetching restaurant:', err);
-      setError('Failed to load restaurant information');
-    }
-  };
-
-  const fetchOrders = async () => {
-    try {
-      const response = await apiFetch<{data: Order[]}>(`simple-auth/orders?restaurant_id=${restaurantId}`);
-      setOrders(response.data || []);
-    } catch (err: any) {
-      console.error('Error fetching orders:', err);
-      // Don't set error for orders, just keep empty array
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
+  const { orders, loading: ordersLoading, error: ordersError } = useSWROrders(restaurantId);
+  
+  const restaurant = findRestaurantById(restaurants, restaurantId);
+  const loading = restaurantsLoading || ordersLoading;
+  const error = ordersError;
 
   if (loading) {
     return (

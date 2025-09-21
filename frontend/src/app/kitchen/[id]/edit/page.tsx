@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSWRRestaurants, useSWRUpdateRestaurant, findRestaurantById } from '@/hooks/useSWRKitchen';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 interface Restaurant {
   id: number;
@@ -27,26 +27,34 @@ function EditRestaurantContent() {
   const { user } = useAuth();
   const restaurantId = params.id as string;
   
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
+  const { updateRestaurant, isUpdating, updateError } = useSWRUpdateRestaurant(restaurantId);
+  
+  const restaurant = findRestaurantById(restaurants, restaurantId);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     phone: '',
     isActive: true
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const loading = restaurantsLoading;
+  const saving = isUpdating;
+  const error = updateError;
   const [success, setSuccess] = useState(false);
 
   // Check if user has permission to edit restaurants
   const canEditRestaurant = user?.role && ['admin', 'ops_lead', 'black_shirt'].includes(user.role);
 
   useEffect(() => {
-    if (restaurantId) {
-      fetchRestaurant();
+    if (restaurant) {
+      setFormData({
+        name: restaurant.name,
+        address: restaurant.address,
+        phone: restaurant.phone,
+        isActive: restaurant.isActive
+      });
     }
-  }, [restaurantId]);
+  }, [restaurant]);
 
   useEffect(() => {
     if (!canEditRestaurant) {
@@ -54,31 +62,7 @@ function EditRestaurantContent() {
     }
   }, [canEditRestaurant]);
 
-  const fetchRestaurant = async () => {
-    try {
-      setLoading(true);
-      const response = await apiFetch<{data: Restaurant[]}>('simple-auth/restaurants');
-      const restaurants = response.data || [];
-      const currentRestaurant = restaurants.find(r => r.id === parseInt(restaurantId));
-      
-      if (currentRestaurant) {
-        setRestaurant(currentRestaurant);
-        setFormData({
-          name: currentRestaurant.name,
-          address: currentRestaurant.address,
-          phone: currentRestaurant.phone,
-          isActive: currentRestaurant.isActive
-        });
-      } else {
-        setError('Restaurant not found or access denied');
-      }
-    } catch (err: any) {
-      console.error('Error fetching restaurant:', err);
-      setError('Failed to load restaurant information');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed fetchRestaurant - now handled by SWR and useEffect
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
@@ -110,7 +94,6 @@ function EditRestaurantContent() {
     }
 
     try {
-      setSaving(true);
       setError(null);
 
       const updateData = {
@@ -120,20 +103,8 @@ function EditRestaurantContent() {
         isActive: formData.isActive
       };
 
-      await apiFetch(`simple-auth/restaurants/${restaurantId}`, {
-        method: 'PUT',
-        body: JSON.stringify(updateData)
-      });
-
+      await updateRestaurant(updateData);
       setSuccess(true);
-      
-      // Update local restaurant data
-      if (restaurant) {
-        setRestaurant({
-          ...restaurant,
-          ...updateData
-        });
-      }
 
       // Redirect back to kitchen dashboard after short delay
       setTimeout(() => {
@@ -147,8 +118,6 @@ function EditRestaurantContent() {
       } else {
         setError(err.message || 'Failed to update restaurant');
       }
-    } finally {
-      setSaving(false);
     }
   };
 

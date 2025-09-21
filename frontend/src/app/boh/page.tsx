@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import { useSound } from '@/hooks/useSound';
-import { getApiUrl, apiFetch } from '@/lib/api';
+import { useSWROrders } from '@/hooks/useSWRKitchen';
+import { apiFetch } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,15 +46,12 @@ function BOHPageContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id') || '1';
   
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders, loading, error, mutate: mutateOrders } = useSWROrders(restaurantId);
   const [, setNow] = useState<number>(Date.now());
   const { joinKitchen, leaveKitchen, isConnected } = useWebSocket();
   const { playTimerBeepSequence, playTimerBeep } = useSound();
 
   useEffect(() => {
-    fetchOrders();
-    
     // Join kitchen room when component mounts
     if (isConnected) {
       joinKitchen();
@@ -63,13 +61,13 @@ function BOHPageContent() {
     return () => {
       leaveKitchen();
     };
-  }, [restaurantId, isConnected, joinKitchen, leaveKitchen]);
+  }, [isConnected, joinKitchen, leaveKitchen]);
 
   // Fallback polling: refresh orders every 2 seconds only if WebSocket is not connected
   useEffect(() => {
     if (!isConnected) {
       const interval = setInterval(() => {
-        fetchOrders();
+        mutateOrders();
       }, 2000);
       return () => clearInterval(interval);
     }
@@ -84,16 +82,7 @@ function BOHPageContent() {
     return () => clearInterval(id);
   }, [orders]);
 
-  const fetchOrders = async () => {
-    try {
-      const data = await apiFetch<{data: Order[]}>(`simple-auth/orders?restaurant_id=${restaurantId}`);
-      setOrders(data.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      setLoading(false);
-    }
-  };
+  // Removed fetchOrders - now handled by SWR
 
   // WebSocket event handlers
   type OrderEventT = { order: BackendOrder };
@@ -259,28 +248,42 @@ function BOHPageContent() {
 
   const startTimer = async (orderId: number) => {
     try {
+      console.log('⏰ Starting timer for order:', orderId);
+      
       const order = orders.find(o => o.id === orderId);
-      if (!order) return;
+      if (!order) {
+        console.error('❌ Order not found:', orderId);
+        alert('Order not found');
+        return;
+      }
 
       const cookingTimeMinutes = getCookingTime(order);
+      console.log('📊 Timer details:', { orderId, order: order.menuItem?.itemTitle, cookingTimeMinutes });
       
-      await apiFetch(`simple-auth/orders/${orderId}/start-timer`, {
+      const response = await apiFetch(`simple-auth/orders/${orderId}/start-timer`, {
         method: 'POST',
         body: JSON.stringify({
           cookingTime: cookingTimeMinutes
         }),
       });
+      
+      console.log('✅ Timer started successfully:', response);
+      
+      // Refresh orders to show updated status
+      mutateOrders();
     } catch (error) {
-      console.error('Error starting timer:', error);
-      alert('Error starting timer');
+      console.error('❌ Error starting timer:', error);
+      alert('Error starting timer: ' + error.message);
     }
   };
 
   const completeOrder = async (orderId: number) => {
     try {
+      console.log('✅ Completing order:', orderId);
       await apiFetch(`simple-auth/orders/${orderId}/complete`, {
         method: 'POST',
       });
+      mutateOrders(); // Refresh orders after completion
     } catch (error) {
       console.error('Error completing order:', error);
       alert('Error completing order');
@@ -289,10 +292,12 @@ function BOHPageContent() {
 
   const deleteOrder = async (orderId: number) => {
     try {
+      console.log('🗑️ Deleting order:', orderId);
       await apiFetch(`simple-auth/orders/${orderId}`, { method: 'DELETE' });
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      mutateOrders(); // Refresh orders after deletion
     } catch (error) {
       console.error('Error deleting order:', error);
+      alert('Error deleting order');
     }
   };
 

@@ -18,7 +18,7 @@ import {
   BookOpen
 } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 interface ModuleCard {
   id: string;

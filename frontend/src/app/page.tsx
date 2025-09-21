@@ -5,7 +5,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/contexts/AuthContext"
+import { useAuth } from "@/contexts/AuthContextSWR"
 
 export default function LandingPage() {
   const router = useRouter()

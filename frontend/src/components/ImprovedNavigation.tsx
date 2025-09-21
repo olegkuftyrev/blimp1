@@ -25,7 +25,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import { InlineThemeToggle } from '@/components/ui/theme-toggle';
 import {
   NavigationMenu,

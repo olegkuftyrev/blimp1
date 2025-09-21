@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProviderSWR as AuthProvider } from "@/contexts/AuthContextSWR";
 import { Provider } from "@/components/ui/provider";
 import Navigation from "@/components/ImprovedNavigation";
 import AppBreadcrumb from "@/components/AppBreadcrumb";
