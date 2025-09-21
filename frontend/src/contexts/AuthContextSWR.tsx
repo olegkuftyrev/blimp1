@@ -55,7 +55,7 @@ export function AuthProviderSWR({ children }: { children: React.ReactNode }) {
     
     // Clear SWR cache for auth-related data
     mutate(
-      key => typeof key === 'string' && key.includes('/simple-auth/'),
+      key => typeof key === 'string' && key.includes('//'),
       undefined,
       { revalidate: false }
     );

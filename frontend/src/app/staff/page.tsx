@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 interface User {
   id: number;
@@ -150,9 +150,9 @@ function StaffManagementContent() {
       const testData = await apiFetch<{message: string}>('users/test');
       console.log('Test endpoint:', testData);
       
-      // Try simple-auth/me first
+      // Try /me first
       try {
-        const simpleAuthData = await apiFetch<{user: any}>('simple-auth/me');
+        const simpleAuthData = await apiFetch<{user: any}>('/me');
         console.log('Simple auth user:', simpleAuthData.user);
       } catch (error) {
         console.error('Simple auth failed:', error);
@@ -186,7 +186,7 @@ function StaffManagementContent() {
 
   const fetchRestaurants = async () => {
     try {
-      const data = await apiFetch<{data: Restaurant[]}>('simple-auth/restaurants');
+      const data = await apiFetch<{data: Restaurant[]}>('/restaurants');
       setRestaurants(data.data || []);
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);

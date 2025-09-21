@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Target, TrendingUp, User, Award, AlertTriangle, Play, RotateCcw, Eye, Trash2, Edit, BarChart3 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useIDP';
 import { StatsCard } from '@/components/idp/StatsCard';
 import { CompetencyCard } from '@/components/idp/CompetencyCard';

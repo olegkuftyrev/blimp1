@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Target, Play } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import { IDPAPI, IDPAssessment, IDPRole } from '@/lib/api';
 import { IDPDevelopmentPlanTable } from '@/components/idp/IDPDevelopmentPlanTable';
 import Link from 'next/link';

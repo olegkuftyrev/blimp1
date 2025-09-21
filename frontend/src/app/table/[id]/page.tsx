@@ -341,7 +341,7 @@ function TableSectionContent() {
 
   const deleteOrder = async (orderId: number, menuItemId: number, batchNumber: number) => {
     try {
-      await apiFetch(`simple-auth/orders/${orderId}`, {
+      await apiFetch(`/orders/${orderId}`, {
         method: 'DELETE',
       });
 
@@ -401,7 +401,7 @@ function TableSectionContent() {
     try {
       // Delete all orders for this table
       for (const order of orders) {
-        await apiFetch(`simple-auth/orders/${order.id}`, {
+        await apiFetch(`/orders/${order.id}`, {
           method: 'DELETE',
         });
       }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RolesPerformanceAPI, type RolePerformance, type RolePerformanceWithSections, type UserPerformanceAnswer, type RoleProgress, type OverallProgress } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 // Hook for managing roles performance data
 export function useRolesPerformance() {

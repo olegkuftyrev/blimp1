@@ -45,7 +45,6 @@ router.get('/users/debug', '#controllers/users_controller.debug')
 router
   .group(() => {
     router.get('/', '#controllers/users_controller.index')
-    router.get('/team', '#controllers/users_controller.team')
     router.get('/:id', '#controllers/users_controller.show')
     router.put('/:id', '#controllers/users_controller.update')
     router.delete('/:id', '#controllers/users_controller.destroy')
@@ -183,4 +182,3 @@ router.get('/debug/manual-auth', async ({ request, response }) => {
     message: 'Manual auth test endpoint'
   })
 })
-

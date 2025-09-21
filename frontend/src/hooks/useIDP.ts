@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { IDPAPI, IDPRole, IDPAssessment, IDPCompetencyScores } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 
 // Hook for managing current IDP assessment
 export function useIDPAssessment() {

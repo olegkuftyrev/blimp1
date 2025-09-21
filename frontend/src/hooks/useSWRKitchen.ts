@@ -51,7 +51,7 @@ export function useSWRRestaurants() {
     isLoading: loading,
     mutate
   } = useSWR(
-    user ? '/simple-auth/restaurants' : null,
+    user ? '//restaurants' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -91,7 +91,7 @@ export function useSWROrders(restaurantId: string | number | null) {
     isLoading: loading,
     mutate
   } = useSWR(
-    user && restaurantId ? `/simple-auth/orders?restaurant_id=${restaurantId}` : null,
+    user && restaurantId ? `//orders?restaurant_id=${restaurantId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -130,7 +130,7 @@ export function useSWRUpdateRestaurant(restaurantId: string | number | null) {
     isMutating: isUpdating,
     error: updateError
   } = useSWRMutation(
-    restaurantId ? `/simple-auth/restaurants/${restaurantId}` : null,
+    restaurantId ? `//restaurants/${restaurantId}` : null,
     updateRestaurantMutation,
     {
       onSuccess: (data) => {
@@ -158,7 +158,7 @@ export function useSWRCreateOrder() {
     isMutating: isCreating,
     error: createError
   } = useSWRMutation(
-    '/simple-auth/orders',
+    '//orders',
     createOrderMutation,
     {
       onSuccess: (data) => {

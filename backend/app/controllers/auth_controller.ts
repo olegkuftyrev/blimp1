@@ -100,19 +100,18 @@ export default class AuthController {
       
       console.log('User found:', user.id, user.email)
       
-      // Verify password
+      // Verify password using hash service
       let isValid = false
       try {
-        isValid = await hash.use('scrypt').verify(user.password, password)
+        isValid = await hash.verify(user.password, password)
         console.log('Password verification result:', isValid)
       } catch (hashError) {
-        console.log('Hash verification error:', hashError)
-      }
-      
-      // For admin user, also try simple comparison as fallback
-      if (!isValid && user.email === 'admin@example.com' && password === 'pA55w0rd!') {
-        isValid = true
-        console.log('Admin fallback authentication successful')
+        console.log('Password verification error:', hashError)
+        // If verification fails, try direct comparison for legacy admin
+        if (user.email === 'admin@example.com' && password === 'pA55w0rd!') {
+          isValid = true
+          console.log('Legacy admin authentication successful')
+        }
       }
       
       if (!isValid) {
@@ -120,18 +119,20 @@ export default class AuthController {
         return response.unauthorized({ error: 'Invalid credentials' })
       }
 
-      // Create access token
-      const tokenResult = await User.accessTokens.create(user, ['*'], { name: 'API Token' })
-      console.log('Token created successfully:', tokenResult.type, tokenResult.name)
+      // Create access token using AdonisJS auth system
+      const token = await User.accessTokens.create(user)
+      
+      console.log('Token created successfully for user:', user.id)
       
       return response.ok({ 
         user: { 
           id: user.id, 
           email: user.email, 
+          fullName: user.fullName,
           role: user.role, 
           job_title: user.jobTitle 
         }, 
-        token: tokenResult.value 
+        token: token.value!.release()
       })
     } catch (error: any) {
       console.error('Login error:', error)
@@ -142,22 +143,27 @@ export default class AuthController {
   async logout({ auth, response }: HttpContext) {
     try {
       await auth.authenticate()
-      const user = auth.user!
-      await db.from('auth_access_tokens').where('tokenable_id', user.id).delete()
+      
+      // Invalidate current token using Access Tokens API
+      await auth.use('api').invalidateToken()
+      
+      console.log('User logged out successfully:', auth.user?.id)
       return response.noContent()
-    } catch {
-      return response.noContent()
+    } catch (error) {
+      console.log('Logout error:', error)
+      return response.noContent() // Always return success for logout
     }
   }
 
-  async me({ auth, response, request }: HttpContext) {
+  async me({ auth, response }: HttpContext) {
     try {
-      console.log('Attempting to authenticate...')
-      console.log('Authorization header:', request.header('authorization'))
+      // Authenticate user using the API guard
       await auth.authenticate()
-      console.log('Authentication successful')
+      
       const user = auth.user!
-      console.log('User found:', user.id, user.email)
+      console.log('User authenticated successfully:', user.id, user.email)
+      
+      // Get user restaurant memberships
       const memberships = await UserRestaurant.query().where('user_id', user.id)
       const restaurantIds = memberships.map((m) => m.restaurantId)
 
@@ -167,13 +173,16 @@ export default class AuthController {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
-          job_title: (user as any).jobTitle,
+          job_title: user.jobTitle,
         },
         restaurant_ids: restaurantIds,
       })
-    } catch (e) {
-      console.error('Auth error in me:', e)
-      return response.status(401).json({ error: 'Unauthorized' })
+    } catch (error) {
+      console.error('Authentication error in me endpoint:', error)
+      return response.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      })
     }
   }
 
@@ -184,6 +193,7 @@ export default class AuthController {
       
       const fullName = request.input('fullName')
       const jobTitle = request.input('jobTitle')
+      const email = request.input('email')
 
       // Update user profile
       if (fullName !== undefined) {
@@ -191,7 +201,26 @@ export default class AuthController {
       }
       
       if (jobTitle !== undefined) {
-        (user as any).jobTitle = jobTitle
+        user.jobTitle = jobTitle as any
+      }
+
+      // Update email (only for admin users)
+      if (email !== undefined) {
+        if (user.role !== 'admin') {
+          return response.status(403).json({ error: 'Only admin users can change email' })
+        }
+        
+        // Check if email is already in use
+        const existingUser = await User.query()
+          .where('email', email)
+          .andWhereNot('id', user.id)
+          .first()
+        
+        if (existingUser) {
+          return response.status(400).json({ error: 'Email already in use' })
+        }
+        
+        user.email = email
       }
 
       await user.save()
@@ -202,12 +231,15 @@ export default class AuthController {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
-          job_title: (user as any).jobTitle,
+          job_title: user.jobTitle,
         },
       })
-    } catch (e) {
-      console.error('Update profile error:', e)
-      return response.status(401).json({ error: 'Unauthorized' })
+    } catch (error) {
+      console.error('Update profile error:', error)
+      return response.status(500).json({ 
+        error: 'Update failed',
+        message: error.message
+      })
     }
   }
 

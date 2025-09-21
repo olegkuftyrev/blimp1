@@ -43,7 +43,7 @@ export function useSWRCurrentUser() {
     // Use a function to avoid hydration mismatch
     () => {
       if (typeof window === 'undefined') return null;
-      return window.localStorage.getItem('auth_token') ? '/simple-auth/me' : null;
+      return window.localStorage.getItem('auth_token') ? '/auth/me' : null;
     },
     fetcher,
     {
@@ -87,7 +87,7 @@ export function useSWRLogin() {
     isMutating: isLogging,
     error: loginError
   } = useSWRMutation(
-    '/simple-auth/login',
+    '/auth/sign-in',
     loginMutation,
     {
       onSuccess: (data: LoginResponse) => {

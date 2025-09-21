@@ -33,7 +33,7 @@ export function useSWRRolesPerformance() {
     isLoading: rolesLoading,
     mutate: mutateRoles
   } = useSWR(
-    user ? '/simple-auth/roles-performance' : null,
+    user ? '/roles-performance' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -64,7 +64,7 @@ export function useSWRRolesPerformance() {
     isLoading: progressLoading,
     mutate: mutateProgress
   } = useSWR(
-    user ? '/simple-auth/roles-performance/progress/overall' : null,
+    user ? '/roles-performance/progress/overall' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -117,7 +117,7 @@ export function useSWRRolePerformance(roleId: number) {
     isLoading: roleLoading,
     mutate: mutateRole
   } = useSWR(
-    user && roleId ? `/simple-auth/roles-performance/${roleId}` : null,
+    user && roleId ? `/roles-performance/${roleId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -133,7 +133,7 @@ export function useSWRRolePerformance(roleId: number) {
     isLoading: answersLoading,
     mutate: mutateAnswers
   } = useSWR(
-    user && roleId ? `/simple-auth/roles-performance/${roleId}/answers` : null,
+    user && roleId ? `/roles-performance/${roleId}/answers` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -149,7 +149,7 @@ export function useSWRRolePerformance(roleId: number) {
     isLoading: progressLoading,
     mutate: mutateProgress
   } = useSWR(
-    user && roleId ? `/simple-auth/roles-performance/${roleId}/progress` : null,
+    user && roleId ? `/roles-performance/${roleId}/progress` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -164,7 +164,7 @@ export function useSWRRolePerformance(roleId: number) {
     isMutating: isSavingAnswer,
     error: saveError
   } = useSWRMutation(
-    roleId ? `/simple-auth/roles-performance/${roleId}/answers` : null,
+    roleId ? `/roles-performance/${roleId}/answers` : null,
     saveAnswerMutation,
     {
       onSuccess: (data) => {

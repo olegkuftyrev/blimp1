@@ -260,7 +260,7 @@ function BOHPageContent() {
       const cookingTimeMinutes = getCookingTime(order);
       console.log('📊 Timer details:', { orderId, order: order.menuItem?.itemTitle, cookingTimeMinutes });
       
-      const response = await apiFetch(`simple-auth/orders/${orderId}/start-timer`, {
+      const response = await apiFetch(`/orders/${orderId}/start-timer`, {
         method: 'POST',
         body: JSON.stringify({
           cookingTime: cookingTimeMinutes
@@ -280,7 +280,7 @@ function BOHPageContent() {
   const completeOrder = async (orderId: number) => {
     try {
       console.log('✅ Completing order:', orderId);
-      await apiFetch(`simple-auth/orders/${orderId}/complete`, {
+      await apiFetch(`/orders/${orderId}/complete`, {
         method: 'POST',
       });
       mutateOrders(); // Refresh orders after completion
@@ -293,7 +293,7 @@ function BOHPageContent() {
   const deleteOrder = async (orderId: number) => {
     try {
       console.log('🗑️ Deleting order:', orderId);
-      await apiFetch(`simple-auth/orders/${orderId}`, { method: 'DELETE' });
+      await apiFetch(`/orders/${orderId}`, { method: 'DELETE' });
       mutateOrders(); // Refresh orders after deletion
     } catch (error) {
       console.error('Error deleting order:', error);

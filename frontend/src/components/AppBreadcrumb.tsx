@@ -60,8 +60,8 @@ export default function AppBreadcrumb({ customItems, className = "" }: AppBreadc
     const fetchData = async () => {
       try {
         const [restaurantsResponse, rolesResponse] = await Promise.all([
-          apiFetch<{data: any[]}>('simple-auth/restaurants'),
-          apiFetch<{data: any[]}>('simple-auth/roles-performance')
+          apiFetch<{data: any[]}>('/restaurants'),
+          apiFetch<{data: any[]}>('/roles-performance')
         ]);
         setRestaurants(restaurantsResponse.data || []);
         setRoles(rolesResponse.data || []);

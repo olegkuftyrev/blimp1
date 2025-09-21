@@ -38,7 +38,7 @@ function BohHistoryPageContent() {
   const fetchOrderHistory = async () => {
     try {
       setLoading(true);
-      const data = await apiFetch<{data: OrderHistory[]}>(`simple-auth/orders-history?restaurant_id=${restaurantId}`);
+      const data = await apiFetch<{data: OrderHistory[]}>(`/orders-history?restaurant_id=${restaurantId}`);
       setOrders(data.data || []);
     } catch (error) {
       console.error('Error fetching order history:', error);

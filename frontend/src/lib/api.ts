@@ -230,14 +230,14 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
 
 export const AuthAPI = {
   signIn: (email: string, password: string) =>
-    apiFetch<{ user: AuthUser; token: string }>('simple-auth/login', {
+    apiFetch<{ user: AuthUser; token: string }>('auth/sign-in', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
   logout: () => apiFetch<void>('auth/logout', { method: 'POST' }),
-  me: () => apiFetch<{ user: AuthUser; restaurant_ids: number[] }>('simple-auth/me'),
+  me: () => apiFetch<{ user: AuthUser; restaurant_ids: number[] }>('auth/me'),
   updateProfile: (data: { fullName?: string; jobTitle?: string; email?: string }) =>
-    apiFetch<{ user: AuthUser }>('simple-auth/profile', {
+    apiFetch<{ user: AuthUser }>('auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -258,40 +258,40 @@ export const AuthAPI = {
 export const IDPAPI = {
   // Get all available roles
   getRoles: () =>
-    apiFetch<{ data: IDPRole[]; message: string }>('simple-auth/idp/roles'),
+    apiFetch<{ data: IDPRole[]; message: string }>('idp/roles'),
 
   // Get role by user role with competencies, questions, actions, and descriptions
   getRoleByUserRole: (userRole: string) =>
-    apiFetch<{ data: IDPRole; message: string }>(`simple-auth/idp/roles/${userRole}`),
+    apiFetch<{ data: IDPRole; message: string }>(`idp/roles/${userRole}`),
 
   // Get current user's role (automatically uses their role)
   getCurrentUserRole: () =>
-    apiFetch<{ data: IDPRole; message: string }>('simple-auth/idp/role/current'),
+    apiFetch<{ data: IDPRole; message: string }>('idp/role/current'),
 
   // Get current user's active assessment or create new one
   getCurrentAssessment: () =>
-    apiFetch<{ data: IDPAssessment; message: string }>('simple-auth/idp/assessment/current'),
+    apiFetch<{ data: IDPAssessment; message: string }>('idp/assessment/current'),
 
   // Get a specific user's assessment (with permission check)
   getUserAssessment: (userId: number) =>
-    apiFetch<{ data: { user: AuthUser; assessment: IDPAssessment | null; scores?: IDPCompetencyScores }; message: string }>(`simple-auth/idp/assessment/user/${userId}`),
+    apiFetch<{ data: { user: AuthUser; assessment: IDPAssessment | null; scores?: IDPCompetencyScores }; message: string }>(`idp/assessment/user/${userId}`),
 
   // Save assessment answers
   saveAnswers: (answers: { [questionId: number]: 'yes' | 'no' }) =>
-    apiFetch<{ message: string }>('simple-auth/idp/assessment/answers', {
+    apiFetch<{ message: string }>('idp/assessment/answers', {
       method: 'POST',
       body: JSON.stringify({ answers }),
     }),
 
   // Complete assessment and get results
   completeAssessment: () =>
-    apiFetch<{ data: { assessment: IDPAssessment; scores: IDPCompetencyScores }; message: string }>('simple-auth/idp/assessment/complete', {
+    apiFetch<{ data: { assessment: IDPAssessment; scores: IDPCompetencyScores }; message: string }>('idp/assessment/complete', {
       method: 'POST',
     }),
 
   // Reset assessment (delete current assessment and all answers)
   resetAssessment: () =>
-    apiFetch<{ message: string }>('simple-auth/idp/assessment/reset', {
+    apiFetch<{ message: string }>('idp/assessment/reset', {
       method: 'POST',
     }),
 
@@ -303,28 +303,28 @@ export const IDPAPI = {
 export const RolesPerformanceAPI = {
   // Get all available roles
   getRoles: () =>
-    apiFetch<{ success: boolean; data: RolePerformance[] }>('simple-auth/roles-performance'),
+    apiFetch<{ success: boolean; data: RolePerformance[] }>('roles-performance'),
 
   // Get role details with sections and items
   getRole: (roleId: number) =>
-    apiFetch<{ success: boolean; data: RolePerformanceWithSections }>(`simple-auth/roles-performance/${roleId}`),
+    apiFetch<{ success: boolean; data: RolePerformanceWithSections }>(`roles-performance/${roleId}`),
 
   // Get user's answers for a specific role
   getUserAnswers: (roleId: number) =>
-    apiFetch<{ success: boolean; data: { roleId: number; userId: number; answers: UserPerformanceAnswer } }>(`simple-auth/roles-performance/${roleId}/answers`),
+    apiFetch<{ success: boolean; data: { roleId: number; userId: number; answers: UserPerformanceAnswer } }>(`roles-performance/${roleId}/answers`),
 
   // Save user's answer to a performance item
-  saveAnswer: (performanceItemId: number, answer: 'yes' | 'no') =>
-    apiFetch<{ success: boolean; data: { message: string; answer: any; syncedGlobally: boolean } }>('simple-auth/roles-performance/answer', {
+  saveAnswer: (roleId: number, answer: 'yes' | 'no') =>
+    apiFetch<{ success: boolean; data: { message: string; answer: any; syncedGlobally: boolean } }>(`roles-performance/${roleId}/answers`, {
       method: 'POST',
-      body: JSON.stringify({ performanceItemId, answer }),
+      body: JSON.stringify({ answer }),
     }),
 
   // Get user's progress for a specific role
   getUserProgress: (roleId: number) =>
-    apiFetch<{ success: boolean; data: RoleProgress }>(`simple-auth/roles-performance/${roleId}/progress`),
+    apiFetch<{ success: boolean; data: RoleProgress }>(`roles-performance/${roleId}/progress`),
 
   // Get user's overall progress across all roles
   getOverallProgress: () =>
-    apiFetch<{ success: boolean; data: OverallProgress }>('simple-auth/roles-performance/progress/overall'),
+    apiFetch<{ success: boolean; data: OverallProgress }>('roles-performance/progress/overall'),
 };

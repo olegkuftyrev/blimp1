@@ -45,7 +45,7 @@ export function useSWRIDPAssessment() {
     isLoading: assessmentLoading,
     mutate: mutateAssessment
   } = useSWR(
-    user ? '/simple-auth/idp/assessment/current' : null,
+    user ? '/idp/assessment/current' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -60,7 +60,7 @@ export function useSWRIDPAssessment() {
     isMutating: isSavingAnswers,
     error: saveError
   } = useSWRMutation(
-    '/simple-auth/idp/assessment/answers',
+    '/idp/assessment/answers',
     saveAnswersMutation,
     {
       onSuccess: () => {
@@ -75,7 +75,7 @@ export function useSWRIDPAssessment() {
     isMutating: isCompletingAssessment,
     error: completeError
   } = useSWRMutation(
-    '/simple-auth/idp/assessment/complete',
+    '/idp/assessment/complete',
     completeAssessmentMutation,
     {
       onSuccess: () => {
@@ -90,7 +90,7 @@ export function useSWRIDPAssessment() {
     isMutating: isResettingAssessment,
     error: resetError
   } = useSWRMutation(
-    '/simple-auth/idp/assessment/reset',
+    '/idp/assessment/reset',
     resetAssessmentMutation,
     {
       onSuccess: () => {
@@ -167,7 +167,7 @@ export function useSWRCompetencies(userRole?: string) {
     isLoading,
     mutate: mutateRole
   } = useSWR(
-    roleToLoad ? `/simple-auth/idp/roles/${roleToLoad}` : null,
+    roleToLoad ? `/idp/roles/${roleToLoad}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -195,7 +195,7 @@ export function useSWRCurrentUserRole() {
     isLoading,
     mutate: mutateRole
   } = useSWR(
-    user ? '/simple-auth/idp/role/current' : null,
+    user ? '/idp/role/current' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -221,7 +221,7 @@ export function useSWRIDPRoles() {
     isLoading,
     mutate: mutateRoles
   } = useSWR(
-    '/simple-auth/idp/roles',
+    '/idp/roles',
     fetcher,
     {
       revalidateOnFocus: false,
@@ -248,7 +248,7 @@ export function useSWRUserAssessment(userId?: number) {
     isLoading,
     mutate: mutateUserAssessment
   } = useSWR(
-    user && userId ? `/simple-auth/idp/assessment/user/${userId}` : null,
+    user && userId ? `/idp/assessment/user/${userId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,

@@ -15,7 +15,7 @@ import {
   Lock,
   Zap
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useIDP';
 import ProtectedRoute from '@/components/ProtectedRoute';
 

@@ -20,25 +20,24 @@ export default class AuthMiddleware {
     } = {}
   ) {
     try {
-      const authHeader = ctx.request.header('authorization')
-      console.log('Auth middleware: attempting authentication')
-      console.log('Guards:', options.guards || ['api'])
-      console.log('Authorization header:', authHeader)
+      // Use the default guard from config if none specified
+      const guards = options.guards || ['api']
       
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7) // Remove 'Bearer ' prefix
-        console.log('Extracted token:', token.substring(0, 20) + '...')
-      }
-      
-      await ctx.auth.authenticateUsing(options.guards || ['api'], { loginRoute: this.redirectTo })
-      console.log('Auth middleware: authentication successful')
+      // Use authenticate() method as per documentation
+      await ctx.auth.authenticate()
       return next()
     } catch (error) {
-      console.log('Auth middleware: authentication failed', error.message)
+      console.log('Auth middleware: authentication failed:', error.message)
+      console.log('Auth middleware: Error stack:', error.stack)
+      
       // For API requests, return JSON error
-      if (ctx.request.url().startsWith('/api/')) {
-        return ctx.response.status(401).json({ error: 'Unauthorized' })
+      if (ctx.request.url().startsWith('/api/') || ctx.request.accepts(['application/json'])) {
+        return ctx.response.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'Authentication required'
+        })
       }
+      
       // For web requests, redirect to login
       return ctx.response.redirect(this.redirectTo)
     }

@@ -5,7 +5,7 @@ import { Target, Award, AlertTriangle, Calendar, ArrowRight } from 'lucide-react
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextSWR';
 import { IDPAPI, IDPAssessment } from '@/lib/api';
 import Link from 'next/link';
 
