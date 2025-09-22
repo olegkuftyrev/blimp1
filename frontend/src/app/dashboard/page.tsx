@@ -69,8 +69,8 @@ const modules: ModuleCard[] = [
     icon: BarChart3,
     href: '/analytics',
     color: 'bg-green-500',
-    badge: 'Coming Soon',
-    isActive: false
+    badge: 'Active',
+    isActive: true
   },
   {
     id: 'roles-performance',
@@ -79,6 +79,16 @@ const modules: ModuleCard[] = [
     icon: ClipboardList,
     href: '/roles-performance',
     color: 'bg-purple-500',
+    badge: 'Active',
+    isActive: true
+  },
+  {
+    id: 'area-pl',
+    title: 'Area P&L',
+    description: 'Comprehensive profit and loss analysis for your area',
+    icon: DollarSign,
+    href: '/area-pl',
+    color: 'bg-emerald-600',
     badge: 'Active',
     isActive: true
   },
@@ -153,7 +163,7 @@ function DashboardContent() {
     
     let filteredModules = modules;
     
-    // Both Pay Structure and Staff Management are visible to all but with different properties based on role
+    // Apply role-based access control for specific modules
     filteredModules = filteredModules.map(module => {
       if (module.id === 'pay-structure') {
         const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
@@ -161,6 +171,15 @@ function DashboardContent() {
           ...module,
           badge: isAuthorized ? 'Active' : 'Restricted',
           description: isAuthorized ? 'Manage hourly pay rates across all regions and roles' : 'Unlocked for ACO and above',
+          isActive: isAuthorized
+        };
+      }
+      if (module.id === 'area-pl') {
+        const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
+        return {
+          ...module,
+          badge: isAuthorized ? 'Active' : 'Restricted',
+          description: isAuthorized ? 'Comprehensive profit and loss analysis for your area' : 'Restricted Access - ACO and above',
           isActive: isAuthorized
         };
       }
@@ -173,12 +192,21 @@ function DashboardContent() {
           isActive: true // Always active now since all users can access staff management
         };
       }
+      if (module.id === 'analytics') {
+        const isAuthorized = user.role !== 'associate';
+        return {
+          ...module,
+          badge: isAuthorized ? 'Active' : 'Restricted',
+          description: isAuthorized ? 'Sales reports, performance metrics, and insights' : 'Restricted Access - Store Manager and above',
+          isActive: isAuthorized
+        };
+      }
       return module;
     });
     
     // Organize modules into categories
     const managementModules = filteredModules.slice(0, 3); // First 3 modules
-    const profitLossModules = filteredModules.filter(m => ['analytics', 'finance'].includes(m.id));
+    const profitLossModules = filteredModules.filter(m => ['analytics', 'area-pl', 'finance'].includes(m.id));
     const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance'].includes(m.id));
     // Sort helpers modules to put IDP first, roles-performance third
     helpersModules.sort((a, b) => {
@@ -315,8 +343,8 @@ function DashboardContent() {
                         Open Module
                       </Link>
                     ) : (
-                      // Hide button for Pay Structure if restricted, show "Coming Soon" for others (Staff Management is always accessible now)
-                      !['pay-structure'].includes(module.id) && (
+                      // Hide button for restricted modules, show "Coming Soon" for others
+                      !['pay-structure', 'area-pl'].includes(module.id) && (
                         <button
                           disabled
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"

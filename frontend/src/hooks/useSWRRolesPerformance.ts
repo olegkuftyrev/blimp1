@@ -26,6 +26,7 @@ const saveAnswerMutation = async (url: string, { arg }: { arg: { performanceItem
 export function useSWRRolesPerformance() {
   const { user } = useAuth();
   
+  
   // Fetch all roles
   const { 
     data: rolesData, 
@@ -229,19 +230,25 @@ export const RolesPerformanceUtils = {
     return { totalItems, answeredItems, yesAnswers, percentage };
   },
 
-  // Get progress color based on percentage
-  getProgressColor: (percentage: number) => {
-    if (percentage === 100) return 'text-green-600 dark:text-green-400';
-    if (percentage >= 50) return 'text-blue-600 dark:text-blue-400';
-    if (percentage > 0) return 'text-yellow-600 dark:text-yellow-400';
+  // Get progress color based on mastery percentage (yes answers / total items)
+  getProgressColor: (yesAnswers: number, totalItems: number) => {
+    const masteryPercentage = totalItems > 0 ? (yesAnswers / totalItems) * 100 : 0;
+    
+    if (masteryPercentage === 100) return 'text-green-600 dark:text-green-400';
+    if (masteryPercentage >= 80) return 'text-blue-600 dark:text-blue-400';
+    if (masteryPercentage >= 50) return 'text-yellow-600 dark:text-yellow-400';
+    if (masteryPercentage > 0) return 'text-orange-600 dark:text-orange-400';
     return 'text-gray-400 dark:text-gray-500';
   },
 
-  // Get progress background color based on percentage
-  getProgressBgColor: (percentage: number) => {
-    if (percentage === 100) return 'bg-green-100 border-green-200 dark:bg-green-950/20 dark:border-green-800';
-    if (percentage >= 50) return 'bg-blue-100 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800';
-    if (percentage > 0) return 'bg-yellow-100 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800';
+  // Get progress background color based on mastery percentage (yes answers / total items)
+  getProgressBgColor: (yesAnswers: number, totalItems: number) => {
+    const masteryPercentage = totalItems > 0 ? (yesAnswers / totalItems) * 100 : 0;
+    
+    if (masteryPercentage === 100) return 'bg-green-100 border-green-200 dark:bg-green-950/20 dark:border-green-800';
+    if (masteryPercentage >= 80) return 'bg-blue-100 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800';
+    if (masteryPercentage >= 50) return 'bg-yellow-100 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800';
+    if (masteryPercentage > 0) return 'bg-orange-100 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800';
     return 'bg-card text-card-foreground border-border';
   },
 

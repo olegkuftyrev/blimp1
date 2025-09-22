@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import RolePerformance from '#models/role_performance'
-import PerformanceSection from '#models/performance_section'
 import PerformanceItem from '#models/performance_item'
 import UserPerformanceAnswer from '#models/user_performance_answer'
 
@@ -91,7 +90,7 @@ export default class RolesPerformancesController {
       // Get all performance item IDs for this role
       const performanceItemIds: number[] = []
       role.sections.forEach(section => {
-        section.items.forEach(item => {
+        section.items.forEach((item: any) => {
           performanceItemIds.push(item.id)
         })
       })
@@ -193,6 +192,128 @@ export default class RolesPerformancesController {
   }
 
   /**
+   * Save multiple answers for a role (for manager editing)
+   */
+  async saveAnswersBulk({ params, request, auth, response }: HttpContext) {
+    try {
+      const currentUser = auth.user!
+      const { roleId } = params
+      const { answers, targetUserId } = request.only(['answers', 'targetUserId'])
+
+      // Check if current user has permission to edit this user's answers
+      // Only allow if current user is admin or has management permissions
+      if (currentUser.role === 'associate') {
+        return response.forbidden({
+          success: false,
+          message: 'Insufficient permissions to edit user answers'
+        })
+      }
+
+      // Use targetUserId if provided, otherwise use current user
+      const userId = targetUserId || currentUser.id
+
+      // Validate answers format
+      if (!answers || typeof answers !== 'object') {
+        return response.badRequest({
+          success: false,
+          message: 'Answers must be an object with itemId as keys and "yes"/"no" as values'
+        })
+      }
+
+      const savedAnswers = []
+      const errors = []
+
+      // Process each answer
+      for (const [itemIdStr, answer] of Object.entries(answers)) {
+        try {
+          const itemId = parseInt(itemIdStr)
+          
+          if (!['yes', 'no'].includes(answer as string)) {
+            errors.push(`Invalid answer for item ${itemId}: ${answer}`)
+            continue
+          }
+
+          // Get the performance item
+          const performanceItem = await PerformanceItem.find(itemId)
+          if (!performanceItem) {
+            errors.push(`Performance item ${itemId} not found`)
+            continue
+          }
+
+          // Verify the item belongs to the specified role
+          const role = await RolePerformance.query()
+            .where('id', roleId)
+            .preload('sections', (sectionsQuery) => {
+              sectionsQuery.preload('items')
+            })
+            .first()
+
+          if (!role) {
+            errors.push(`Role ${roleId} not found`)
+            continue
+          }
+
+          // Check if item belongs to this role
+          const itemBelongsToRole = role.sections.some(section => 
+            section.items.some((item: any) => item.id === itemId)
+          )
+
+          if (!itemBelongsToRole) {
+            errors.push(`Item ${itemId} does not belong to role ${roleId}`)
+            continue
+          }
+
+          // Find all performance items with the same global question ID
+          const allSameQuestionItems = await PerformanceItem.query()
+            .where('globalQuestionId', performanceItem.globalQuestionId)
+
+          // Save/update answers for ALL items with the same global question ID
+          for (const item of allSameQuestionItems) {
+            await UserPerformanceAnswer.updateOrCreate(
+              {
+                userId: userId,
+                performanceItemId: item.id
+              },
+              {
+                userId: userId,
+                performanceItemId: item.id,
+                answer: answer as 'yes' | 'no',
+                globalQuestionId: performanceItem.globalQuestionId
+              }
+            )
+          }
+
+          savedAnswers.push({
+            itemId,
+            answer,
+            syncedItemsCount: allSameQuestionItems.length
+          })
+
+        } catch (itemError) {
+          errors.push(`Error processing item ${itemIdStr}: ${itemError.message}`)
+        }
+      }
+
+      return response.ok({
+        success: true,
+        data: {
+          message: `Saved ${savedAnswers.length} answers successfully`,
+          savedAnswers,
+          errors: errors.length > 0 ? errors : undefined,
+          totalProcessed: Object.keys(answers).length
+        }
+      })
+
+    } catch (error) {
+      return response.internalServerError({
+        success: false,
+        message: 'Failed to save answers',
+        error: error.message
+      })
+    }
+  }
+
+  /**
    * Get user's progress for a specific role
    */
   async getUserProgress({ params, auth, response }: HttpContext) {
@@ -227,7 +348,7 @@ export default class RolesPerformancesController {
 
       const performanceItemIds: number[] = []
       role.sections.forEach(section => {
-        section.items.forEach(item => {
+        section.items.forEach((item: any) => {
           totalItems++
           performanceItemIds.push(item.id)
         })
@@ -290,7 +411,7 @@ export default class RolesPerformancesController {
         const performanceItemIds: number[] = []
 
         role.sections.forEach(section => {
-          section.items.forEach(item => {
+          section.items.forEach((item: any) => {
             totalItems++
             performanceItemIds.push(item.id)
           })

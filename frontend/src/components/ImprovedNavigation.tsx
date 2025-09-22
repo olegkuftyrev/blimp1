@@ -22,7 +22,8 @@ import {
   Shield,
   Banknote,
   BookOpen,
-  LogOut
+  LogOut,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContextSWR';
@@ -212,14 +213,16 @@ const ImprovedNavigation = () => {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[350px] gap-2 p-4">
-                      <ListItem 
-                        href="/analytics" 
-                        title="Analytics & Reports"
-                        icon={<BarChart3 className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/analytics') && "bg-accent text-accent-foreground")}
-                      >
-                        Sales reports, performance metrics (Coming Soon)
-                      </ListItem>
+                      {user && user.role !== 'associate' && (
+                        <ListItem 
+                          href="/analytics" 
+                          title="Analytics & Reports"
+                          icon={<BarChart3 className="h-4 w-4" />}
+                          className={cn(isActive('/analytics') && "bg-accent text-accent-foreground")}
+                        >
+                          Sales reports, performance metrics
+                        </ListItem>
+                      )}
                       <ListItem 
                         href="/finance" 
                         title="P&L Practice Tests"
@@ -356,6 +359,14 @@ const ImprovedNavigation = () => {
                           Track your professional development goals
                         </ListItem>
                         <ListItem 
+                          href="/profile?tab=performance" 
+                          title="My Performance"
+                          icon={<TrendingUp className="h-4 w-4" />}
+                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
+                        >
+                          View your competency mastery and performance metrics
+                        </ListItem>
+                        <ListItem 
                           href="/profile?tab=team" 
                           title="Team Management"
                           icon={<Users className="h-4 w-4" />}
@@ -482,19 +493,21 @@ const ImprovedNavigation = () => {
                 Profit & Loss
               </div>
               <div className="pl-6 space-y-1">
-                <Link
-                  href="/analytics"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/analytics')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  Analytics & Reports
-                </Link>
+                {user && user.role !== 'associate' && (
+                  <Link
+                    href="/analytics"
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                      isActive('/analytics')
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    onClick={closeMobileMenu}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Analytics & Reports
+                  </Link>
+                )}
                 <Link
                   href="/finance"
                   className={cn(
@@ -637,6 +650,20 @@ const ImprovedNavigation = () => {
               >
                 <BookOpen className="h-4 w-4" />
                 Individual Development Plan
+              </Link>
+              
+              <Link
+                href="/profile?tab=performance"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                  isActive('/profile')
+                    ? "bg-accent text-accent-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+                onClick={closeMobileMenu}
+              >
+                <TrendingUp className="h-4 w-4" />
+                My Performance
               </Link>
               
               <Link

@@ -51,7 +51,7 @@ export function useSWRRestaurants() {
     isLoading: loading,
     mutate
   } = useSWR(
-    user ? '//restaurants' : null,
+    user ? 'restaurants' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -91,21 +91,19 @@ export function useSWROrders(restaurantId: string | number | null) {
     isLoading: loading,
     mutate
   } = useSWR(
-    user && restaurantId ? `//orders?restaurant_id=${restaurantId}` : null,
+    user && restaurantId ? `orders?restaurant_id=${restaurantId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 5000, // 5 seconds - orders change frequently
-      refreshInterval: 10000, // Auto-refresh every 10 seconds for kitchen
+      dedupingInterval: 1000, // 1 second - orders change frequently
+      refreshInterval: 2000, // Auto-refresh every 2 seconds for kitchen
       onSuccess: (data) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ SWR Orders:', { 
-            success: true, 
-            restaurantId,
-            count: data?.data?.length || 0 
-          });
-        }
+        console.log('✅ SWR Orders updated:', { 
+          success: true, 
+          restaurantId,
+          count: data?.data?.length || 0 
+        });
       },
       onError: (error) => {
         if (process.env.NODE_ENV === 'development') {
@@ -130,7 +128,7 @@ export function useSWRUpdateRestaurant(restaurantId: string | number | null) {
     isMutating: isUpdating,
     error: updateError
   } = useSWRMutation(
-    restaurantId ? `//restaurants/${restaurantId}` : null,
+    restaurantId ? `restaurants/${restaurantId}` : null,
     updateRestaurantMutation,
     {
       onSuccess: (data) => {
@@ -158,7 +156,7 @@ export function useSWRCreateOrder() {
     isMutating: isCreating,
     error: createError
   } = useSWRMutation(
-    '//orders',
+    'orders',
     createOrderMutation,
     {
       onSuccess: (data) => {

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { 
   BookOpen, 
@@ -182,7 +181,12 @@ function QuestionsPageContent() {
                 </div>
               </div>
               
-              <Progress value={overallProgress} className="h-3 mb-4" />
+              <div className="relative h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 mb-4">
+                <div 
+                  className="h-full transition-all duration-300 ease-in-out bg-blue-500"
+                  style={{ width: `${overallProgress}%` }}
+                />
+              </div>
               
               {/* Smart Test Button */}
               <div className="flex justify-center">
@@ -251,7 +255,12 @@ function QuestionsPageContent() {
                       <div className="text-right min-w-[120px]">
                         <div className="text-sm text-muted-foreground mb-1">Progress</div>
                         <div className="flex items-center gap-2">
-                          <Progress value={progress} className="h-2 w-20" />
+                          <div className="relative h-2 w-20 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div 
+                              className="h-full transition-all duration-300 ease-in-out bg-blue-500"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
                           <span className="text-sm font-medium">{Math.round(progress)}%</span>
                         </div>
                       </div>

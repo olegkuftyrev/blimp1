@@ -33,6 +33,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
     newSocket.on('connect', () => {
       console.log('🔌 Connected to WebSocket server')
+      console.log('🔌 Socket ID:', newSocket.id)
       setIsConnected(true)
     })
 
@@ -44,6 +45,15 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     newSocket.on('connect_error', (error) => {
       console.error('🔌 WebSocket connection error:', error)
       setIsConnected(false)
+    })
+
+    // Add debug listeners for timer events
+    newSocket.on('timer:expired', (event) => {
+      console.log('🔔 Raw timer:expired event in WebSocketContext:', event)
+    })
+
+    newSocket.on('timer:started', (event) => {
+      console.log('🔔 Raw timer:started event in WebSocketContext:', event)
     })
 
     setSocket(newSocket)
@@ -64,6 +74,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     if (socket) {
       socket.emit('join:kitchen')
       console.log('👨‍🍳 Joined kitchen')
+      console.log('👨‍🍳 Socket connected:', socket.connected)
+      console.log('👨‍🍳 Socket ID:', socket.id)
+    } else {
+      console.error('👨‍🍳 Cannot join kitchen: socket is null')
     }
   }
 

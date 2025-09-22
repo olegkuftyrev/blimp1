@@ -7,6 +7,9 @@ import MyProfile from '@/components/profile/MyProfile';
 import Team from '@/components/profile/Team';
 import IDPDevelopmentPlan from '@/components/profile/IDPDevelopmentPlan';
 import UserIDP from '@/components/profile/UserIDP';
+import UserPerformance from '@/components/profile/UserPerformance';
+import UserRoleQuestions from '@/components/profile/UserRoleQuestions';
+import MyPerformance from '@/components/profile/MyPerformance';
 
 function ProfilePageContent() {
   const searchParams = useSearchParams();
@@ -18,8 +21,14 @@ function ProfilePageContent() {
         return <Team />;
       case 'idp':
         return <IDPDevelopmentPlan />;
+      case 'performance':
+        return <MyPerformance />;
       case 'user-idp':
         return <UserIDP />;
+      case 'user-performance':
+        return <UserPerformance />;
+      case 'user-role-questions':
+        return <UserRoleQuestions />;
       case 'my-profile':
       default:
         return <MyProfile />;

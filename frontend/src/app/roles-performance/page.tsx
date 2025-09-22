@@ -24,16 +24,20 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { useSWRRolesPerformance, RolesPerformanceUtils } from '@/hooks/useSWRRolesPerformance';
 
-// Color scheme for progress visualization
-const getProgressColor = (progressPercentage: number): string => {
-  if (progressPercentage === 100) {
-    return "#16a34a"; // green-600 for 100%
-  } else if (progressPercentage >= 50) {
-    return "#2563eb"; // blue-600 for ≥ 50%
-  } else if (progressPercentage > 0) {
-    return "#eab308"; // yellow-600 for > 0%
+// Color scheme for progress visualization based on mastery (yes answers / total items)
+const getMasteryColor = (yesAnswers: number, totalItems: number): string => {
+  const masteryPercentage = totalItems > 0 ? (yesAnswers / totalItems) * 100 : 0;
+  
+  if (masteryPercentage === 100) {
+    return "#16a34a"; // green-600 - полностью освоено
+  } else if (masteryPercentage >= 80) {
+    return "#2563eb"; // blue-600 - хорошо освоено
+  } else if (masteryPercentage >= 50) {
+    return "#eab308"; // yellow-600 - частично освоено
+  } else if (masteryPercentage > 0) {
+    return "#f97316"; // orange-500 - начальный уровень
   } else {
-    return "#6b7280"; // gray-500 for 0%
+    return "#6b7280"; // gray-500 - не начато
   }
 };
 
@@ -151,7 +155,7 @@ function RolesPerformancePageContent() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${RolesPerformanceUtils.getProgressColor(progress.overall.overallProgressPercentage)}`}>
+              <div className={`text-2xl font-bold ${RolesPerformanceUtils.getProgressColor(progress.overall.totalYesAnswers, progress.overall.totalItemsAcrossRoles)}`}>
                 {progress.overall.overallProgressPercentage}%
               </div>
               <p className="text-xs text-muted-foreground">
@@ -195,8 +199,8 @@ function RolesPerformancePageContent() {
               >
                 <RadialBarChart
                   data={progress.roles.map((roleProgress, index) => {
-                    // Use the same logic as card background colors
-                    const color = getProgressColor(roleProgress.progress);
+                    // Use mastery-based color logic
+                    const color = getMasteryColor(roleProgress.yesAnswers, roleProgress.totalItems);
                     
                     return {
                       role: roles.find(r => r.id === roleProgress.roleId)?.displayName || `Role ${roleProgress.roleId}`,
@@ -250,8 +254,8 @@ function RolesPerformancePageContent() {
                   data={progress?.roles.map((roleProgress) => {
                     const role = roles.find(r => r.id === roleProgress.roleId);
                     
-                    // Use the same logic as radial chart colors
-                    const color = getProgressColor(roleProgress.progress);
+                    // Use mastery-based color logic
+                    const color = getMasteryColor(roleProgress.yesAnswers, roleProgress.totalItems);
                     
                     return {
                       role: role?.displayName || `Role ${roleProgress.roleId}`,
@@ -285,7 +289,7 @@ function RolesPerformancePageContent() {
                     radius={4}
                   >
                     {progress?.roles.map((roleProgress, index) => (
-                      <Cell key={`cell-${index}`}                       fill={getProgressColor(roleProgress.progress)} />
+                      <Cell key={`cell-${index}`} fill={getMasteryColor(roleProgress.yesAnswers, roleProgress.totalItems)} />
                     ))}
                     <LabelList
                       dataKey="role"
@@ -329,7 +333,7 @@ function RolesPerformancePageContent() {
                 <Card
                   key={role.id}
                   className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    RolesPerformanceUtils.getProgressBgColor(roleProgress?.progressPercentage || 0)
+                    roleProgress ? RolesPerformanceUtils.getProgressBgColor(roleProgress.yesAnswers, roleProgress.totalItems) : 'bg-card text-card-foreground border-border'
                   }`}
                   onClick={() => handleRoleClick(role.id)}
                 >
@@ -383,8 +387,8 @@ function RolesPerformancePageContent() {
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="text-sm text-muted-foreground">Progress</div>
                           <div className="text-right">
-                            <div className={`text-xl font-bold ${RolesPerformanceUtils.getProgressColor(roleProgress.progressPercentage)}`}>
-                              {roleProgress.progressPercentage}%
+                            <div className={`text-xl font-bold ${RolesPerformanceUtils.getProgressColor(roleProgress.yesAnswers, roleProgress.totalItems)}`}>
+                              {Math.round((roleProgress.yesAnswers / roleProgress.totalItems) * 100)}%
                             </div>
                           </div>
                         </div>

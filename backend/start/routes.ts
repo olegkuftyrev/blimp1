@@ -45,7 +45,8 @@ router.get('/users/debug', '#controllers/users_controller.debug')
 router
   .group(() => {
     router.get('/', '#controllers/users_controller.index')
-    router.get('/team', '#controllers/users_controller.team')
+    router.get('/team', '#controllers/users_controller.getTeamMembers')
+    router.post('/', '#controllers/users_controller.store')
     router.get('/:id', '#controllers/users_controller.show')
     router.put('/:id', '#controllers/users_controller.update')
     router.delete('/:id', '#controllers/users_controller.destroy')
@@ -96,6 +97,7 @@ router
     router.delete('/:id', '#controllers/order_controller.destroy')
     router.post('/:id/start-timer', '#controllers/order_controller.startTimer')
     router.post('/:id/complete', '#controllers/order_controller.complete')
+    router.post('/:id/add-time', '#controllers/order_controller.addTime')
   })
   .prefix('/orders')
   .use(middleware.auth())
@@ -136,6 +138,7 @@ router
     router.get('/role/current', '#controllers/idp_controller.getCurrentRole')
     router.get('/roles/:userRole', '#controllers/idp_controller.getRoleByUserRole')
     router.get('/assessment/current', '#controllers/idp_controller.getCurrentAssessment')
+    router.get('/assessment/user/:userId', '#controllers/idp_controller.getUserAssessment')
     router.post('/assessment/answers', '#controllers/idp_controller.saveAnswers')
     router.post('/assessment/complete', '#controllers/idp_controller.completeAssessment')
     router.post('/assessment/reset', '#controllers/idp_controller.resetAssessment')
@@ -150,13 +153,29 @@ router
 router
   .group(() => {
     router.get('/', '#controllers/roles_performances_controller.index')
+    router.get('/progress/overall', '#controllers/roles_performances_controller.getOverallProgress')
     router.get('/:id', '#controllers/roles_performances_controller.show')
-    router.get('/:id/answers', '#controllers/roles_performances_controller.getAnswers')
-    router.get('/:id/progress', '#controllers/roles_performances_controller.getProgress')
+    router.get('/:id/answers', '#controllers/roles_performances_controller.getUserAnswers')
+    router.get('/:id/progress', '#controllers/roles_performances_controller.getUserProgress')
     router.post('/:roleId/answers', '#controllers/roles_performances_controller.saveAnswer')
+    router.post('/:roleId/answers/bulk', '#controllers/roles_performances_controller.saveAnswersBulk')
   })
   .prefix('/roles-performance')
   .use(middleware.auth())
+
+// =============================================================================
+// AREA P&L ROUTES (Protected - ACO and above only)
+// =============================================================================
+
+router
+  .group(() => {
+    router.get('/', '#controllers/area_pl_controller.index')
+    router.get('/detailed-report', '#controllers/area_pl_controller.getDetailedReport')
+    router.post('/export', '#controllers/area_pl_controller.exportData')
+  })
+  .prefix('/area-pl')
+  .use(middleware.auth())
+  .use(middleware.role(['admin']))
 
 // =============================================================================
 // DEBUG ROUTES (Protected)
@@ -183,4 +202,39 @@ router.get('/debug/manual-auth', async ({ request, response }) => {
     message: 'Manual auth test endpoint'
   })
 })
+
+// Test WebSocket timer expired event
+router.post('/debug/test-timer-sound', async ({ request, response }) => {
+  const { orderId } = request.only(['orderId'])
+  
+  if (!orderId) {
+    return response.badRequest({ error: 'orderId is required' })
+  }
+  
+  try {
+    const WebSocketService = (await import('#services/websocket_service')).default
+    const Order = (await import('#models/order')).default
+    
+    const order = await Order.find(orderId)
+    if (!order) {
+      return response.notFound({ error: 'Order not found' })
+    }
+    
+    await order.load('menuItem')
+    
+    const wsService = new WebSocketService()
+    wsService.emitTimerExpired(order)
+    
+    return response.ok({
+      message: 'Timer expired event sent',
+      orderId: order.id,
+      orderStatus: order.status
+    })
+  } catch (error) {
+    return response.internalServerError({
+      error: 'Failed to send timer event',
+      message: error.message
+    })
+  }
+}).use(middleware.auth())
 

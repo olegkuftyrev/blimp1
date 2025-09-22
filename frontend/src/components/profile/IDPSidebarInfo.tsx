@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Target, Award, AlertTriangle, Calendar, ArrowRight } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { IDPAPI, IDPAssessment } from '@/lib/api';
 import Link from 'next/link';
@@ -234,7 +233,12 @@ export function IDPSidebarInfo() {
             <span className="text-sidebar-foreground/60">Progress</span>
             <span className="text-sidebar-foreground">{Math.round(data.progress)}%</span>
           </div>
-          <Progress value={data.progress} className="h-1" />
+          <div className="relative h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div 
+              className="h-full transition-all duration-300 ease-in-out bg-blue-500"
+              style={{ width: `${data.progress}%` }}
+            />
+          </div>
         </div>
       )}
 

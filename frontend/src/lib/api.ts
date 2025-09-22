@@ -294,10 +294,6 @@ export const IDPAPI = {
     apiFetch<{ message: string }>('idp/assessment/reset', {
       method: 'POST',
     }),
-
-  // Legacy endpoint for basic info
-  getBasicInfo: () =>
-    apiFetch<{ data: any[]; message: string }>('idp'),
 };
 
 export const RolesPerformanceAPI = {
@@ -318,6 +314,13 @@ export const RolesPerformanceAPI = {
     apiFetch<{ success: boolean; data: { message: string; answer: any; syncedGlobally: boolean } }>(`roles-performance/${roleId}/answers`, {
       method: 'POST',
       body: JSON.stringify({ answer }),
+    }),
+
+  // Save multiple answers for a role (for manager editing)
+  saveAnswersBulk: (roleId: number, answers: { [itemId: number]: 'yes' | 'no' }, targetUserId?: number) =>
+    apiFetch<{ success: boolean; data: { message: string; savedAnswers: any[]; errors?: string[]; totalProcessed: number } }>(`roles-performance/${roleId}/answers/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ answers, targetUserId }),
     }),
 
   // Get user's progress for a specific role

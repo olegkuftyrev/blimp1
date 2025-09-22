@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { User, Users, Target } from 'lucide-react';
+import { User, Users, Target, BarChart3 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -51,6 +51,12 @@ export function AppSidebar() {
       url: "/profile?tab=my-profile",
       icon: User,
       isActive: pathname === '/profile' && tab === 'my-profile'
+    },
+    {
+      title: "My Performance",
+      url: "/profile?tab=performance",
+      icon: BarChart3,
+      isActive: pathname === '/profile' && tab === 'performance'
     },
     {
       title: "IDP",

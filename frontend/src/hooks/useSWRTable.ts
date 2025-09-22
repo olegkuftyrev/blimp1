@@ -61,7 +61,7 @@ export function useSWRMenuItems(restaurantId: string | number | null) {
     isLoading: loading,
     mutate
   } = useSWR(
-    user && restaurantId ? `//menu-items?restaurant_id=${restaurantId}` : null,
+    user && restaurantId ? `menu-items?restaurant_id=${restaurantId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -102,7 +102,7 @@ export function useSWRTableOrders(restaurantId: string | number | null, tableId?
     isLoading: loading,
     mutate
   } = useSWR(
-    user && restaurantId ? `//orders?restaurant_id=${restaurantId}` : null,
+    user && restaurantId ? `orders?restaurant_id=${restaurantId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -155,7 +155,7 @@ export function useSWRTableCreateOrder(onOrderCreated?: () => void) {
     isMutating: isCreating,
     error: createError
   } = useSWRMutation(
-    '//orders',
+    'orders',
     createOrderMutation,
     {
       onSuccess: (data) => {

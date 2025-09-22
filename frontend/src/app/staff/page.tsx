@@ -146,21 +146,13 @@ function StaffManagementContent() {
       console.log('Auth token exists:', !!token);
       console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
       
-      // Test basic endpoint
-      const testData = await apiFetch<{message: string}>('users/test');
-      console.log('Test endpoint:', testData);
-      
-      // Try /me first
+      // Get current user info
       try {
-        const simpleAuthData = await apiFetch<{user: any}>('/me');
-        console.log('Simple auth user:', simpleAuthData.user);
+        const userData = await apiFetch<{user: any}>('auth/me');
+        console.log('Current user:', userData.user);
       } catch (error) {
-        console.error('Simple auth failed:', error);
+        console.error('Failed to get current user:', error);
       }
-      
-      // Try debug endpoint
-      const data = await apiFetch<{data: any}>('users/debug');
-      console.log('Current user:', data.data);
     } catch (error) {
       console.error('Failed to check user role:', error);
     }
@@ -168,7 +160,7 @@ function StaffManagementContent() {
 
   const fetchUsers = async () => {
     try {
-      const data = await apiFetch<{data: User[]}>('users');
+      const data = await apiFetch<{data: User[]}>('users/team');
       setUsers(data.data || []);
       setLoading(false);
     } catch (error) {
@@ -186,7 +178,7 @@ function StaffManagementContent() {
 
   const fetchRestaurants = async () => {
     try {
-      const data = await apiFetch<{data: Restaurant[]}>('/restaurants');
+      const data = await apiFetch<{data: Restaurant[]}>('restaurants');
       setRestaurants(data.data || []);
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);

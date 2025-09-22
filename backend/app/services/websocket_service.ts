@@ -71,6 +71,9 @@ export default class WebSocketService {
    * Emit timer expired event to kitchen and specific table
    */
   emitTimerExpired(order: any) {
+    console.log(`🔔 About to emit timer:expired for order ${order.id}`)
+    console.log(`🔔 Kitchen room members:`, this.io.sockets.adapter.rooms.get('kitchen')?.size || 0)
+    
     // Notify kitchen
     this.io.to('kitchen').emit('timer:expired', {
       order,
@@ -79,6 +82,7 @@ export default class WebSocketService {
 
     // Notify specific table
     const table = (order as any).table_section ?? (order as any).tableSection
+    console.log(`🔔 Table room: table:${table}, members:`, this.io.sockets.adapter.rooms.get(`table:${table}`)?.size || 0)
     this.io.to(`table:${table}`).emit('timer:expired', {
       order,
       timestamp: new Date().toISOString()

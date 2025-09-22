@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useOrderEvents, useTimerEvents } from '@/hooks/useWebSocketEvents';
 import { useSound } from '@/hooks/useSound';
 import { useSWROrders } from '@/hooks/useSWRKitchen';
 import { apiFetch } from '@/lib/api';
@@ -13,6 +12,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function BOHPageContent() {
@@ -48,8 +48,10 @@ function BOHPageContent() {
   
   const { orders, loading, error, mutate: mutateOrders } = useSWROrders(restaurantId);
   const [, setNow] = useState<number>(Date.now());
+  const previousOrderStatusesRef = useRef<Map<number, string>>(new Map());
   const { joinKitchen, leaveKitchen, isConnected } = useWebSocket();
-  const { playTimerBeepSequence, playTimerBeep } = useSound();
+  const { startTimerBeepLoop, stopTimerBeepLoop, isTimerBeepLooping } = useSound();
+
 
   useEffect(() => {
     // Join kitchen room when component mounts
@@ -63,15 +65,14 @@ function BOHPageContent() {
     };
   }, [isConnected, joinKitchen, leaveKitchen]);
 
-  // Fallback polling: refresh orders every 2 seconds only if WebSocket is not connected
+  // Polling: refresh orders every 2 seconds for testing
   useEffect(() => {
-    if (!isConnected) {
-      const interval = setInterval(() => {
-        mutateOrders();
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [isConnected]);
+    const interval = setInterval(() => {
+      console.log('🔄 Refreshing orders...');
+      mutateOrders();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [mutateOrders]);
 
   // Live tick to update remaining time while any order is cooking
   useEffect(() => {
@@ -82,145 +83,39 @@ function BOHPageContent() {
     return () => clearInterval(id);
   }, [orders]);
 
+  // Check for timer expired status changes and play sound
+  useEffect(() => {
+    console.log('🔍 Orders updated:', orders.length, 'orders');
+    
+    const hasExpiredOrders = orders.some(order => order.status === 'timer_expired');
+    
+    orders.forEach((order) => {
+      console.log(`🔍 Order ${order.id}: status=${order.status}`);
+      const previousStatus = previousOrderStatusesRef.current.get(order.id);
+      console.log(`🔍 Order ${order.id}: previous=${previousStatus}, current=${order.status}`);
+      
+      // If status changed to timer_expired, start sound loop
+      if (previousStatus && previousStatus !== 'timer_expired' && order.status === 'timer_expired') {
+        console.log('🔊 Timer expired detected for order:', order.id);
+        console.log('🔊 Starting continuous sound loop');
+        startTimerBeepLoop();
+      }
+      
+      // Update the status in the ref
+      previousOrderStatusesRef.current.set(order.id, order.status);
+    });
+    
+    // Stop sound loop if no expired orders
+    if (!hasExpiredOrders && isTimerBeepLooping()) {
+      console.log('🔊 No expired orders, stopping sound loop');
+      stopTimerBeepLoop();
+    }
+  }, [orders, startTimerBeepLoop, stopTimerBeepLoop, isTimerBeepLooping]);
+
   // Removed fetchOrders - now handled by SWR
 
-  // WebSocket event handlers
-  type OrderEventT = { order: BackendOrder };
-  type TimerEventT = { 
-    order: {
-      id: number;
-      tableSection?: number; table_section?: number;
-      menuItemId?: number; menu_item_id?: number;
-      batchSize?: number; batch_size?: number;
-      batchNumber?: number; batch_number?: number;
-      status: string;
-      timerStart?: string; timer_start?: string;
-      timerEnd?: string; timer_end?: string;
-      completedAt?: string; completed_at?: string;
-      createdAt?: string; created_at?: string;
-      updatedAt?: string; updated_at?: string;
-      menuItem?: {
-        id: number;
-        itemTitle: string;
-      };
-      menu_item?: {
-        id: number;
-        itemTitle: string;
-      };
-    }
-  };
+  // WebSocket event handlers removed - now using direct status checking for sound
 
-  type BackendOrder = {
-    id: number;
-    tableSection?: number; table_section?: number;
-    menuItemId?: number; menu_item_id?: number;
-    batchSize?: number; batch_size?: number;
-    batchNumber?: number; batch_number?: number;
-    status: string;
-    timerStart?: string; timer_start?: string;
-    timerEnd?: string; timer_end?: string;
-    completedAt?: string; completed_at?: string;
-    createdAt?: string; created_at?: string;
-    updatedAt?: string; updated_at?: string;
-    menuItem?: Order['menuItem']; menu_item?: Order['menuItem'];
-  };
-
-  const handleOrderCreated = (event: OrderEventT) => {
-    console.log('📢 Order created event received:', event);
-    const ord = normalizeOrder(event.order);
-    setOrders((prev) => {
-      if (prev.some((o) => o.id === ord.id)) return prev.map((o) => (o.id === ord.id ? ord : o));
-      return [...prev, ord];
-    });
-    fetchOrders();
-  };
-
-  const handleOrderUpdated = (event: OrderEventT) => {
-    console.log('📢 Order updated event received:', event);
-    const ord = normalizeOrder(event.order);
-    setOrders((prev) => prev.map((order) => (order.id === ord.id ? ord : order)));
-    fetchOrders();
-  };
-
-  const handleOrderCompleted = (event: OrderEventT) => {
-    console.log('📢 Order completed event received:', event);
-    const ord = normalizeOrder(event.order);
-    setOrders((prev) => prev.map((order) => (order.id === ord.id ? ord : order)));
-    fetchOrders();
-  };
-
-  const handleOrderDeleted = (event: OrderEventT) => {
-    console.log('🗑️ Order deleted event received:', event);
-    const ord = normalizeOrder(event.order);
-    setOrders((prev) => prev.filter((order) => order.id !== ord.id));
-    fetchOrders();
-  };
-
-  const handleAllOrdersDeleted = () => {
-    console.log('🗑️ All orders deleted event received');
-    setOrders([]);
-  };
-
-  const handleTimerStarted = (event: TimerEventT) => {
-    console.log('⏰ Timer started event received:', event);
-    const ord = normalizeOrder(event.order);
-    fetchOrders();
-  };
-
-  const handleTimerExpired = (event: TimerEventT) => {
-    console.log('⏰ Timer expired event received:', event);
-    console.log('🔊 About to play timer sound...');
-    
-    // Play timer completion sound
-    try {
-      playTimerBeepSequence();
-      console.log('🔊 Timer sound triggered successfully');
-    } catch (error) {
-      console.error('🔊 Error playing timer sound:', error);
-    }
-    
-    const ord = normalizeOrder(event.order);
-    fetchOrders();
-  };
-
-  // Subscribe to WebSocket events
-  useOrderEvents(
-    handleOrderCreated,
-    handleOrderUpdated,
-    handleOrderCompleted,
-    handleOrderDeleted,
-    handleAllOrdersDeleted
-  );
-  useTimerEvents(handleTimerStarted, handleTimerExpired);
-
-  const normalizeOrder = (o: BackendOrder | TimerEventT['order']) => {
-    const menuItem = o.menuItem || o.menu_item || {
-      id: 0,
-      itemTitle: 'Unknown Item',
-      batchBreakfast: 0,
-      batchLunch: 0,
-      batchDowntime: 0,
-      batchDinner: 0,
-      cookingTimeBatch1: 0,
-      cookingTimeBatch2: 0,
-      cookingTimeBatch3: 0,
-      status: 'active'
-    };
-    return {
-      id: o.id,
-      tableSection: o.tableSection ?? o.table_section!,
-      menuItemId: o.menuItemId ?? o.menu_item_id ?? menuItem.id,
-      batchSize: o.batchSize ?? o.batch_size!,
-      batchNumber: o.batchNumber ?? o.batch_number ?? 1,
-      status: o.status,
-      timerStart: o.timerStart ?? o.timer_start,
-      timerEnd: o.timerEnd ?? o.timer_end,
-      completedAt: o.completedAt ?? o.completed_at,
-      createdAt: o.createdAt ?? o.created_at!,
-      updatedAt: o.updatedAt ?? o.updated_at!,
-      menuItem: menuItem,
-    } as Order;
-  };
 
   const getCookingTime = (order: Order) => {
     const menuItem = order.menuItem;
@@ -283,7 +178,12 @@ function BOHPageContent() {
       await apiFetch(`/orders/${orderId}/complete`, {
         method: 'POST',
       });
-      mutateOrders(); // Refresh orders after completion
+      
+      // Auto-delete the order after completion
+      console.log('🗑️ Auto-deleting completed order:', orderId);
+      await apiFetch(`/orders/${orderId}`, { method: 'DELETE' });
+      
+      mutateOrders(); // Refresh orders after completion and deletion
     } catch (error) {
       console.error('Error completing order:', error);
       alert('Error completing order');
@@ -294,10 +194,34 @@ function BOHPageContent() {
     try {
       console.log('🗑️ Deleting order:', orderId);
       await apiFetch(`/orders/${orderId}`, { method: 'DELETE' });
+      
+      // Stop sound loop after deletion
+      console.log('🔊 Stopping sound loop after order deletion');
+      stopTimerBeepLoop();
+      
       mutateOrders(); // Refresh orders after deletion
     } catch (error) {
       console.error('Error deleting order:', error);
       alert('Error deleting order');
+    }
+  };
+
+  const addTimeToOrder = async (orderId: number, additionalSeconds: number = 20) => {
+    try {
+      console.log('⏰ Adding time to order:', orderId, 'additional seconds:', additionalSeconds);
+      await apiFetch(`/orders/${orderId}/add-time`, {
+        method: 'POST',
+        body: JSON.stringify({ additionalSeconds }),
+      });
+      
+      // Stop sound loop after adding time
+      console.log('🔊 Stopping sound loop after adding time');
+      stopTimerBeepLoop();
+      
+      mutateOrders(); // Refresh orders after adding time
+    } catch (error) {
+      console.error('Error adding time to order:', error);
+      alert('Error adding time to order');
     }
   };
 
@@ -322,58 +246,6 @@ function BOHPageContent() {
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
-              onClick={() => playTimerBeepSequence()}
-              variant="outline"
-              size="sm"
-            >
-              🔊 Test Sound
-            </Button>
-            <Button
-              onClick={() => {
-                console.log('🧪 Testing timer expiration handler...');
-                handleTimerExpired({
-                  order: {
-                    id: 999,
-                    tableSection: 1,
-                    menuItemId: 1,
-                    batchSize: 1,
-                    status: 'timer_expired',
-                    timerStart: new Date().toISOString(),
-                    timerEnd: new Date().toISOString(),
-                    menuItem: {
-                      id: 1,
-                      itemTitle: 'Test Item'
-                    }
-                  }
-                });
-              }}
-              variant="outline"
-              size="sm"
-            >
-              🧪 Test Timer Handler
-            </Button>
-            <Button
-              onClick={async () => {
-                try {
-                  console.log('🧪 Testing backend timer expiration...');
-                  const response = await fetch(getApiUrl('kitchen/test-timer-expiration'), {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  });
-                  const data = await response.json();
-                  console.log('Backend response:', data);
-                } catch (error) {
-                  console.error('Error testing backend timer expiration:', error);
-                }
-              }}
-              variant="outline"
-              size="sm"
-            >
-              🧪 Test Backend Timer
-            </Button>
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
             <p className="text-sm text-muted-foreground">
               {isConnected ? 'Connected' : 'Disconnected'}
@@ -466,14 +338,25 @@ function BOHPageContent() {
                             Complete
                           </Button>
                         )}
-                        {(order.status === 'timer_expired' || order.status === 'ready') && (
-                          <Button
-                            onClick={() => deleteOrder(order.id)}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            Delete
-                          </Button>
+                        {order.status === 'timer_expired' && (
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => addTimeToOrder(order.id, 20)}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center space-x-1"
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>+20s</span>
+                            </Button>
+                            <Button
+                              onClick={() => deleteOrder(order.id)}
+                              variant="destructive"
+                              size="sm"
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </TableCell>

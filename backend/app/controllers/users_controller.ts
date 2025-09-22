@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import UserRestaurant from '#models/user_restaurant'
-import { SimpleAuthHelper } from '#utils/simple_auth_helper'
 import UserPolicy from '#policies/user_policy'
 import { DateTime } from 'luxon'
 
@@ -56,14 +55,14 @@ export default class UsersController {
   /**
    * Get team members for the current user's restaurants
    */
-  async getTeamMembers(ctx: HttpContext) {
+  async getTeamMembers({ auth, response }: HttpContext) {
     try {
-      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      const currentUser = auth.user!
       
       // Check permission using policy
       const userPolicy = new UserPolicy()
       if (!(await userPolicy.viewUsersList(currentUser))) {
-        return ctx.response.status(403).json({
+        return response.status(403).json({
           success: false,
           message: 'Insufficient permissions to view team members'
         })
@@ -83,7 +82,7 @@ export default class UsersController {
           .preload('restaurant')
 
         if (userRestaurants.length === 0) {
-          return ctx.response.json({
+          return response.json({
             success: true,
             data: []
           })
@@ -123,7 +122,7 @@ export default class UsersController {
         })
       )
 
-      return ctx.response.json({
+      return response.json({
         success: true,
         data: teamMembersWithRestaurants
       })
@@ -131,7 +130,7 @@ export default class UsersController {
       if (error.message === 'Unauthorized') {
         return // Response already sent
       }
-      return ctx.response.status(500).json({
+      return response.status(500).json({
         success: false,
         message: 'Failed to fetch team members',
         error: error.message
@@ -142,14 +141,14 @@ export default class UsersController {
   /**
    * Get all users with their restaurant assignments
    */
-  async index(ctx: HttpContext) {
+  async index({ auth, response }: HttpContext) {
     try {
-      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      const currentUser = auth.user!
       
       // Check permission using policy
       const userPolicy = new UserPolicy()
       if (!(await userPolicy.viewUsersList(currentUser))) {
-        return ctx.response.status(403).json({
+        return response.status(403).json({
           success: false,
           message: 'Insufficient permissions to view users list'
         })
@@ -188,7 +187,7 @@ export default class UsersController {
         })
       )
 
-      return ctx.response.json({
+      return response.json({
         success: true,
         data: usersWithRestaurants
       })
@@ -196,7 +195,7 @@ export default class UsersController {
       if (error.message === 'Unauthorized') {
         return // Response already sent
       }
-      return ctx.response.status(500).json({
+      return response.status(500).json({
         success: false,
         message: 'Failed to fetch users',
         error: error.message
@@ -207,11 +206,11 @@ export default class UsersController {
   /**
    * Create a new user
    */
-  async store(ctx: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
-      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
+      const currentUser = auth.user!
       
-      const { fullName, email, password, role, jobTitle, restaurantIds = [] } = ctx.request.only([
+      const { fullName, email, password, role, jobTitle, restaurantIds = [] } = request.only([
         'fullName',
         'email', 
         'password',
@@ -223,7 +222,7 @@ export default class UsersController {
       // Check permission using policy
       const userPolicy = new UserPolicy()
       if (!(await userPolicy.createUser(currentUser, role))) {
-        return ctx.response.status(403).json({
+        return response.status(403).json({
           success: false,
           message: 'Insufficient permissions to create user with this role'
         })
@@ -249,7 +248,7 @@ export default class UsersController {
         await UserRestaurant.createMany(restaurantAssignments)
       }
 
-      return ctx.response.status(201).json({
+      return response.status(201).json({
         success: true,
         data: user,
         message: 'User created successfully'
@@ -258,7 +257,7 @@ export default class UsersController {
       if (error.message === 'Unauthorized') {
         return // Response already sent
       }
-      return ctx.response.status(400).json({
+      return response.status(400).json({
         success: false,
         message: 'Failed to create user',
         error: error.message
@@ -269,21 +268,21 @@ export default class UsersController {
   /**
    * Update a user
    */
-  async update(ctx: HttpContext) {
+  async update({ auth, params, request, response }: HttpContext) {
     try {
-      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
-      const targetUser = await User.findOrFail(ctx.params.id)
+      const currentUser = auth.user!
+      const targetUser = await User.findOrFail(params.id)
       
       // Check permission using policy
       const userPolicy = new UserPolicy()
       if (!(await userPolicy.editProfile(currentUser, targetUser))) {
-        return ctx.response.status(403).json({
+        return response.status(403).json({
           success: false,
           message: 'Insufficient permissions to edit this user'
         })
       }
 
-      const { fullName, email, role, jobTitle, restaurantIds = [] } = ctx.request.only([
+      const { fullName, email, role, jobTitle, restaurantIds = [] } = request.only([
         'fullName',
         'email',
         'role', 
@@ -315,7 +314,7 @@ export default class UsersController {
         await UserRestaurant.query().where('user_id', targetUser.id).delete()
       }
 
-      return ctx.response.json({
+      return response.json({
         success: true,
         data: targetUser,
         message: 'User updated successfully'
@@ -324,7 +323,7 @@ export default class UsersController {
       if (error.message === 'Unauthorized') {
         return // Response already sent
       }
-      return ctx.response.status(400).json({
+      return response.status(400).json({
         success: false,
         message: 'Failed to update user',
         error: error.message
@@ -335,15 +334,15 @@ export default class UsersController {
   /**
    * Delete a user (soft delete)
    */
-  async destroy(ctx: HttpContext) {
+  async destroy({ auth, params, response }: HttpContext) {
     try {
-      const currentUser = await SimpleAuthHelper.requireAuth(ctx)
-      const targetUser = await User.findOrFail(ctx.params.id)
+      const currentUser = auth.user!
+      const targetUser = await User.findOrFail(params.id)
       
       // Check permission using policy
       const userPolicy = new UserPolicy()
       if (!(await userPolicy.deleteUser(currentUser, targetUser))) {
-        return ctx.response.status(403).json({
+        return response.status(403).json({
           success: false,
           message: 'Insufficient permissions to delete this user'
         })
@@ -356,7 +355,7 @@ export default class UsersController {
       // Also remove restaurant assignments
       await UserRestaurant.query().where('user_id', targetUser.id).delete()
 
-      return ctx.response.json({
+      return response.json({
         success: true,
         message: 'User deleted successfully'
       })
@@ -364,7 +363,7 @@ export default class UsersController {
       if (error.message === 'Unauthorized') {
         return // Response already sent
       }
-      return ctx.response.status(400).json({
+      return response.status(400).json({
         success: false,
         message: 'Failed to delete user',
         error: error.message

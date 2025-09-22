@@ -43,10 +43,11 @@ apiClient.interceptors.request.use(
       }
       // Debug logging (only for errors or important info)
       if (process.env.NODE_ENV === 'development' && process.env.DEBUG_API) {
-        console.log('Axios request:', {
+        console.log('🔍 Axios request:', {
           url: config.url,
           baseURL: config.baseURL,
           hasToken: !!token,
+          tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
           fullUrl: `${config.baseURL}${config.url}`
         });
       }
@@ -58,27 +59,30 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => {
-    // Only log successful responses if DEBUG_API is enabled
-    if (process.env.NODE_ENV === 'development' && process.env.DEBUG_API) {
-      console.log('Axios response:', {
-        status: response.status,
-        url: response.config.url,
-        dataLength: JSON.stringify(response.data).length
-      });
-    }
-    return response;
-  },
+    // Response interceptor for error handling
+    apiClient.interceptors.response.use(
+      (response) => {
+        // Log all responses in development
+        if (process.env.NODE_ENV === 'development' && process.env.DEBUG_API) {
+          console.log('✅ Axios response:', {
+            status: response.status,
+            url: response.config.url,
+            dataLength: JSON.stringify(response.data).length
+          });
+        }
+        return response;
+      },
   (error) => {
     // Always log errors in development
     if (process.env.NODE_ENV === 'development') {
       console.error('🚨 Axios API Error:', {
         status: error.response?.status,
         url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullUrl: `${error.config?.baseURL}${error.config?.url}`,
         error: error.response?.data?.error || error.message,
-        method: error.config?.method?.toUpperCase()
+        method: error.config?.method?.toUpperCase(),
+        responseData: error.response?.data
       });
     }
     

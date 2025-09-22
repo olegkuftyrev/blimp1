@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Briefcase, Shield, Eye } from 'lucide-react';
+import { User, Mail, Briefcase, Shield, Eye, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,10 @@ export default function Team() {
 
   const handleViewIDP = (userId: number) => {
     router.push(`/profile?tab=user-idp&userId=${userId}`);
+  };
+
+  const handleViewPerformance = (userId: number) => {
+    router.push(`/profile?tab=user-performance&userId=${userId}`);
   };
 
   if (loading) {
@@ -156,8 +160,8 @@ export default function Team() {
                   </div>
                 </div>
 
-                {/* View IDP Button */}
-                <div className="pt-2">
+                {/* Action Buttons */}
+                <div className="pt-2 space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -166,6 +170,15 @@ export default function Team() {
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     View IDP
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewPerformance(member.id)}
+                    className="w-full"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    View Performance
                   </Button>
                 </div>
 

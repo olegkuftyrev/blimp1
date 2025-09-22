@@ -25,6 +25,49 @@ export default class IdpController {
   }
 
   /**
+   * Get current user's IDP role based on their user role
+   */
+  async getCurrentRole({ auth, response }: HttpContext) {
+    try {
+      const currentUser = auth.user!
+      
+      const role = await IdpRole.query()
+        .where('user_role', currentUser.role)
+        .where('isActive', true)
+        .preload('competencies', (competencyQuery) => {
+          competencyQuery
+            .where('isActive', true)
+            .orderBy('sortOrder')
+            .preload('questions', (questionQuery) => {
+              questionQuery.where('isActive', true).orderBy('sortOrder')
+            })
+            .preload('actions', (actionQuery) => {
+              actionQuery.where('isActive', true).orderBy('sortOrder')
+            })
+            .preload('descriptions', (descQuery) => {
+              descQuery.where('isActive', true).orderBy('sortOrder')
+            })
+        })
+        .first()
+
+      if (!role) {
+        return response.notFound({
+          data: null,
+          message: `No IDP role found for user role: ${currentUser.role}`
+        })
+      }
+
+      return response.ok({
+        data: role,
+        message: 'Current user IDP role retrieved successfully'
+      })
+    } catch (error) {
+      console.error('Error fetching current user IDP role:', error)
+      return response.status(500).json({ error: 'Failed to fetch current user IDP role' })
+    }
+  }
+
+  /**
    * Get role by user role (maps user.role to IDP role)
    */
   async getRoleByUserRole({ params, response }: HttpContext) {
@@ -176,7 +219,22 @@ export default class IdpController {
         .where('userId', targetUserId)
         .where('isActive', true)
         .whereNull('deletedAt')
-        .preload('role')
+        .preload('role', (roleQuery) => {
+          roleQuery.preload('competencies', (competencyQuery) => {
+            competencyQuery
+              .where('isActive', true)
+              .orderBy('sortOrder')
+              .preload('questions', (questionQuery) => {
+                questionQuery.where('isActive', true).orderBy('sortOrder')
+              })
+              .preload('actions', (actionQuery) => {
+                actionQuery.where('isActive', true).orderBy('sortOrder')
+              })
+              .preload('descriptions', (descQuery) => {
+                descQuery.where('isActive', true).orderBy('sortOrder')
+              })
+          })
+        })
         .preload('answers', (answerQuery) => {
           answerQuery.preload('question')
         })
