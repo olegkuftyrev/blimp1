@@ -6,7 +6,7 @@ A tablet-based food calling and kitchen management system designed to streamline
 
 ### Backend Development
 1. **Create AdonisJS backend** - Basic project structure `✅ COMPLETED`
-2. **Setup SQLite database** - Configuration and migrations `✅ COMPLETED`
+2. **Setup Postgres database** - Configuration and migrations `✅ COMPLETED`
 3. **Create models** - MenuItem and Order with Lucid ORM `✅ COMPLETED`
 4. **Create API endpoints** - All REST API for the system `✅ COMPLETED`
 5. **Create seeders** - 4 Panda Express dishes with data `✅ COMPLETED`
@@ -17,9 +17,9 @@ A tablet-based food calling and kitchen management system designed to streamline
 
 ## 📝 Development Notes
 
-### Current Status (Last Updated: Sep 16, 2025)
+### Current Status (Last Updated: Sep 23, 2025)
 - ✅ **Backend**: AdonisJS 6.19.0 project created and working
-- ✅ **Database**: Postgres configured, migrations executed successfully
+- ✅ **Database**: Postgres configured, migrations executed successfully (Postgres only)
 - ✅ **Models**: MenuItem and Order models created with relationships
 - ✅ **API Endpoints**: All REST API endpoints created and working
 - ✅ **Seeders**: 5 Panda Express dishes populated in database (including 10-second test item)
@@ -81,7 +81,7 @@ A tablet-based food calling and kitchen management system designed to streamline
 ### Technical Details:
 - **AdonisJS Version**: 6.19.0
 - **Next.js Version**: 15.5.2
-- **Database**: Postgres with Lucid ORM
+- **Database**: Postgres with Lucid ORM (Postgres only)
 - **WebSocket**: Socket.IO for real-time communication
 - **Backend Port**: 3333
 - **Frontend Port**: 3000
@@ -114,13 +114,13 @@ A tablet-based food calling and kitchen management system designed to streamline
 ### Project Structure:
 ```
 backend/
-├── app/models/          # MenuItem, Order models ✅
+├── app/models/          # Models (Lucid) ✅
 ├── app/controllers/     # API controllers ✅
-├── database/migrations/ # menu_items, orders tables ✅
-├── database/seeders/    # Menu item seeder ✅
+├── database/migrations/ # schema (Postgres) ✅
+├── database/seeders/    # seeders (incl. IDP/Performance) ✅
 ├── start/routes.ts      # API routes ✅
 ├── config/shield.ts     # CSRF configuration ✅
-└── tmp/db.sqlite3      # SQLite database ✅
+└── (no SQLite)         # Postgres only ✅
 
 frontend/
 ├── src/app/             # Next.js App Router ✅
@@ -141,11 +141,10 @@ frontend/
 - Configure package.json: dependencies and scripts
 - Create .env file: database configuration
 
-**Этап 2: Setup SQLite database**
-- Configure SQLite: config/database.js
-- Create tmp folder: for SQLite file
-- Setup .env: DB_CONNECTION=sqlite, DB_DATABASE=tmp/db.sqlite3
-- Test connection: verify database setup
+**Этап 2: Setup Postgres database**
+- Configure Postgres in `backend/config/database.ts`
+- Setup `.env` with `PG_*` variables
+- Test connection: run migrations
 
 **Этап 3: Create models** ✅ COMPLETED
 - ✅ Create MenuItem model: fields for dishes and cooking times
@@ -271,14 +270,14 @@ Before you begin, ensure you have the following installed:
 
 ## 🗄️ Database Configuration
 
-This project uses **Postgres** with **Lucid ORM** for data storage.
+This project uses **Postgres** with **Lucid ORM** for data storage (Postgres only).
 
 ### Database Setup
 Run Postgres locally (Homebrew or Docker). The app connects using PG_* variables.
 
 ### Environment Variables
 
-This project uses strict runtime validation for backend environment variables and env-driven rewrites in the frontend.
+This project uses strict runtime validation for backend environment variables and env-driven rewrites in the frontend. All network addresses are configured via env (no hard-coded URLs).
 
 #### Backend (`backend/.env`)
 Copy `backend/.env.example` to `backend/.env` and adjust as needed.
@@ -315,7 +314,7 @@ WS_CORS_ORIGIN=*
 
 Notes:
 - Use a strong, random `APP_KEY` in production.
-- When switching to Postgres, set `DB_CLIENT=pg` and provide all `PG_*` values.
+- Postgres is the only supported database in this project.
 
 #### Frontend (`frontend/.env.local`)
 Create `frontend/.env.local` with the following variables:
@@ -513,7 +512,8 @@ project/
 ## 🎨 UI Guidelines
 
 - Uses Tailwind CSS for consistent design and styling
-- No icons in the UI (clean, text-based interface)
+- Components from shadcn/ui only (`https://ui.shadcn.com/docs`)
+- No other UI kits are used
 - Touch-optimized interface for tablet use
 - Large, easy-to-tap buttons for kitchen environment
 - High contrast design for visibility in restaurant lighting
@@ -880,7 +880,7 @@ The system manages 5 core Panda Express dishes:
 ## 🗃️ Database — Full Reference
 
 ### Engine & Driver
-- **DB Engine**: Postgres
+- **DB Engine**: Postgres (only)
 - **Driver**: `pg`
 - **ORM**: Lucid (`@adonisjs/lucid`)
 
@@ -986,9 +986,7 @@ node ace make:seeder sample_data
 
 ### Production Notes
 - Keep `APP_KEY` secret and strong
-- Pin `SQLITE_DB_PATH` to a persistent location with backups
-- Consider Postgres for horizontal scale; Lucid supports `pg` with minimal config changes
-- All network addresses and DB paths are configured via environment variables (no hard-coded URLs)
+- All network addresses are configured via environment variables (no hard-coded URLs)
 
 ### File Map
 - Config: `backend/config/database.ts` (pg only)

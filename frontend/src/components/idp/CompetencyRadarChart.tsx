@@ -67,7 +67,7 @@ export function CompetencyRadarChart({
           Your performance across different competency areas
         </p>
       </div>
-      <div className="pb-0">
+      <div className="pb-0 hidden md:block">
         <ChartContainer
           config={chartConfig}
           className="mx-auto w-full max-w-[860px] min-w-[640px] h-[420px] px-8 overflow-visible"
