@@ -9,11 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContextSWR"
 import PulsingBorderShader from "./components/pulsing-border-shader"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, Sparkles, ArrowLeft } from "lucide-react"
+import { useRef } from "react"
 
 export default function LandingPage() {
   const router = useRouter()
   const { user, isLoading } = useAuth()
+  const testimonialsRef = useRef<HTMLDivElement | null>(null)
 
   // Redirect to dashboard if user is already authenticated
   useEffect(() => {
@@ -39,8 +41,8 @@ export default function LandingPage() {
     return null
   }
   return (<>
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20" />
+    <div className="relative min-h-screen bg-black text-white overflow-hidden">
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20" />
       <div className="relative z-10 container mx-auto px-6 py-16">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
           {/* Left: Text */}
@@ -102,56 +104,9 @@ export default function LandingPage() {
         </div>
 
         {/* Role cards retained below the hero for scannability */}
-        <div className="grid md:grid-cols-4 gap-6 mt-12">
-          <Card className="bg-gray-900 border-gray-800 text-center">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-3">
-                <span className="text-2xl">👩‍🍳</span>
-                Kitchen
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">Live queue and batch size only. Stay focused.</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-900 border-gray-800 text-center">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-3">
-                <span className="text-2xl">📋</span>
-                Managers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">Today’s orders, SLAs, incidents—at a glance.</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-900 border-gray-800 text-center">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-3">
-                <span className="text-2xl">🧑‍🍽️</span>
-                Staff
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">My shifts, tasks, and training progress.</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-900 border-gray-800 text-center">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-3">
-                <span className="text-2xl">🎯</span>
-                HR & Training
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">Assessments due and competency gaps.</p>
-            </CardContent>
-          </Card>
-        </div>
+    
 
-        <div className="text-center mt-16 text-gray-500">
-          <p>&copy; 2024 BLIMP. Streamlining restaurant operations.</p>
-        </div>
+   
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
     </div>
@@ -232,6 +187,141 @@ export default function LandingPage() {
           <Link href="#more">
             <Button variant="outline" className="border-gray-700 text-white hover:bg-gray-900 rounded-full px-6">See more</Button>
           </Link>
+        </div>
+      </div>
+    </section>
+    {/* FAQs (moved to end) */}
+    <section className="bg-black text-white">
+      <div className="container mx-auto px-6 py-20">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs mb-4">
+            FAQs
+          </div>
+          <h3 className="text-4xl md:text-5xl font-bold tracking-tight">Frequently asked questions</h3>
+          <p className="mt-4 text-gray-400">Advice and answers from our team.</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[
+            {
+              q: "What industries can benefit from BLIMP?",
+              a: "Restaurants and hospitality teams of all sizes—kitchens, FOH, and multi-location ops.",
+            },
+            {
+              q: "How do you ensure data privacy and security?",
+              a: "We adhere to strict data privacy practices and implement robust security measures.",
+            },
+            {
+              q: "Can BLIMP be customized to fit our needs?",
+              a: "Yes. Roles, views, and workflows are configurable to match your operation.",
+            },
+            {
+              q: "Do you provide ongoing support?",
+              a: "We offer comprehensive support to ensure smooth operation and adoption.",
+            },
+            {
+              q: "How do we get started?",
+              a: "Sign in or request access to schedule a quick onboarding session.",
+            },
+            {
+              q: "Is it hard to implement?",
+              a: "No. Most teams are live in days with minimal setup required.",
+            },
+          ].map((i) => (
+            <Card key={i.q} className="bg-[#0b0b0c] border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white text-xl leading-snug">{i.q}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400 leading-relaxed">{i.a}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    
+
+    {/* Testimonials */}
+    <section className="bg-[#0b0b0c] text-white">
+      <div className="container mx-auto px-6 py-20">
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-2xl md:text-3xl font-semibold">What our clients say</h3>
+          <div className="hidden md:flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-gray-700 text-white hover:bg-gray-900"
+              size="icon"
+              onClick={() => testimonialsRef.current?.scrollBy({ left: -400, behavior: 'smooth' })}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="border-gray-700 text-white hover:bg-gray-900"
+              size="icon"
+              onClick={() => testimonialsRef.current?.scrollBy({ left: 400, behavior: 'smooth' })}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div
+          ref={testimonialsRef}
+          className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-2 [-ms-overflow-style:none] [scrollbar-width:none]"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {/* hide scrollbar on WebKit */}
+          <style jsx>{`
+            section :global(div::-webkit-scrollbar) { display: none; }
+          `}</style>
+          {[{
+            quote: "Our team's productivity soared. The simple, focused queue kept everyone aligned during service.",
+            name: "Emily Rodriguez",
+            role: "Ops Manager, PinPoint",
+            initials: "ER",
+          }, {
+            quote: "Timers and batching removed chaos. We spend less time navigating and more time cooking.",
+            name: "David Patel",
+            role: "Head Chef, Hues",
+            initials: "DP",
+          }, {
+            quote: "Remarkable results since adopting BLIMP—automated tasks and clear insights from our line.",
+            name: "Rachel Kim",
+            role: "GM, Greenish",
+            initials: "RK",
+          },{
+            quote: "Order history and audit trail gave us clarity during rush hours—no more guesswork.",
+            name: "Liam Chen",
+            role: "Owner, Riverhouse",
+            initials: "LC",
+          },{
+            quote: "Role-based access kept the line clean. Staff only sees what matters.",
+            name: "Sara Lopez",
+            role: "FOH Lead, Vista",
+            initials: "SL",
+          }].map((t) => (
+            <div key={t.name} className="min-w-[300px] md:min-w-[420px] lg:min-w-[520px] snap-start">
+              <Card className="h-full bg-black border-gray-800">
+                <CardContent className="pt-6">
+                  <p className="text-gray-300 text-lg leading-relaxed">“{t.quote}”</p>
+                </CardContent>
+                <div className="border-t border-gray-800">
+                  <div className="flex items-center gap-3 p-4">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-sm font-semibold">
+                      {t.initials}
+                    </div>
+                    <div>
+                      <div className="text-sm text-white">{t.name}</div>
+                      <div className="text-xs text-gray-400">{t.role}</div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ))}
         </div>
       </div>
     </section>
