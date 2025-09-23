@@ -61,7 +61,7 @@ export function CompetencyRadarChart({
 
   return (
     <div className={className}>
-      <div className="text-center pb-4 mb-4">
+      <div className="text-center pb-2 mb-2">
         <h3 className="text-lg font-semibold">Competency Assessment</h3>
         <p className="text-sm text-muted-foreground">
           Your performance across different competency areas
@@ -70,11 +70,11 @@ export function CompetencyRadarChart({
       <div className="pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto w-full max-w-[860px] min-w-[640px] h-[420px] px-8 overflow-visible"
         >
-          <RadarChart data={data}>
+          <RadarChart data={data} margin={{ top: 8, right: 120, bottom: 8, left: 120 }} outerRadius="70%">
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <PolarAngleAxis dataKey="competency" />
+            <PolarAngleAxis dataKey="competency" tick={{ fontSize: 14 }} tickLine={false} />
             <PolarGrid />
             <Radar
               dataKey="score"
@@ -84,7 +84,7 @@ export function CompetencyRadarChart({
           </RadarChart>
         </ChartContainer>
       </div>
-      <div className="flex-col gap-2 text-sm mt-4">
+      <div className="flex-col gap-1.5 text-sm mt-2">
         <div className="flex items-center justify-center gap-2 leading-none font-medium">
           Average score: {averageScore} <TrendingUp className="h-4 w-4" />
         </div>
