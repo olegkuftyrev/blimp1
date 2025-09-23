@@ -24,6 +24,7 @@ const getRoleDisplayName = (role: string) => {
     case 'ops_lead': return 'Operations Lead';
     case 'black_shirt': return 'Black Shirt';
     case 'associate': return 'Associate';
+    case 'tablet': return 'Tablet';
     default: return role;
   }
 };
@@ -34,6 +35,7 @@ const getRoleBadgeColor = (role: string) => {
     case 'ops_lead': return 'secondary';
     case 'black_shirt': return 'outline';
     case 'associate': return 'default';
+    case 'tablet': return 'outline';
     default: return 'default';
   }
 };

@@ -19,7 +19,7 @@ A tablet-based food calling and kitchen management system designed to streamline
 
 ### Current Status (Last Updated: Sep 16, 2025)
 - ✅ **Backend**: AdonisJS 6.19.0 project created and working
-- ✅ **Database**: SQLite configured, migrations executed successfully
+- ✅ **Database**: Postgres configured, migrations executed successfully
 - ✅ **Models**: MenuItem and Order models created with relationships
 - ✅ **API Endpoints**: All REST API endpoints created and working
 - ✅ **Seeders**: 5 Panda Express dishes populated in database (including 10-second test item)
@@ -49,7 +49,6 @@ A tablet-based food calling and kitchen management system designed to streamline
 - `backend/start/routes.ts` - All API routes configured
 - `backend/start/ws.ts` - WebSocket server configuration
 - `backend/config/shield.ts` - CSRF disabled for API
-- `backend/tmp/db.sqlite3` - SQLite database with test data
 - `frontend/src/app/page.tsx` - Main navigation page
 - `frontend/src/app/table/[id]/page.tsx` - Smart table section interfaces with timers
 - `frontend/src/app/boh/page.tsx` - BOH interface
@@ -82,12 +81,12 @@ A tablet-based food calling and kitchen management system designed to streamline
 ### Technical Details:
 - **AdonisJS Version**: 6.19.0
 - **Next.js Version**: 15.5.2
-- **Database**: SQLite with Lucid ORM
+- **Database**: Postgres with Lucid ORM
 - **WebSocket**: Socket.IO for real-time communication
 - **Backend Port**: 3333
 - **Frontend Port**: 3000
 - **Server**: DigitalOcean Droplet
-- **Database File**: `backend/tmp/db.sqlite3`
+- **Database**: Local Postgres (Homebrew/Docker) during development
 - **Migration Status**: All 4 migrations completed successfully
 - **API Status**: All endpoints working with WebSocket events
 - **Frontend Status**: Running with Tailwind CSS and WebSocket integration
@@ -272,15 +271,10 @@ Before you begin, ensure you have the following installed:
 
 ## 🗄️ Database Configuration
 
-This project uses **SQLite** with **Lucid ORM** for data storage, which provides:
-- Zero configuration setup
-- File-based database (no separate server required)
-- Built-in ORM with AdonisJS (no additional dependencies)
-- Perfect for development and production
-- Fast performance for restaurant operations
+This project uses **Postgres** with **Lucid ORM** for data storage.
 
 ### Database Setup
-The SQLite database file will be automatically created at `backend/tmp/db.sqlite3` when you first run the application.
+Run Postgres locally (Homebrew or Docker). The app connects using PG_* variables.
 
 ### Environment Variables
 
@@ -306,8 +300,14 @@ SESSION_DRIVER=cookie
 # CORS
 CORS_ORIGIN=*
 
-# Database (SQLite only)
-SQLITE_DB_PATH=./tmp/db.sqlite3
+# Database (Postgres)
+DB_CLIENT=pg
+PG_HOST=127.0.0.1
+PG_PORT=5432
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_DB_NAME=blimp
+PG_SSL=false
 
 # Websocket / Realtime
 WS_CORS_ORIGIN=*
@@ -874,6 +874,249 @@ The system manages 5 core Panda Express dishes:
 - **Order Model** - with order fields, timers, and relationship to MenuItem
 - **Database Migrations** - executed successfully, tables created
 - **Seeders** - populated with 4 Panda Express dishes
+
+---
+
+## 🗃️ Database — Full Reference
+
+### Engine & Driver
+- **DB Engine**: Postgres
+- **Driver**: `pg`
+- **ORM**: Lucid (`@adonisjs/lucid`)
+
+### Connection & Config
+- Config file: `backend/config/database.ts`
+- Default connection: `pg`
+
+```ts
+// backend/config/database.ts (excerpt)
+connection: 'pg',
+connections: {
+  pg: {
+    client: 'pg',
+    connection: {
+      host: env.get('PG_HOST'),
+      port: env.get('PG_PORT'),
+      user: env.get('PG_USER'),
+      password: env.get('PG_PASSWORD'),
+      database: env.get('PG_DB_NAME'),
+      ssl: env.get('PG_SSL') ? { rejectUnauthorized: false } : false,
+    },
+    migrations: { naturalSort: true, paths: ['database/migrations'] },
+  },
+}
+```
+
+### Environment Variables (Backend)
+- Declared and validated in `backend/start/env.ts`.
+- Required/optional keys impacting DB: `PG_HOST`, `PG_PORT`, `PG_USER`, `PG_PASSWORD`, `PG_DB_NAME`, `PG_SSL`
+
+### Migrations (Schema)
+Location: `backend/database/migrations`
+
+Core app tables:
+- Users & auth: `create_users_table`, `create_access_tokens_table`, `add_role_and_deleted_to_users_table`, `add_job_title_to_users_table`
+- Restaurants & relations: `create_restaurants_table`, `add_owner_and_deleted_to_restaurants_table`, `create_user_restaurants_table`, `create_lead_relations_table`
+- Invites & audit: `create_invitations_table`, `create_audit_log_table`, `add_job_title_to_invitations_table`
+- Menu & orders: `create_menu_items_table`, `create_orders_table`, and subsequent enhancements (batch number, soft delete, constraints, foreign keys)
+- IDP/Performance: roles, competencies, questions, actions, assessments, assessment_answers, descriptions, role_performances, performance_sections, performance_items, user_performance_answers
+
+Notes:
+- Natural sort for migrations is enabled.
+- Soft delete columns exist for entities like users and restaurants (and orders `deleted_at`).
+- Global uniqueness on restaurant names is enforced.
+
+### Seeders (Initial Data)
+Location: `backend/database/seeders`
+- `admin_user_seeder.ts`: Creates an admin or baseline user
+- `restaurant_seeder.ts`: Sample restaurant(s)
+- `menu_item_seeder.ts`: Baseline menu items for demo/testing
+- IDP/Performance seeders: `idp_role_seeder.ts`, `idp_competency_seeder.ts`, `idp_description_seeder.ts`, `idp_assessment_seeder.ts`, `roles_performance_seeder.ts`
+- `additional_data_seeder.ts`: Any extra data needed for local testing
+
+Lifecycle hooks:
+- `npm run dev` runs `predev`: applies pending migrations and seeds
+- `npm start` runs `prestart`: applies migrations only (no seed)
+
+### Models & Relationships (Lucid)
+Location: `backend/app/models`
+- `user.ts`: user fields incl. `role` enum; soft delete (`deleted_at`)
+- `restaurant.ts`: `owner_user_id` (black_shirt owner); soft delete
+- `user_restaurant.ts`: many-to-many membership between users and restaurants
+- `lead_relation.ts`: maps ops_lead to black_shirt (circle ownership)
+- `invitation.ts`: single-use invite codes with optional `restaurant_id`
+- `audit.ts`: append-only audit log entries
+- `menu_item.ts`: menu metadata, batch sizes, cooking times, status
+- `order.ts`: ties table section + `menu_item_id` + batch size + timer fields
+- IDP/Performance: `idp_*` and performance models (roles, competencies, assessments, answers, sections, items)
+
+Relationship highlights:
+- User ↔ Restaurant: many-to-many via `user_restaurants`
+- Restaurant → User (owner): `owner_user_id`
+- Ops lead circle: `lead_relations` connects ops_lead → black_shirt
+- Order → MenuItem: `order.menu_item_id` foreign key; eager loads used in controllers
+
+### Common Commands
+```bash
+# From backend/
+
+# Run migrations
+node ace migration:run
+
+# Rollback last batch
+node ace migration:rollback
+
+# Rerun all migrations from scratch
+node ace migration:reset && node ace migration:run
+
+# Seed database
+node ace db:seed
+
+# Generate a new migration
+node ace make:migration add_field_to_table
+
+# Generate a new seeder
+node ace make:seeder sample_data
+```
+
+### Reset, Backup, Restore (Postgres)
+- Reset (dev): `dropdb blimp && createdb blimp` then migrate + seed
+- Backup: `pg_dump blimp > backup.sql`
+- Restore: `psql blimp < backup.sql`
+
+### Production Notes
+- Keep `APP_KEY` secret and strong
+- Pin `SQLITE_DB_PATH` to a persistent location with backups
+- Consider Postgres for horizontal scale; Lucid supports `pg` with minimal config changes
+- All network addresses and DB paths are configured via environment variables (no hard-coded URLs)
+
+### File Map
+- Config: `backend/config/database.ts` (pg only)
+- Env schema: `backend/start/env.ts` (pg only)
+- Migrations: `backend/database/migrations`
+- Seeders: `backend/database/seeders`
+- Models: `backend/app/models`
+
+### Postgres Migration Guide (Optional)
+
+If/when you outgrow SQLite, switching to Postgres with Lucid is straightforward.
+
+1) Install dependency (backend)
+```bash
+cd backend
+npm i pg
+```
+
+2) Add env variables (`backend/.env`)
+```env
+DB_CLIENT=pg
+PG_HOST=127.0.0.1
+PG_PORT=5432
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_DB_NAME=blimp
+PG_SSL=false
+```
+
+3) Update env schema (`backend/start/env.ts`)
+Add optional Postgres keys (keep existing SQLite keys):
+```ts
+// ... existing keys ...
+DB_CLIENT: Env.schema.enum.optional(['sqlite', 'pg'] as const),
+PG_HOST: Env.schema.string.optional(),
+PG_PORT: Env.schema.number.optional(),
+PG_USER: Env.schema.string.optional(),
+PG_PASSWORD: Env.schema.string.optional(),
+PG_DB_NAME: Env.schema.string.optional(),
+PG_SSL: Env.schema.boolean.optional(),
+```
+
+4) Update DB config (`backend/config/database.ts`)
+```ts
+import env from '#start/env'
+import { defineConfig } from '@adonisjs/lucid'
+
+const dbConfig = defineConfig({
+  connection: env.get('DB_CLIENT') || 'sqlite',
+  connections: {
+    sqlite: {
+      client: 'better-sqlite3',
+      connection: { filename: env.get('SQLITE_DB_PATH') || app.tmpPath('db.sqlite3') },
+      useNullAsDefault: true,
+      migrations: { naturalSort: true, paths: ['database/migrations'] },
+    },
+    pg: {
+      client: 'pg',
+      connection: {
+        host: env.get('PG_HOST'),
+        port: env.get('PG_PORT'),
+        user: env.get('PG_USER'),
+        password: env.get('PG_PASSWORD'),
+        database: env.get('PG_DB_NAME'),
+        ssl: env.get('PG_SSL') ? { rejectUnauthorized: false } : false,
+      },
+      migrations: { naturalSort: true, paths: ['database/migrations'] },
+    },
+  },
+})
+
+export default dbConfig
+```
+
+5) Create DB, migrate, seed
+```bash
+# ensure the database exists
+createdb blimp || true
+
+# run migrations and (optionally) seeds
+node ace migration:run
+node ace db:seed
+```
+
+6) Data migration from SQLite (optional)
+- Dev reset: simplest path is to start Postgres empty and re-seed.
+- Real data: export CSV from SQLite per table and import with `psql` `\copy`.
+
+Compatibility notes
+- Booleans, timestamps, and JSON fields map cleanly via Lucid.
+- Unique constraints and foreign keys are fully enforced (as with SQLite FK pragma enabled).
+- Remove `useNullAsDefault` (only for SQLite) if you later drop SQLite config.
+- Review any raw SQL in migrations/seeders for vendor-specific syntax.
+
+Production notes
+- Use SSL for managed Postgres; configure pooler (e.g., pgbouncer) if needed.
+- Run `ANALYZE` after large imports; add appropriate indexes.
+- Rotate credentials and keep env secrets out of VCS.
+
+Env template (backend/.env)
+```env
+NODE_ENV=development
+HOST=0.0.0.0
+PORT=3333
+APP_NAME=blimp-backend
+APP_URL=http://localhost:3333
+# Generate: openssl rand -hex 32
+APP_KEY=change-me-to-a-long-random-string
+LOG_LEVEL=debug
+
+SESSION_DRIVER=cookie
+
+# CORS
+CORS_ORIGIN=*
+
+# Database (SQLite kept for fallback; Postgres is default)
+SQLITE_DB_PATH=./tmp/db.sqlite3
+DB_CLIENT=pg
+PG_HOST=127.0.0.1
+PG_PORT=5432
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_DB_NAME=blimp
+PG_SSL=false
+
+# Websocket / Realtime
+WS_CORS_ORIGIN=*
+```
 
 ---
 

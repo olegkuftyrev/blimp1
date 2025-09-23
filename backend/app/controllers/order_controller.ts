@@ -316,4 +316,54 @@ export default class OrderController {
       })
     }
   }
+
+  /**
+   * Orders history for BOH (completed/deleted/cancelled)
+   */
+  async history({ request, response }: HttpContext) {
+    try {
+      const restaurantId = Number(request.input('restaurant_id', 1))
+
+      const orders = await Order.query()
+        .where('restaurantId', restaurantId)
+        .where((q) => {
+          q.whereIn('status', ['ready', 'completed', 'deleted', 'cancelled']).orWhereNotNull('deletedAt')
+        })
+        .preload('menuItem')
+        .orderBy('updated_at', 'desc')
+
+      const data = orders.map((o) => {
+        // Compute duration in minutes
+        const endTs = o.completedAt ?? o.deletedAt ?? o.updatedAt ?? o.createdAt
+        const startTs = o.timerStart ?? o.createdAt
+        const durationMinutes = Math.max(0, Math.round(endTs.diff(startTs, 'minutes').minutes))
+
+        return {
+          id: o.id,
+          tableSection: o.tableSection,
+          menuItemId: o.menuItemId,
+          batchSize: o.batchSize,
+          batchNumber: o.batchNumber,
+          status: (o.deletedAt ? 'deleted' : (o.status as any)),
+          timerStart: o.timerStart?.toISO() ?? undefined,
+          timerEnd: o.timerEnd?.toISO() ?? undefined,
+          completedAt: o.completedAt?.toISO() ?? undefined,
+          deletedAt: o.deletedAt?.toISO() ?? undefined,
+          createdAt: o.createdAt.toISO(),
+          updatedAt: o.updatedAt.toISO(),
+          duration: durationMinutes,
+          menuItem: o.menuItem
+            ? {
+                id: o.menuItem.id,
+                itemTitle: o.menuItem.itemTitle,
+              }
+            : undefined,
+        }
+      })
+
+      return response.json({ data })
+    } catch (error: any) {
+      return response.status(500).json({ error: 'Failed to fetch order history', message: error.message })
+    }
+  }
 }

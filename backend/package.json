@@ -64,9 +64,9 @@
     "@adonisjs/static": "^1.1.1",
     "@adonisjs/vite": "^4.0.0",
     "@vinejs/vine": "^3.0.1",
-    "better-sqlite3": "^12.2.0",
     "edge.js": "^6.2.1",
     "luxon": "^3.7.1",
+    "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
     "timer-node": "^5.0.9"

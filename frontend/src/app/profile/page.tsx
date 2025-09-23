@@ -8,6 +8,7 @@ import Team from '@/components/profile/Team';
 import IDPDevelopmentPlan from '@/components/profile/IDPDevelopmentPlan';
 import UserIDP from '@/components/profile/UserIDP';
 import UserPerformance from '@/components/profile/UserPerformance';
+import UserPLTests from '@/components/profile/UserPLTests';
 import UserRoleQuestions from '@/components/profile/UserRoleQuestions';
 import MyPerformance from '@/components/profile/MyPerformance';
 
@@ -27,6 +28,8 @@ function ProfilePageContent() {
         return <UserIDP />;
       case 'user-performance':
         return <UserPerformance />;
+      case 'user-pl-tests':
+        return <UserPLTests />;
       case 'user-role-questions':
         return <UserRoleQuestions />;
       case 'my-profile':

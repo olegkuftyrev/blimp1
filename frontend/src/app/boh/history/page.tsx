@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { History, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { useSWRHistory } from '@/hooks/useSWRHistory';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface OrderHistory {
@@ -30,28 +30,10 @@ function BohHistoryPageContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id') || '1';
   
-  const [orders, setOrders] = useState<OrderHistory[]>([]);
+  const { history: orders, loading } = useSWRHistory(restaurantId);
   const [filter, setFilter] = useState<'all' | 'completed' | 'deleted'>('all');
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
-  const [loading, setLoading] = useState(true);
-
-  const fetchOrderHistory = async () => {
-    try {
-      setLoading(true);
-      const data = await apiFetch<{data: OrderHistory[]}>(`/orders-history?restaurant_id=${restaurantId}`);
-      setOrders(data.data || []);
-    } catch (error) {
-      console.error('Error fetching order history:', error);
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load order history when component mounts or restaurant changes
-  useEffect(() => {
-    fetchOrderHistory();
-  }, [restaurantId]);
+  // SWR handles fetching and revalidation
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;

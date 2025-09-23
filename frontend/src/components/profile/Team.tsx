@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Briefcase, Shield, Eye, BarChart3 } from 'lucide-react';
+import { User, Mail, Briefcase, Shield, Eye, BarChart3, Calculator } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ const getRoleDisplayName = (role: string) => {
     case 'ops_lead': return 'Operations Lead';
     case 'black_shirt': return 'Black Shirt';
     case 'associate': return 'Associate';
+    case 'tablet': return 'Tablet';
     default: return role;
   }
 };
@@ -25,6 +26,7 @@ const getRoleBadgeColor = (role: string) => {
     case 'ops_lead': return 'secondary';
     case 'black_shirt': return 'outline';
     case 'associate': return 'default';
+    case 'tablet': return 'outline';
     default: return 'default';
   }
 };
@@ -68,6 +70,10 @@ export default function Team() {
 
   const handleViewPerformance = (userId: number) => {
     router.push(`/profile?tab=user-performance&userId=${userId}`);
+  };
+
+  const handleViewPLTests = (userId: number) => {
+    router.push(`/profile?tab=user-pl-tests&userId=${userId}`);
   };
 
   if (loading) {
@@ -179,6 +185,15 @@ export default function Team() {
                   >
                     <BarChart3 className="h-4 w-4 mr-2" />
                     View Performance
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewPLTests(member.id)}
+                    className="w-full"
+                  >
+                    <Calculator className="h-4 w-4 mr-2" />
+                    View P&L Tests
                   </Button>
                 </div>
 

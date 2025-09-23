@@ -19,8 +19,14 @@ export default function AuthPage() {
     setError(null)
     setLoading(true)
     try {
-      await login(email, password)
-      router.push('/dashboard')
+      const res = await login(email, password)
+      // If tablet role, redirect to kitchen
+      const role = res?.user?.role
+      if (role === 'tablet') {
+        router.push('/kitchen')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to sign in')
     } finally {

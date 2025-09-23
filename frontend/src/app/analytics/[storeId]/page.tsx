@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,9 @@ import { Calendar, ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 
 interface StorePageProps {
-  params: {
+  params: Promise<{
     storeId: string;
-  };
+  }>;
 }
 
 // Financial calendar periods (4-4-4 structure)
@@ -89,7 +89,8 @@ export default function StoreYearPage({ params }: StorePageProps) {
     );
   }
 
-  const storeId = parseInt(params.storeId);
+  const resolvedParams = use(params);
+  const storeId = parseInt(resolvedParams.storeId);
   const currentStore = restaurants.find(r => r.id === storeId);
 
   if (!currentStore) {

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from "next/link";
-import { ArrowLeft, ChefHat, Clock, Utensils, History, Settings, Edit } from "lucide-react";
+import { ArrowLeft, ChefHat, Clock, Utensils, History, Settings, Edit, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { useAuth } from '@/contexts/AuthContextSWR';
@@ -20,17 +22,19 @@ interface Restaurant {
 
 function KitchenModuleContent() {
   const { user } = useAuth();
-  const { restaurants, loading, error } = useSWRRestaurants();
+  const { restaurants, inactiveRestaurants, loading, error, mutate } = useSWRRestaurants({ includeInactive: true });
+  const [creatingRestaurant, setCreatingRestaurant] = useState(false);
+  const [isCreateRestaurantDialogOpen, setIsCreateRestaurantDialogOpen] = useState(false);
+  const [newRestaurant, setNewRestaurant] = useState<{ name: string; address: string; phone: string }>({ name: '', address: '', phone: '' });
 
   useEffect(() => {
-    // If user has access to only one restaurant, auto-redirect to kitchen dashboard
-    if (restaurants.length === 1 && !loading) {
-      // Small delay to show the page briefly, then redirect
+    // If non-admin user has access to only one restaurant, auto-redirect to its kitchen dashboard
+    if (user?.role !== 'admin' && restaurants.length === 1 && !loading) {
       setTimeout(() => {
         window.location.href = `/kitchen/${restaurants[0].id}`;
       }, 1000);
     }
-  }, [restaurants, loading]);
+  }, [restaurants, loading, user]);
 
   if (loading) {
     return (
@@ -48,14 +52,14 @@ function KitchenModuleContent() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-lg text-destructive mb-4">{error}</p>
-          <Button onClick={fetchRestaurants}>Try Again</Button>
+          <Button onClick={() => mutate()}>Try Again</Button>
         </div>
       </div>
     );
   }
 
   // If only one restaurant, show loading message while redirecting
-  if (restaurants.length === 1) {
+  if (user?.role !== 'admin' && restaurants.length === 1) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -162,9 +166,97 @@ function KitchenModuleContent() {
                   </CardContent>
                 </Card>
               ))}
+              {/* Create New Restaurant card (admin, ops_lead only) */}
+              {user?.role && ['admin', 'ops_lead'].includes(user.role) && (
+                <Card
+                  className="hover:shadow-lg transition-all cursor-pointer h-full border-dashed border-2 hover:border-primary/50 hover:bg-primary/5"
+                  onClick={() => setIsCreateRestaurantDialogOpen(true)}
+                >
+                  <CardContent className="h-full flex flex-col items-center justify-center p-8">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+                        creatingRestaurant ? 'bg-primary/20 animate-pulse' : 'bg-primary/10 hover:bg-primary/20'
+                      }`}>
+                        <Plus className={`h-8 w-8 transition-all ${creatingRestaurant ? 'text-primary animate-spin' : 'text-primary'}`} />
+                      </div>
+                      <div className="text-center">
+                        <h3 className="text-lg font-medium mb-1">{creatingRestaurant ? 'Creating...' : 'Create New Restaurant'}</h3>
+                        <p className="text-sm text-muted-foreground">Add a new store and auto-generate a tablet user</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>
+
+        {inactiveRestaurants?.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Inactive Restaurants</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {inactiveRestaurants.map((r) => (
+                <Card key={r.id} className="border-destructive/40">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-medium">{r.name}</div>
+                        <div className="text-xs text-muted-foreground">{r.address}</div>
+                      </div>
+                      <Badge variant="outline" className="text-destructive border-destructive/50">Inactive</Badge>
+                    </div>
+                    {user?.role && ['admin', 'ops_lead', 'black_shirt'].includes(user.role) && (
+                      <div className="mt-3">
+                        <Link
+                          href={`/kitchen/${r.id}/edit`}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Info
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Create Restaurant Dialog */}
+        <Dialog open={isCreateRestaurantDialogOpen} onOpenChange={setIsCreateRestaurantDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Restaurant</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Input placeholder="Panda Express PX2475" value={newRestaurant.name} onChange={(e) => setNewRestaurant(prev => ({...prev, name: e.target.value}))} />
+              </div>
+              <div>
+                <Input placeholder="123 Main St" value={newRestaurant.address} onChange={(e) => setNewRestaurant(prev => ({...prev, address: e.target.value}))} />
+              </div>
+              <div>
+                <Input placeholder="(555) 123-4567" value={newRestaurant.phone} onChange={(e) => setNewRestaurant(prev => ({...prev, phone: e.target.value}))} />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setIsCreateRestaurantDialogOpen(false)}>Cancel</Button>
+                <Button onClick={async () => {
+                  if (!newRestaurant.name || !newRestaurant.address || !newRestaurant.phone) return;
+                  try {
+                    setCreatingRestaurant(true);
+                    const res = await fetch('/restaurants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRestaurant) as any } as any);
+                  } finally {
+                    setCreatingRestaurant(false);
+                    setIsCreateRestaurantDialogOpen(false);
+                    setNewRestaurant({ name: '', address: '', phone: '' });
+                    mutate();
+                  }
+                }} disabled={creatingRestaurant}>{creatingRestaurant ? 'Creating...' : 'Create Restaurant'}</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Quick Info */}
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-6">

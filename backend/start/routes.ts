@@ -103,6 +103,12 @@ router
   .use(middleware.auth())
 
 // =============================================================================
+// ORDERS HISTORY (Protected)
+// =============================================================================
+
+router.get('/orders-history', '#controllers/order_controller.history').use(middleware.auth())
+
+// =============================================================================
 // KITCHEN ROUTES (Protected)
 // =============================================================================
 
@@ -161,6 +167,34 @@ router
     router.post('/:roleId/answers/bulk', '#controllers/roles_performances_controller.saveAnswersBulk')
   })
   .prefix('/roles-performance')
+  .use(middleware.auth())
+
+// =============================================================================
+// P&L PRACTICE TESTS ROUTES (Protected)
+// =============================================================================
+
+router
+  .group(() => {
+    // Test sets management
+    router.get('/test-sets', '#controllers/pl_questions_controller.getTestSets')
+    router.post('/test-sets', '#controllers/pl_questions_controller.createTestSet')
+    router.get('/test-sets/:id', '#controllers/pl_questions_controller.getTestSet')
+    
+    // Questions and answers
+    router.get('/stats', '#controllers/pl_questions_controller.getStats')
+    router.post('/:id/answer', '#controllers/pl_questions_controller.submitAnswer')
+    
+    // Admin only routes
+    router.post('/test-sets/:testSetId/reset', '#controllers/pl_questions_controller.resetTestSet')
+    router.post('/test-sets/:testSetId/fill-random', '#controllers/pl_questions_controller.fillRandomAnswers')
+    router.post('/test-sets/:testSetId/fill-correct', '#controllers/pl_questions_controller.fillCorrectAnswers')
+    router.delete('/test-sets', '#controllers/pl_questions_controller.deleteAllTestSets')
+    
+    // Admin routes for viewing other users' data
+    router.get('/users/:userId/test-sets', '#controllers/pl_questions_controller.getTestSetsForUser')
+    router.get('/users/:userId/stats', '#controllers/pl_questions_controller.getStatsForUser')
+  })
+  .prefix('/pl-questions')
   .use(middleware.auth())
 
 // =============================================================================

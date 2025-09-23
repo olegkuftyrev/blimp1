@@ -14,20 +14,20 @@ export default class extends BaseSeeder {
         batchLunch: 3,
         batchDowntime: 2,
         batchDinner: 3,
-        cookingTimeBatch1: 7.0,
-        cookingTimeBatch2: 7.0,
-        cookingTimeBatch3: 7.0,
+        cookingTimeBatch1: 7,
+        cookingTimeBatch2: 7,
+        cookingTimeBatch3: 7,
         status: 'available'
       },
       {
         itemTitle: 'test',
         batchBreakfast: 1,
-        batchLunch: 0.5,
+        batchLunch: 1,
         batchDowntime: 2,
         batchDinner: 4,
-        cookingTimeBatch1: 0.1,
-        cookingTimeBatch2: 0.5,
-        cookingTimeBatch3: 1.0,
+        cookingTimeBatch1: 1,
+        cookingTimeBatch2: 1,
+        cookingTimeBatch3: 1,
         status: 'available'
       },
       {
@@ -36,9 +36,9 @@ export default class extends BaseSeeder {
         batchLunch: 3,
         batchDowntime: 2,
         batchDinner: 3,
-        cookingTimeBatch1: 2.5,
-        cookingTimeBatch2: 2.5,
-        cookingTimeBatch3: 2.5,
+        cookingTimeBatch1: 3,
+        cookingTimeBatch2: 3,
+        cookingTimeBatch3: 3,
         status: 'available'
       },
       {
@@ -69,9 +69,9 @@ export default class extends BaseSeeder {
         batchLunch: 2,
         batchDowntime: 1,
         batchDinner: 2,
-        cookingTimeBatch1: 1.5,
-        cookingTimeBatch2: 1.75,
-        cookingTimeBatch3: 2.0,
+        cookingTimeBatch1: 2,
+        cookingTimeBatch2: 2,
+        cookingTimeBatch3: 2,
         status: 'available'
       },
       {
@@ -80,9 +80,9 @@ export default class extends BaseSeeder {
         batchLunch: 2,
         batchDowntime: 1,
         batchDinner: 2,
-        cookingTimeBatch1: 0.75,
-        cookingTimeBatch2: 1.0,
-        cookingTimeBatch3: 1.25,
+        cookingTimeBatch1: 1,
+        cookingTimeBatch2: 1,
+        cookingTimeBatch3: 1,
         status: 'available'
       },
       {
@@ -102,9 +102,9 @@ export default class extends BaseSeeder {
         batchLunch: 2,
         batchDowntime: 1,
         batchDinner: 2,
-        cookingTimeBatch1: 2.5,
-        cookingTimeBatch2: 2.5,
-        cookingTimeBatch3: 2.5,
+        cookingTimeBatch1: 3,
+        cookingTimeBatch2: 3,
+        cookingTimeBatch3: 3,
         status: 'available'
       },
       {
@@ -113,9 +113,9 @@ export default class extends BaseSeeder {
         batchLunch: 2,
         batchDowntime: 1,
         batchDinner: 2,
-        cookingTimeBatch1: 1.25,
-        cookingTimeBatch2: 1.5,
-        cookingTimeBatch3: 1.75,
+        cookingTimeBatch1: 1,
+        cookingTimeBatch2: 2,
+        cookingTimeBatch3: 2,
         status: 'available'
       },
       {
@@ -124,9 +124,9 @@ export default class extends BaseSeeder {
         batchLunch: 2,
         batchDowntime: 1,
         batchDinner: 2,
-        cookingTimeBatch1: 1.25,
-        cookingTimeBatch2: 1.5,
-        cookingTimeBatch3: 1.75,
+        cookingTimeBatch1: 1,
+        cookingTimeBatch2: 2,
+        cookingTimeBatch3: 2,
         status: 'available'
       },
       {
@@ -146,9 +146,9 @@ export default class extends BaseSeeder {
         batchLunch: 1,
         batchDowntime: 1,
         batchDinner: 1,
-        cookingTimeBatch1: 0.75,
-        cookingTimeBatch2: 1.0,
-        cookingTimeBatch3: 1.25,
+        cookingTimeBatch1: 1,
+        cookingTimeBatch2: 1,
+        cookingTimeBatch3: 1,
         status: 'available'
       },
       {

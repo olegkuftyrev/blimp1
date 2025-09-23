@@ -20,7 +20,7 @@ interface User {
   id: number;
   fullName: string;
   email: string;
-  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate';
+  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet';
   jobTitle: 'Hourly Associate' | 'AM' | 'Chef' | 'SM/GM/TL' | 'ACO' | 'RDO';
   restaurants?: Restaurant[];
 }
@@ -99,9 +99,12 @@ function StaffManagementContent() {
   };
   const [users, setUsers] = useState<User[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  // moved to kitchen page
   const [loading, setLoading] = useState(true);
+  // moved to kitchen page
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  // moved to kitchen page
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState<NewUserForm>({
     fullName: '',
@@ -118,6 +121,8 @@ function StaffManagementContent() {
     jobTitle: '',
     restaurantIds: []
   });
+
+  // moved to kitchen page
 
   useEffect(() => {
     fetchUsers();
@@ -178,10 +183,45 @@ function StaffManagementContent() {
 
   const fetchRestaurants = async () => {
     try {
-      const data = await apiFetch<{data: Restaurant[]}>('restaurants');
-      setRestaurants(data.data || []);
+      // includeInactive=1 to receive both lists
+      const data = await apiFetch<{data: Restaurant[] | { active: Restaurant[]; inactive: Restaurant[] } }>('restaurants?includeInactive=1');
+      const payload: any = data.data;
+      if (Array.isArray(payload)) {
+        setRestaurants(payload || []);
+        setInactiveRestaurants([]);
+      } else {
+        setRestaurants(payload.active || []);
+        setInactiveRestaurants(payload.inactive || []);
+      }
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);
+    }
+  };
+
+  const handleCreateRestaurant = async () => {
+    if (!newRestaurant.name || !newRestaurant.address || !newRestaurant.phone) {
+      alert('Please fill in Name, Address and Phone');
+      return;
+    }
+    try {
+      setCreatingRestaurant(true);
+      await apiFetch('restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newRestaurant.name,
+          address: newRestaurant.address,
+          phone: newRestaurant.phone,
+        }),
+      });
+      setIsCreateRestaurantDialogOpen(false);
+      setNewRestaurant({ name: '', address: '', phone: '' });
+      await fetchRestaurants();
+      alert('Restaurant created successfully');
+    } catch (error: any) {
+      alert(error?.message || 'Failed to create restaurant');
+    } finally {
+      setCreatingRestaurant(false);
     }
   };
 
@@ -622,6 +662,8 @@ function StaffManagementContent() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Restaurant UI moved to /kitchen */}
 
         {/* Users Table */}
         <Card>

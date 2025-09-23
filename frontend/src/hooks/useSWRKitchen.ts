@@ -42,8 +42,9 @@ const createOrderMutation = async (url: string, { arg }: { arg: { restaurantId: 
 };
 
 // Hook for managing restaurants
-export function useSWRRestaurants() {
+export function useSWRRestaurants(options?: { includeInactive?: boolean }) {
   const { user } = useAuth();
+  const includeInactive = options?.includeInactive === true;
   
   const { 
     data: restaurantsData, 
@@ -51,7 +52,7 @@ export function useSWRRestaurants() {
     isLoading: loading,
     mutate
   } = useSWR(
-    user ? 'restaurants' : null,
+    user ? (includeInactive ? 'restaurants?includeInactive=1' : 'restaurants') : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -59,10 +60,9 @@ export function useSWRRestaurants() {
       dedupingInterval: 60000, // 1 minute - restaurants don't change often
       onSuccess: (data) => {
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ SWR Restaurants:', { 
-            success: true, 
-            count: data?.data?.length || 0 
-          });
+          const payload = data?.data;
+          const count = Array.isArray(payload) ? (payload?.length || 0) : ((payload?.active?.length || 0) + (payload?.inactive?.length || 0));
+          console.log('✅ SWR Restaurants:', { success: true, count });
         }
       },
       onError: (error) => {
@@ -73,12 +73,11 @@ export function useSWRRestaurants() {
     }
   );
 
-  return {
-    restaurants: restaurantsData?.data || [],
-    loading,
-    error,
-    mutate
-  };
+  const payload = restaurantsData?.data;
+  const restaurants = Array.isArray(payload) ? (payload || []) : (payload?.active || []);
+  const inactiveRestaurants = Array.isArray(payload) ? [] : (payload?.inactive || []);
+
+  return { restaurants, inactiveRestaurants, loading, error, mutate };
 }
 
 // Hook for managing orders for a specific restaurant

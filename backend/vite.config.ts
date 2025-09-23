@@ -16,4 +16,14 @@ export default defineConfig({
       reload: ['resources/views/**/*.edge'],
     }),
   ],
+  /**
+   * Avoid HMR websocket port conflicts (default 24678). You can change this if needed.
+   */
+  server: {
+    host: '127.0.0.1',
+    hmr: {
+      port: 24679,
+      host: '127.0.0.1',
+    },
+  },
 })

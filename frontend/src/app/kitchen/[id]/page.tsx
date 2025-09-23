@@ -36,10 +36,11 @@ function RestaurantKitchenContent() {
   const { user } = useAuth();
   const restaurantId = params.id as string;
   
-  const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
+  const { restaurants, inactiveRestaurants, loading: restaurantsLoading } = useSWRRestaurants({ includeInactive: true });
   const { orders, loading: ordersLoading, error: ordersError } = useSWROrders(restaurantId);
   
-  const restaurant = findRestaurantById(restaurants, restaurantId);
+  const allRestaurants = [...(restaurants || []), ...(inactiveRestaurants || [])];
+  const restaurant = findRestaurantById(allRestaurants, restaurantId);
   const loading = restaurantsLoading || ordersLoading;
   const error = ordersError;
 
@@ -188,20 +189,18 @@ function RestaurantKitchenContent() {
                   </Link>
                   
                   <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href={`/boh/history?restaurant_id=${restaurantId}`}
-                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2"
+                    <div
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background h-9 px-3 py-2 cursor-not-allowed opacity-50"
                     >
                       <History className="h-4 w-4 mr-1" />
-                      History
-                    </Link>
-                    <Link
-                      href={`/boh/settings?restaurant_id=${restaurantId}`}
-                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2"
+                      History - Coming Soon
+                    </div>
+                    <div
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background h-9 px-3 py-2 cursor-not-allowed opacity-50"
                     >
                       <Settings className="h-4 w-4 mr-1" />
-                      Settings
-                    </Link>
+                      Settings - Coming Soon
+                    </div>
                   </div>
                 </div>
               </div>

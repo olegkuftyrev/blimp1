@@ -2,30 +2,51 @@
 
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileSpreadsheet, Upload, CheckCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, FileSpreadsheet, Upload, CheckCircle, XCircle, AlertCircle, Trash2 } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/ui/dropzone';
 import { UploadIcon } from 'lucide-react';
+import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
+import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
 
 interface PeriodReportPageProps {
-  params: {
+  params: Promise<{
     storeId: string;
     year: string;
     period: string;
-  };
+  }>;
 }
 
 export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { restaurants, loading, error } = useSWRRestaurants();
-  const [files, setFiles] = useState<File[] | undefined>();
-  const [isUploading, setIsUploading] = useState(false);
+  
+  const resolvedParams = use(params);
+  const storeId = parseInt(resolvedParams.storeId);
+  const year = parseInt(resolvedParams.year);
+  const period = resolvedParams.period;
+  
+  const {
+    files,
+    isUploading,
+    progress,
+    error: uploadError,
+    success: uploadSuccess,
+    setFiles,
+    uploadPLFile,
+    reset,
+    removeFile,
+  } = usePLFileUploadWithAnalytics(storeId, year, period);
+
+  const [fileItems, setFileItems] = useState<FileUploadItem[]>([]);
 
   useEffect(() => {
     if (user && user.role === 'associate') {
@@ -75,9 +96,6 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     );
   }
 
-  const storeId = parseInt(params.storeId);
-  const year = parseInt(params.year);
-  const period = params.period;
   const currentStore = restaurants.find(r => r.id === storeId);
 
   if (!currentStore) {
@@ -101,29 +119,31 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
 
   const hasData = hasDataForPeriod(period, year);
 
-  const handleDrop = (files: File[]) => {
-    console.log('Files dropped:', files);
-    setFiles(files);
+  const handleFilesChange = (newFileItems: FileUploadItem[]) => {
+    setFileItems(newFileItems);
+    // Also update the legacy files state for compatibility
+    setFiles(newFileItems.map(item => item.file));
   };
 
-  const handleUpload = async () => {
-    if (!files || files.length === 0) return;
-    
-    setIsUploading(true);
+  const handleUpload = async (file: File) => {
     try {
-      // TODO: Implement actual upload logic
-      console.log('Uploading file:', files[0]);
-      
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // TODO: Handle successful upload
-      console.log('Upload completed');
+      await uploadPLFile(file);
     } catch (error) {
       console.error('Upload failed:', error);
-    } finally {
-      setIsUploading(false);
+      throw error; // Re-throw to let the enhanced component handle it
     }
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    setFileItems(prev => prev.filter(item => item.id !== fileId));
+    // Also update legacy files state
+    const remainingFiles = fileItems.filter(item => item.id !== fileId).map(item => item.file);
+    setFiles(remainingFiles);
+  };
+
+  const handleClear = () => {
+    setFileItems([]);
+    reset();
   };
 
   return (
@@ -146,6 +166,24 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
           {hasData ? 'View P&L Report' : 'Upload Excel file to generate P&L Report'}
         </p>
       </div>
+
+      {/* Error Display */}
+      {uploadError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{uploadError}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Success Display */}
+      {uploadSuccess && (
+        <Alert className="mb-6 border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            File uploaded successfully! Your P&L report is being processed.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {hasData ? (
         /* P&L Report Display */
@@ -179,56 +217,18 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
                 Upload your Excel file (.xlsx, .xls) to generate the P&L report for {period} {year}.
               </p>
               
-              <div className="border-2 border-dashed border-border rounded-lg">
-                <Dropzone onDrop={handleDrop} onError={console.error} src={files}>
-                  <DropzoneEmptyState>
-                    <div className="flex w-full items-center gap-4 p-8">
-                      <div className="flex size-16 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                        <UploadIcon size={24} />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-sm">Upload P&L Excel file</p>
-                        <p className="text-muted-foreground text-xs">
-                          Drag and drop or click to upload (.xlsx, .xls)
-                        </p>
-                      </div>
-                    </div>
-                  </DropzoneEmptyState>
-                  <DropzoneContent />
-                </Dropzone>
-              </div>
-
-              {files && files.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                    <FileSpreadsheet className="h-5 w-5 text-green-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{files[0].name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {(files[0].size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleUpload} 
-                    disabled={isUploading}
-                    className="w-full"
-                  >
-                    {isUploading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload & Process P&L Data
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
+              <EnhancedFileUpload
+                files={fileItems}
+                onFilesChange={handleFilesChange}
+                onUpload={handleUpload}
+                onRemove={handleRemoveFile}
+                onClear={handleClear}
+                isUploading={isUploading}
+                maxFiles={1}
+                maxSize={10 * 1024 * 1024} // 10MB
+                acceptedTypes={['.xlsx', '.xls']}
+                disabled={isUploading}
+              />
             </CardContent>
           </Card>
 
@@ -243,6 +243,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
                 <p>• Required columns: Actuals, Plan, Prior Year</p>
                 <p>• File format: .xlsx or .xls</p>
                 <p>• Maximum file size: 10MB</p>
+                <p>• File will be processed automatically after upload</p>
               </div>
             </CardContent>
           </Card>

@@ -1,13 +1,26 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Restaurant from '#models/restaurant'
+import User from '#models/user'
+import UserRestaurant from '#models/user_restaurant'
 import { manageRestaurants } from '#abilities/main'
 
 export default class RestaurantsController {
   /**
    * Display a list of restaurants
    */
-  async index({ response }: HttpContext) {
+  async index({ request, response }: HttpContext) {
     try {
+      const qs = request.qs()
+      const includeInactive = qs.includeInactive === '1' || qs.includeInactive === 'true'
+
+      if (includeInactive) {
+        const [active, inactive] = await Promise.all([
+          Restaurant.query().where('isActive', true),
+          Restaurant.query().where('isActive', false),
+        ])
+        return response.ok({ data: { active, inactive } })
+      }
+
       const restaurants = await Restaurant.query().where('isActive', true)
       return response.ok({ data: restaurants })
     } catch (error) {
@@ -39,12 +52,63 @@ export default class RestaurantsController {
       await bouncer.authorize(manageRestaurants, temp)
 
       const restaurant = await Restaurant.create({ ...data, ownerUserId: temp.ownerUserId ?? null, isActive: true })
+      
+      // Automatically create a tablet user for the restaurant
+      await this.createTabletUserForRestaurant(restaurant, user.id)
+      
       return response.created({ data: restaurant })
     } catch (error: any) {
       if (error.message === 'Restaurant name must be unique' || error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
         return response.badRequest({ error: 'Restaurant name must be unique' })
       }
       return response.badRequest({ error: 'Failed to create restaurant' })
+    }
+  }
+
+  /**
+   * Create a tablet user for a restaurant
+   */
+  private async createTabletUserForRestaurant(restaurant: Restaurant, createdByUserId: number) {
+    try {
+      // Extract restaurant identifier from name (e.g., "Panda Express PX2475" -> "px2475")
+      const restaurantIdentifier = restaurant.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric characters
+        .replace(/pandaexpress/g, '') // Remove "pandaexpress" if present
+        .trim()
+
+      // Generate user credentials based on restaurant identifier
+      const tabletUserData = {
+        fullName: restaurantIdentifier,
+        email: `${restaurantIdentifier}@pandarg.com`,
+        password: `${restaurantIdentifier}${restaurantIdentifier}`, // Double the identifier as password
+        role: 'tablet' as const,
+        jobTitle: 'Hourly Associate' as const
+      }
+
+      // Check if user already exists
+      const existingUser = await User.findBy('email', tabletUserData.email)
+      if (existingUser) {
+        console.log(`Tablet user already exists for restaurant ${restaurant.name}: ${tabletUserData.email}`)
+        return existingUser
+      }
+
+      // Create the tablet user
+      const tabletUser = await User.create(tabletUserData)
+      console.log(`Created tablet user for restaurant ${restaurant.name}: ${tabletUserData.email}`)
+
+      // Assign the user to the restaurant
+      await UserRestaurant.create({
+        userId: tabletUser.id,
+        restaurantId: restaurant.id,
+        addedByUserId: createdByUserId
+      })
+
+      return tabletUser
+    } catch (error: any) {
+      console.error(`Failed to create tablet user for restaurant ${restaurant.name}:`, error.message)
+      // Don't throw the error - we don't want restaurant creation to fail if user creation fails
+      return null
     }
   }
 

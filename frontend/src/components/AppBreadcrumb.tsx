@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContextSWR";
+import { useSWRRestaurants } from "@/hooks/useSWRKitchen";
 
 interface BreadcrumbConfig {
   label: string;
@@ -52,29 +53,23 @@ export default function AppBreadcrumb({ customItems, className = "" }: AppBreadc
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const { restaurants } = useSWRRestaurants();
   const [roles, setRoles] = useState<any[]>([]);
 
-  // Fetch restaurants and roles for context
+  // Fetch roles for context (restaurants now handled by SWR)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchRoles = async () => {
       try {
-        const [restaurantsResponse, rolesResponse] = await Promise.all([
-          apiFetch<{data: any[]}>('/restaurants'),
-          apiFetch<{data: any[]}>('/roles-performance')
-        ]);
-        setRestaurants(restaurantsResponse.data || []);
+        const rolesResponse = await apiFetch<{data: any[]}>('/roles-performance');
         setRoles(rolesResponse.data || []);
       } catch (error) {
-        console.error('Error fetching data for breadcrumb:', error);
-        // Set empty arrays on error to prevent breadcrumb issues
-        setRestaurants([]);
+        console.error('Error fetching roles for breadcrumb:', error);
         setRoles([]);
       }
     };
 
     if (user) {
-      fetchData();
+      fetchRoles();
     }
   }, [user]);
 

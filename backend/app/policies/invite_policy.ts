@@ -119,9 +119,10 @@ export default class InvitePolicy extends BasePolicy {
    */
   async canInviteRole(user: User, targetRole: string): Promise<AuthorizerResponse> {
     const roleHierarchy = {
-      'admin': ['admin', 'ops_lead', 'black_shirt', 'associate'],
-      'ops_lead': ['black_shirt', 'associate'],
-      'black_shirt': ['associate'],
+      'admin': ['admin', 'ops_lead', 'black_shirt', 'associate', 'tablet'],
+      'ops_lead': ['black_shirt', 'associate', 'tablet'],
+      'black_shirt': ['associate', 'tablet'],
+      'tablet': ['tablet'],
       'associate': []
     }
 

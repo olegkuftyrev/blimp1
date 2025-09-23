@@ -6,6 +6,7 @@ import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { AuthProviderSWR as AuthProvider } from "@/contexts/AuthContextSWR";
 import { Provider } from "@/components/ui/provider";
 import Navigation from "@/components/ImprovedNavigation";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import AppBreadcrumb from "@/components/AppBreadcrumb";
 import { ConditionalSidebar } from "@/components/ConditionalSidebar";
 
@@ -37,19 +38,9 @@ export default function RootLayout({
         <Provider defaultTheme="system" enableSystem={true}>
           <AuthProvider>
             <WebSocketProvider>
-              <div className="flex flex-col min-h-screen">
-                <Navigation />
-                <ConditionalSidebar>
-                  <main className="flex-1">
-                    <div className="container mx-auto px-4 pt-4">
-                      <Suspense fallback={<div className="h-8" />}>
-                        <AppBreadcrumb />
-                      </Suspense>
-                    </div>
-                    {children}
-                  </main>
-                </ConditionalSidebar>
-              </div>
+              <ClientLayoutWrapper>
+                {children}
+              </ClientLayoutWrapper>
             </WebSocketProvider>
           </AuthProvider>
         </Provider>

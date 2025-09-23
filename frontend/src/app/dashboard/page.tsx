@@ -93,14 +93,14 @@ const modules: ModuleCard[] = [
     isActive: true
   },
   {
-    id: 'finance',
+    id: 'pl-practice-tests',
     title: 'P&L Practice Tests',
-    description: 'Revenue tracking, expenses, and financial reports',
-    icon: DollarSign,
-    href: '/finance',
+    description: 'Test your knowledge of Profit & Loss calculations and financial metrics',
+    icon: BookOpen,
+    href: '/pl-practice-tests',
     color: 'bg-emerald-500',
-    badge: 'Coming Soon',
-    isActive: false
+    badge: 'Active',
+    isActive: true
   },
   {
     id: 'idp',
@@ -207,7 +207,7 @@ function DashboardContent() {
     // Organize modules into categories
     const managementModules = filteredModules.slice(0, 3); // First 3 modules
     const profitLossModules = filteredModules.filter(m => ['analytics', 'area-pl', 'finance'].includes(m.id));
-    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance'].includes(m.id));
+    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance', 'pl-practice-tests'].includes(m.id));
     // Sort helpers modules to put IDP first, roles-performance third
     helpersModules.sort((a, b) => {
       if (a.id === 'idp') return -1;

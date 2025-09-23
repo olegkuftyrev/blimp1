@@ -28,8 +28,16 @@ export default class IdpAction extends BaseModel {
   declare endDate: string | null // e.g., "28d"
 
   @column({
-    serialize: (value: string | null) => {
-      return value ? JSON.parse(value) : []
+    serialize: (value: unknown) => {
+      if (Array.isArray(value)) return value
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value)
+        } catch {
+          return []
+        }
+      }
+      return []
     },
     prepare: (value: string[] | null) => {
       return value ? JSON.stringify(value) : null
@@ -38,8 +46,16 @@ export default class IdpAction extends BaseModel {
   declare responsible: string[] | null // Array of responsible parties
 
   @column({
-    serialize: (value: string | null) => {
-      return value ? JSON.parse(value) : []
+    serialize: (value: unknown) => {
+      if (Array.isArray(value)) return value
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value)
+        } catch {
+          return []
+        }
+      }
+      return []
     },
     prepare: (value: string[] | null) => {
       return value ? JSON.stringify(value) : null

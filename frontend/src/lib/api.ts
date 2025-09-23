@@ -22,7 +22,7 @@ export type AuthUser = {
   id: number;
   email: string;
   fullName?: string | null;
-  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate';
+  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet';
   job_title?: string;
 };
 
@@ -30,7 +30,7 @@ export type TeamMember = {
   id: number;
   email: string;
   fullName?: string | null;
-  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate';
+  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet';
   jobTitle?: string;
   restaurants?: Restaurant[];
   createdAt: string;

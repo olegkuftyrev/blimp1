@@ -5,7 +5,7 @@ import hash from '@adonisjs/core/services/hash'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 
-export type UserRole = 'admin' | 'ops_lead' | 'black_shirt' | 'associate'
+export type UserRole = 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet'
 export type UserJobTitle = 'Hourly Associate' | 'AM' | 'Chef' | 'SM/GM/TL' | 'ACO' | 'RDO'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {

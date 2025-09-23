@@ -9,13 +9,13 @@ interface AuthUser {
   id: number;
   email: string;
   fullName: string;
-  role: string;
+  role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet';
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -44,6 +44,7 @@ export function AuthProviderSWR({ children }: { children: React.ReactNode }) {
       await mutateUser();
       
       console.log('🎉 Login completed successfully');
+      return response;
     } catch (error: any) {
       console.error('❌ Login failed:', error);
       throw new Error(loginError?.message || error.message || 'Login failed');

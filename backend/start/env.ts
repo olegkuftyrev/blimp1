@@ -40,10 +40,16 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
-  | Database configuration (SQLite only)
+  | Optional Postgres configuration
   |----------------------------------------------------------
   */
-  SQLITE_DB_PATH: Env.schema.string.optional(),
+  // Postgres is the only supported DB now
+  PG_HOST: Env.schema.string.optional(),
+  PG_PORT: Env.schema.number.optional(),
+  PG_USER: Env.schema.string.optional(),
+  PG_PASSWORD: Env.schema.string.optional(),
+  PG_DB_NAME: Env.schema.string.optional(),
+  PG_SSL: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------

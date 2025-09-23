@@ -23,7 +23,8 @@ import {
   Banknote,
   BookOpen,
   LogOut,
-  TrendingUp
+  TrendingUp,
+  Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContextSWR';
@@ -46,8 +47,8 @@ const ImprovedNavigation = () => {
   const isActive = (path: string) => pathname === path;
   const isBohActive = () => pathname.startsWith('/boh');
   const isManagementActive = () => pathname.startsWith('/kitchen') || pathname.startsWith('/staff') || pathname.startsWith('/pay-structure');
-  const isProfitLossActive = () => pathname.startsWith('/analytics') || pathname.startsWith('/finance');
-  const isLearningActive = () => pathname.startsWith('/idp') || pathname.startsWith('/roles-performance') || pathname.startsWith('/inventory') || pathname.startsWith('/compliance');
+  const isProfitLossActive = () => pathname.startsWith('/analytics') || pathname.startsWith('/area-pl');
+  const isLearningActive = () => pathname.startsWith('/idp') || pathname.startsWith('/roles-performance') || pathname.startsWith('/inventory') || pathname.startsWith('/compliance') || pathname.startsWith('/pl-practice-tests');
   const isOthersActive = () => pathname.startsWith('/delivery') || pathname.startsWith('/customer') || pathname.startsWith('/scheduling');
 
   const toggleMobileMenu = () => {
@@ -223,14 +224,17 @@ const ImprovedNavigation = () => {
                           Sales reports, performance metrics
                         </ListItem>
                       )}
-                      <ListItem 
-                        href="/finance" 
-                        title="P&L Practice Tests"
-                        icon={<DollarSign className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/finance') && "bg-accent text-accent-foreground")}
-                      >
-                        Revenue tracking, expenses (Coming Soon)
-                      </ListItem>
+                      {user && ['admin', 'ops_lead'].includes(user.role) && (
+                        <ListItem 
+                          href="/area-pl" 
+                          title="Area P&L"
+                          icon={<DollarSign className="h-4 w-4" />}
+                          className={cn(isActive('/area-pl') && "bg-accent text-accent-foreground")}
+                        >
+                          Comprehensive profit and loss analysis for your area
+                        </ListItem>
+                      )}
+                      
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
@@ -255,6 +259,14 @@ const ImprovedNavigation = () => {
                         className={cn(isActive('/idp') && "bg-accent text-accent-foreground")}
                       >
                         Personal and professional development planning
+                      </ListItem>
+                      <ListItem 
+                        href="/pl-practice-tests" 
+                        title="P&L Practice Tests"
+                        icon={<Calculator className="h-4 w-4" />}
+                        className={cn(isActive('/pl-practice-tests') && "bg-accent text-accent-foreground")}
+                      >
+                        Test your knowledge of Profit & Loss calculations and financial metrics
                       </ListItem>
                       <ListItem 
                         href="/roles-performance" 
@@ -508,19 +520,22 @@ const ImprovedNavigation = () => {
                     Analytics & Reports
                   </Link>
                 )}
-                <Link
-                  href="/finance"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/finance')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <DollarSign className="h-4 w-4" />
-                  P&L Practice Tests
-                </Link>
+                {user && ['admin', 'ops_lead'].includes(user.role) && (
+                  <Link
+                    href="/area-pl"
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                      isActive('/area-pl')
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    onClick={closeMobileMenu}
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    Area P&L
+                  </Link>
+                )}
+                
               </div>
             </div>
 
@@ -543,6 +558,19 @@ const ImprovedNavigation = () => {
                 >
                   <BookOpen className="h-4 w-4" />
                   Individual Development Plan
+                </Link>
+                <Link
+                  href="/pl-practice-tests"
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                    isActive('/pl-practice-tests')
+                      ? "bg-accent text-accent-foreground"
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                  onClick={closeMobileMenu}
+                >
+                  <Calculator className="h-4 w-4" />
+                  P&L Practice Tests
                 </Link>
                 <Link
                   href="/roles-performance"

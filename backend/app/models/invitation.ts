@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 
-export type InviteRole = 'admin' | 'ops_lead' | 'black_shirt' | 'associate'
+export type InviteRole = 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet'
 export type InviteJobTitle = 'Hourly Associate' | 'AM' | 'Chef' | 'SM/GM/TL' | 'ACO' | 'RDO'
 
 export default class Invitation extends BaseModel {

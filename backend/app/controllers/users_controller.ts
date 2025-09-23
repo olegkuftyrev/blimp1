@@ -162,11 +162,11 @@ export default class UsersController {
       if (currentUser.role === 'admin') {
         // Admin can see all users
       } else if (currentUser.role === 'ops_lead') {
-        // Ops Lead can see admin, ops_lead, black_shirt, and associate
-        users = users.filter(user => ['admin', 'ops_lead', 'black_shirt', 'associate'].includes(user.role))
+        // Ops Lead can see admin, ops_lead, black_shirt, associate, and tablet
+        users = users.filter(user => ['admin', 'ops_lead', 'black_shirt', 'associate', 'tablet'].includes(user.role))
       } else if (currentUser.role === 'black_shirt') {
-        // Black Shirt can see admin, ops_lead, black_shirt, and associate
-        users = users.filter(user => ['admin', 'ops_lead', 'black_shirt', 'associate'].includes(user.role))
+        // Black Shirt can see admin, ops_lead, black_shirt, associate, and tablet
+        users = users.filter(user => ['admin', 'ops_lead', 'black_shirt', 'associate', 'tablet'].includes(user.role))
       }
       // Associates should not reach this point due to policy restrictions
 

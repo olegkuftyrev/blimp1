@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants, useSWRUpdateRestaurant, findRestaurantById } from '@/hooks/useSWRKitchen';
+import { mutate } from 'swr';
 import { useAuth } from '@/contexts/AuthContextSWR';
 
 interface Restaurant {
@@ -27,10 +28,11 @@ function EditRestaurantContent() {
   const { user } = useAuth();
   const restaurantId = params.id as string;
   
-  const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
+  const { restaurants, inactiveRestaurants, loading: restaurantsLoading } = useSWRRestaurants({ includeInactive: true });
   const { updateRestaurant, isUpdating, updateError } = useSWRUpdateRestaurant(restaurantId);
   
-  const restaurant = findRestaurantById(restaurants, restaurantId);
+  const allRestaurants = [...(restaurants || []), ...(inactiveRestaurants || [])];
+  const restaurant = findRestaurantById(allRestaurants, restaurantId);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -39,7 +41,7 @@ function EditRestaurantContent() {
   });
   const loading = restaurantsLoading;
   const saving = isUpdating;
-  const error = updateError;
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   // Check if user has permission to edit restaurants
@@ -61,6 +63,13 @@ function EditRestaurantContent() {
       setError('You do not have permission to edit restaurant information');
     }
   }, [canEditRestaurant]);
+
+  // Handle update errors from SWR
+  useEffect(() => {
+    if (updateError) {
+      setError(updateError);
+    }
+  }, [updateError]);
 
   // Removed fetchRestaurant - now handled by SWR and useEffect
 
@@ -105,6 +114,12 @@ function EditRestaurantContent() {
 
       await updateRestaurant(updateData);
       setSuccess(true);
+
+      // Refresh both active-only and includeInactive caches
+      await Promise.all([
+        mutate('restaurants'),
+        mutate('restaurants?includeInactive=1')
+      ]);
 
       // Redirect back to kitchen dashboard after short delay
       setTimeout(() => {

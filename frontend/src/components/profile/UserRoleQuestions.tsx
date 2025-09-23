@@ -173,6 +173,7 @@ export default function UserRoleQuestions() {
       case 'ops_lead': return 'Operations Lead';
       case 'black_shirt': return 'Black Shirt';
       case 'associate': return 'Associate';
+      case 'tablet': return 'Tablet';
       default: return role;
     }
   };
