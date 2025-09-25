@@ -26,8 +26,9 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
           <AppSidebar />
         </Suspense>
         <div className="flex-1">
-          <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
+          <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background">
+            <SidebarTrigger className="-ml-1 hover:bg-accent" />
+            <div className="flex-1" />
           </div>
           {/* Content is now positioned correctly by the main element's pt-16 */}
           {children}

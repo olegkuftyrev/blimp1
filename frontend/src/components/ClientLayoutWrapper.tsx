@@ -18,16 +18,18 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
           {children}
         </main>
       ) : (
-        <ConditionalSidebar>
-          <main className="flex-1 pt-16">
-            <div className="container mx-auto px-4 pt-4">
-              <Suspense fallback={<div className="h-8" />}>
-                <AppBreadcrumb />
-              </Suspense>
-            </div>
-            {children}
-          </main>
-        </ConditionalSidebar>
+        <div className="flex-1 pt-16">
+          <ConditionalSidebar>
+            <main className="flex-1">
+              <div className="container mx-auto px-4 pt-4">
+                <Suspense fallback={<div className="h-8" />}>
+                  <AppBreadcrumb />
+                </Suspense>
+              </div>
+              {children}
+            </main>
+          </ConditionalSidebar>
+        </div>
       )}
     </div>
   )
