@@ -103,6 +103,16 @@ const modules: ModuleCard[] = [
     isActive: true
   },
   {
+    id: 'recipe-book',
+    title: 'Recipe Book',
+    description: 'Browse and manage your recipes in one place',
+    icon: BookOpen,
+    href: '/recipe-book',
+    color: 'bg-rose-500',
+    badge: 'Coming Soon',
+    isActive: false
+  },
+  {
     id: 'idp',
     title: 'Individual Development Plant',
     description: 'Personal and professional development planning and tracking',
@@ -165,6 +175,15 @@ function DashboardContent() {
     
     // Apply role-based access control for specific modules
     filteredModules = filteredModules.map(module => {
+      if (module.id === 'kitchen') {
+        const isAuthorized = ['admin', 'ops_lead', 'black_shirt'].includes(user.role);
+        return {
+          ...module,
+          badge: isAuthorized ? 'Active' : 'Restricted',
+          description: isAuthorized ? 'Order tracking, timers, and kitchen operations' : 'Restricted Access - Black Shirt and above',
+          isActive: isAuthorized
+        };
+      }
       if (module.id === 'pay-structure') {
         const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
         return {
@@ -207,13 +226,19 @@ function DashboardContent() {
     // Organize modules into categories
     const managementModules = filteredModules.slice(0, 3); // First 3 modules
     const profitLossModules = filteredModules.filter(m => ['analytics', 'area-pl', 'finance'].includes(m.id));
-    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance', 'pl-practice-tests'].includes(m.id));
-    // Sort helpers modules to put IDP first, roles-performance third
+    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance', 'pl-practice-tests', 'recipe-book'].includes(m.id));
+    // Sort helpers modules to put IDP first, Roles Performance third, Grow Camp last
     helpersModules.sort((a, b) => {
-      if (a.id === 'idp') return -1;
-      if (b.id === 'idp') return 1;
-      if (a.id === 'roles-performance') return 2;
-      if (b.id === 'roles-performance') return -2;
+      const order: Record<string, number> = {
+        'idp': 0,
+        'pl-practice-tests': 1,
+        'roles-performance': 2,
+        'recipe-book': 3,
+        'compliance': 999 // Grow Camp should be last
+      };
+      const aOrder = order[a.id] ?? 5;
+      const bOrder = order[b.id] ?? 5;
+      if (aOrder !== bOrder) return aOrder - bOrder;
       return 0;
     });
     const othersModules = filteredModules.filter(m => 
@@ -229,6 +254,7 @@ function DashboardContent() {
   };
   
   const categorizedModules = getCategorizedModules();
+  const isKitchenAuthorized = user ? ['admin', 'ops_lead', 'black_shirt'].includes(user.role) : false;
   
   return (
     <div className="min-h-screen bg-background p-6">
@@ -241,6 +267,68 @@ function DashboardContent() {
           <p className="text-muted-foreground text-lg">
             Manage all aspects of your restaurant operations from one central location
           </p>
+        </div>
+
+        {/* Quick Actions - moved to top */}
+        <div className="bg-card rounded-lg p-6 mb-8">
+          <h3 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {isKitchenAuthorized ? (
+              <Link
+                href="/kitchen"
+                className="flex items-center space-x-3 p-4 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 transition-colors"
+              >
+                <ChefHat className="h-8 w-8 text-orange-600" />
+                <div>
+                  <p className="font-medium text-foreground">Kitchen Management</p>
+                  <p className="text-sm text-muted-foreground">Access kitchen operations</p>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center space-x-3 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 opacity-70 cursor-not-allowed">
+                <ChefHat className="h-8 w-8 text-orange-600" />
+                <div>
+                  <p className="font-medium text-foreground">Kitchen Management</p>
+                  <p className="text-sm text-muted-foreground">Restricted - Black Shirt and above</p>
+                </div>
+              </div>
+            )}
+
+            <Link
+              href="/boh/history"
+              className="flex items-center space-x-3 p-4 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 transition-colors"
+            >
+              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <div>
+                <p className="font-medium text-foreground">Order History</p>
+                <p className="text-sm text-muted-foreground">Review completed orders</p>
+              </div>
+            </Link>
+
+            {user && ['admin', 'ops_lead'].includes(user.role) && (
+              <Link
+                href="/pay-structure"
+                className="flex items-center space-x-3 p-4 rounded-lg bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/30 transition-colors"
+              >
+                <Banknote className="h-8 w-8 text-cyan-600" />
+                <div>
+                  <p className="font-medium text-foreground">Pay Structure</p>
+                  <p className="text-sm text-muted-foreground">Manage regional pay rates</p>
+                </div>
+              </Link>
+            )}
+
+            <Link
+              href="/profile"
+              className="flex items-center space-x-3 p-4 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 transition-colors"
+            >
+              <Settings className="h-8 w-8 text-purple-600" />
+              <div>
+                <p className="font-medium text-foreground">Settings</p>
+                <p className="text-sm text-muted-foreground">Manage your profile and preferences</p>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Quick Stats */}
@@ -531,57 +619,7 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="bg-card rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Link
-              href="/kitchen"
-              className="flex items-center space-x-3 p-4 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 transition-colors"
-            >
-              <ChefHat className="h-8 w-8 text-orange-600" />
-              <div>
-                <p className="font-medium text-foreground">Kitchen Management</p>
-                <p className="text-sm text-muted-foreground">Access kitchen operations</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/boh/history"
-              className="flex items-center space-x-3 p-4 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 transition-colors"
-            >
-              <BarChart3 className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="font-medium text-foreground">Order History</p>
-                <p className="text-sm text-muted-foreground">Review completed orders</p>
-              </div>
-            </Link>
-
-            {user && ['admin', 'ops_lead'].includes(user.role) && (
-              <Link
-                href="/pay-structure"
-                className="flex items-center space-x-3 p-4 rounded-lg bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/30 transition-colors"
-              >
-                <Banknote className="h-8 w-8 text-cyan-600" />
-                <div>
-                  <p className="font-medium text-foreground">Pay Structure</p>
-                  <p className="text-sm text-muted-foreground">Manage regional pay rates</p>
-                </div>
-              </Link>
-            )}
-
-            <Link
-              href="/profile"
-              className="flex items-center space-x-3 p-4 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 transition-colors"
-            >
-              <Settings className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="font-medium text-foreground">Settings</p>
-                <p className="text-sm text-muted-foreground">Manage your profile and preferences</p>
-              </div>
-            </Link>
-          </div>
-        </div>
+        
       </div>
     </div>
   );

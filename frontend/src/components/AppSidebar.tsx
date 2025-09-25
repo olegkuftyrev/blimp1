@@ -1,7 +1,10 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { User, Users, Target, BarChart3 } from 'lucide-react';
+import { useSWRRecipeBookItems } from '@/hooks/useSWRMenuItems';
+import { useAuth } from '@/contexts/AuthContextSWR';
+import { User, Users, Target, BarChart3, BookOpen, ChevronDown } from 'lucide-react';
+import React from 'react'
 import {
   Sidebar,
   SidebarContent,
@@ -13,8 +16,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from '@/contexts/AuthContextSWR';
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
 
@@ -42,9 +48,27 @@ const getRoleBadgeColor = (role: string) => {
 
 export function AppSidebar() {
   const { user } = useAuth();
+  const { menuItems: recipeItems, isLoading: recipeLoading } = useSWRRecipeBookItems();
+  const { state } = useSidebar();
+  
+  // Group recipes by category
+  const recipesByCategory = recipeItems.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, typeof recipeItems>);
+
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'my-profile';
+  const [openCategory, setOpenCategory] = React.useState<string | null>('Chicken') // Default to Chicken being open
+
+  // Apply smooth transition classes based on sidebar state
+  const sidebarClasses = state === 'collapsed' 
+    ? 'w-0 opacity-0 pointer-events-none overflow-hidden' 
+    : 'w-[--sidebar-width] opacity-100 pointer-events-auto';
 
   // Profile navigation items
   const profileItems = [
@@ -76,24 +100,30 @@ export function AppSidebar() {
 
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-sidebar-accent rounded-full flex items-center justify-center">
-            <User className="h-5 w-5 text-sidebar-accent-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate text-sidebar-foreground">
-              {user?.fullName || 'User'}
-            </p>
-            <div className="flex items-center space-x-2 mt-1">
-              <Badge variant={getRoleBadgeColor(user?.role || '') as any} className="text-xs">
-                {getRoleDisplayName(user?.role || '')}
-              </Badge>
+    <Sidebar 
+      collapsible="icon" 
+      className={`transition-all duration-300 ease-in-out ${sidebarClasses}`}
+    >
+      {/* Hide header (logo/profile) on recipe-book pages per request */}
+      {!pathname.startsWith('/recipe-book') && (
+        <SidebarHeader className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-sidebar-accent rounded-full flex items-center justify-center">
+              <User className="h-5 w-5 text-sidebar-accent-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate text-sidebar-foreground">
+                {user?.fullName || 'User'}
+              </p>
+              <div className="flex items-center space-x-2 mt-1">
+                <Badge variant={getRoleBadgeColor(user?.role || '') as any} className="text-xs">
+                  {getRoleDisplayName(user?.role || '')}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
-      </SidebarHeader>
+        </SidebarHeader>
+      )}
       
       <SidebarContent>
         {/* Profile Section */}
@@ -117,99 +147,77 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
+        {/* Recipe Book Section */}
+        {pathname.startsWith('/recipe-book') && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Recipe Book</SidebarGroupLabel>
+            <SidebarGroupContent>
 
-        {/* Removed IDP Section - not needed on IDP pages */}
-        {false && (
-          <>
-            <SidebarGroup>
-              <SidebarGroupLabel>IDP Navigation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {idpItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={pathname === item.url}>
-                        <Link href={item.url}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+              {/* Recipe Book Categories */}
+              {Object.entries(recipesByCategory).map(([category, items]) => {
+                const categorySlug = category.toLowerCase();
+                const isOpen = openCategory === category;
+                
+                const handleToggle = () => {
+                  setOpenCategory(isOpen ? null : category);
+                };
 
-            {/* IDP Summary */}
-            <SidebarGroup>
-              <SidebarGroupLabel>Assessment Summary</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <div className="px-3 py-2 space-y-3">
-                  {idpData.loading ? (
-                    <div className="text-xs text-sidebar-foreground/60">Loading...</div>
-                  ) : idpData.error ? (
-                    <div className="text-xs text-red-500">Error loading data</div>
-                  ) : !idpData.assessment ? (
-                    <div className="text-xs text-sidebar-foreground/60">No assessment started</div>
-                  ) : (
-                    <>
-                      {/* Assessment Status */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-sidebar-foreground/60">Status</span>
-                          <Badge variant="outline" className="text-xs">
-                            {idpData.assessment.status === 'completed' ? 'Complete' : 
-                             idpData.assessment.status === 'in_progress' ? 'In Progress' : 'Draft'}
-                          </Badge>
-                        </div>
-                      </div>
+                return (
+                  <div key={category} className="px-2 mt-1">
+                    <button
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      onClick={handleToggle}
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      <span>{category}</span>
+                      <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                    </button>
+                    {isOpen && (
+                      <SidebarMenu>
+                        <SidebarMenuItem>
+                          <SidebarMenuSub>
+                            {recipeLoading ? (
+                              <SidebarMenuSubItem>
+                                <span className="text-sm text-muted-foreground">Loading recipes...</span>
+                              </SidebarMenuSubItem>
+                            ) : items.length === 0 ? (
+                              <SidebarMenuSubItem>
+                                <span className="text-sm text-muted-foreground">No {category.toLowerCase()} recipes found</span>
+                              </SidebarMenuSubItem>
+                            ) : (
+                              items.map((item) => {
+                                // Extract code from item title (e.g., "C1 Orange Chicken" -> "C1")
+                                const code = item.itemTitle.split(' ')[0];
+                                const title = item.itemTitle.replace(code + ' ', '');
+                                const slug = code.toLowerCase();
+                                
+                                return (
+                                  <SidebarMenuSubItem key={item.id}>
+                                    <SidebarMenuSubButton
+                                      asChild
+                                      isActive={pathname === `/recipe-book/${categorySlug}/${slug}`}
+                                    >
+                                      <Link href={`/recipe-book/${categorySlug}/${slug}`}>
+                                        <span>{code} - {title}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                );
+                              })
+                            )}
+                          </SidebarMenuSub>
+                        </SidebarMenuItem>
+                      </SidebarMenu>
+                    )}
+                  </div>
+                );
+              })}
 
-                      {/* Progress */}
-                      {idpData.assessment.status !== 'completed' && (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-sidebar-foreground/60">Progress</span>
-                            <span className="text-sidebar-foreground">{Math.round(idpData.progress)}%</span>
-                          </div>
-                          <Progress value={idpData.progress} className="h-1" />
-                        </div>
-                      )}
-
-                      {/* Expert Competencies */}
-                      {idpData.assessment.status === 'completed' && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs">
-                            <Award className="h-3 w-3 text-green-600" />
-                            <span className="text-sidebar-foreground/60">Expert Areas</span>
-                            <span className="ml-auto text-sidebar-foreground font-medium">{idpData.expertCompetencies}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-xs">
-                            <AlertTriangle className="h-3 w-3 text-yellow-600" />
-                            <span className="text-sidebar-foreground/60">Development</span>
-                            <span className="ml-auto text-sidebar-foreground font-medium">{idpData.developmentAreas}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Last Assessment Date */}
-                      {idpData.lastAssessmentDate && (
-                        <div className="flex items-center gap-2 text-xs">
-                          <Calendar className="h-3 w-3 text-sidebar-foreground/40" />
-                          <span className="text-sidebar-foreground/60">
-                            {idpData.assessment.status === 'completed' ? 'Completed' : 'Updated'}
-                          </span>
-                          <span className="ml-auto text-sidebar-foreground/80 text-xs">
-                            {new Date(idpData.lastAssessmentDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
+
+
       </SidebarContent>
       
       <SidebarRail />

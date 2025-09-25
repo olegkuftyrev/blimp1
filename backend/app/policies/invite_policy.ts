@@ -15,9 +15,9 @@ export default class InvitePolicy extends BasePolicy {
       return true
     }
 
-    // Ops Lead can invite black_shirt and associate to their restaurants
+    // Ops Lead can invite black_shirt, associate, and tablet to their restaurants
     if (user.role === 'ops_lead') {
-      if (!['black_shirt', 'associate'].includes(role)) {
+      if (!['black_shirt', 'associate', 'tablet'].includes(role)) {
         return false
       }
 
@@ -28,8 +28,8 @@ export default class InvitePolicy extends BasePolicy {
       return true // Can create invites without specific restaurant
     }
 
-    // Black Shirt can invite associates to their restaurants
-    if (user.role === 'black_shirt' && role === 'associate') {
+    // Black Shirt can invite associates and tablets to their restaurants
+    if (user.role === 'black_shirt' && ['associate', 'tablet'].includes(role)) {
       if (restaurantId) {
         return await this.hasRestaurantAccess(user, restaurantId)
       }
@@ -122,8 +122,8 @@ export default class InvitePolicy extends BasePolicy {
       'admin': ['admin', 'ops_lead', 'black_shirt', 'associate', 'tablet'],
       'ops_lead': ['black_shirt', 'associate', 'tablet'],
       'black_shirt': ['associate', 'tablet'],
-      'tablet': ['tablet'],
-      'associate': []
+      'tablet': [], // Tablets cannot invite anyone
+      'associate': [] // Associates cannot invite anyone
     }
 
     const allowedRoles = roleHierarchy[user.role as keyof typeof roleHierarchy] || []

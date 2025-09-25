@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["@chakra-ui/react"],
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3333';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:61340';
     return [
       {
         source: "/api/:path*",

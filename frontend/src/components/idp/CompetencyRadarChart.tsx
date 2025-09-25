@@ -70,9 +70,15 @@ export function CompetencyRadarChart({
       <div className="pb-0 hidden md:block">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto w-full max-w-[860px] min-w-[640px] h-[420px] px-8 overflow-visible"
+          className="mx-auto w-full max-w-[860px] h-[420px] px-4 overflow-visible items-center justify-center"
         >
-          <RadarChart data={data} margin={{ top: 8, right: 120, bottom: 8, left: 120 }} outerRadius="70%">
+          <RadarChart 
+            data={data} 
+            margin={{ top: 16, right: 16, bottom: 16, left: 16 }} 
+            outerRadius="60%"
+            cx="50%"
+            cy="50%"
+          >
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <PolarAngleAxis dataKey="competency" tick={{ fontSize: 14 }} tickLine={false} />
             <PolarGrid />

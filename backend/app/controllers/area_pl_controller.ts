@@ -1,11 +1,19 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import PlPolicy from '#policies/pl_policy'
 
 export default class AreaPlController {
   /**
    * Get Area P&L dashboard data
-   * Restricted to admin role only
+   * Restricted to admin and ops_lead roles only
    */
-  async index({ response }: HttpContext) {
+  async index({ auth, response }: HttpContext) {
+    const currentUser = auth.user!
+    
+    // Check permission using policy
+    const plPolicy = new PlPolicy()
+    if (!(await plPolicy.viewAreaPl(currentUser))) {
+      return response.status(403).json({ error: 'Access denied. Area P&L is restricted to admin and ops_lead roles.' })
+    }
     try {
       // TODO: Implement actual P&L data retrieval
       // This is a placeholder structure for Area P&L data

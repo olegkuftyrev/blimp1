@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import IdpRole from '#models/idp_role'
 import IdpAssessment from '#models/idp_assessment'
 import IdpAssessmentAnswer from '#models/idp_assessment_answer'
+import IdpPolicy from '#policies/idp_policy'
 import { DateTime } from 'luxon'
 
 export default class IdpController {
@@ -174,44 +175,18 @@ export default class IdpController {
         return response.status(400).json({ error: 'Invalid user ID' })
       }
 
-      // Check if current user has permission to view this user's IDP
-      // Same permissions as viewing team members
-      if (currentUser.role === 'associate') {
-        return response.status(403).json({ error: 'Insufficient permissions' })
-      }
-
-      let hasPermission = false
-      
-      if (currentUser.role === 'admin') {
-        hasPermission = true
-      } else {
-        // For non-admin users, check if they share restaurants with the target user
-        const UserRestaurant = await import('#models/user_restaurant')
-        const currentUserRestaurants = await UserRestaurant.default.query()
-          .where('user_id', currentUser.id)
-          .select('restaurant_id')
-        
-        const targetUserRestaurants = await UserRestaurant.default.query()
-          .where('user_id', targetUserId)
-          .select('restaurant_id')
-        
-        const currentRestaurantIds = currentUserRestaurants.map(ur => ur.restaurantId)
-        const targetRestaurantIds = targetUserRestaurants.map(ur => ur.restaurantId)
-        
-        // Check if they share any restaurants
-        hasPermission = currentRestaurantIds.some(id => targetRestaurantIds.includes(id))
-      }
-
-      if (!hasPermission) {
-        return response.status(403).json({ error: 'You can only view IDPs of your team members' })
-      }
-
       // Find the target user
       const User = await import('#models/user')
       const targetUser = await User.default.find(targetUserId)
       
       if (!targetUser) {
         return response.status(404).json({ error: 'User not found' })
+      }
+
+      // Check permission using policy
+      const idpPolicy = new IdpPolicy()
+      if (!(await idpPolicy.viewUserAssessment(currentUser, targetUser))) {
+        return response.status(403).json({ error: 'You can only view IDPs of your team members' })
       }
 
       // Find active assessment for the target user

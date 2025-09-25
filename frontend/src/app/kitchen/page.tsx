@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { useAuth } from '@/contexts/AuthContextSWR';
+import { apiFetch } from '@/lib/api';
 
 interface Restaurant {
   id: number;
@@ -117,7 +118,7 @@ function KitchenModuleContent() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {restaurants.map((restaurant) => (
+              {restaurants.map((restaurant: Restaurant) => (
                 <Card key={restaurant.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -195,7 +196,7 @@ function KitchenModuleContent() {
           <div className="mb-8">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Inactive Restaurants</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {inactiveRestaurants.map((r) => (
+              {inactiveRestaurants.map((r: Restaurant) => (
                 <Card key={r.id} className="border-destructive/40">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
@@ -231,7 +232,16 @@ function KitchenModuleContent() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Input placeholder="Panda Express PX2475" value={newRestaurant.name} onChange={(e) => setNewRestaurant(prev => ({...prev, name: e.target.value}))} />
+                <Input
+                  placeholder="12345"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={newRestaurant.name}
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/\D/g, '');
+                    setNewRestaurant(prev => ({ ...prev, name: digitsOnly }));
+                  }}
+                />
               </div>
               <div>
                 <Input placeholder="123 Main St" value={newRestaurant.address} onChange={(e) => setNewRestaurant(prev => ({...prev, address: e.target.value}))} />
@@ -243,9 +253,13 @@ function KitchenModuleContent() {
                 <Button variant="outline" onClick={() => setIsCreateRestaurantDialogOpen(false)}>Cancel</Button>
                 <Button onClick={async () => {
                   if (!newRestaurant.name || !newRestaurant.address || !newRestaurant.phone) return;
+                  const payload = { ...newRestaurant, name: `px${newRestaurant.name}` };
                   try {
                     setCreatingRestaurant(true);
-                    const res = await fetch('/restaurants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRestaurant) as any } as any);
+                    await apiFetch('restaurants', {
+                      method: 'POST',
+                      body: JSON.stringify(payload),
+                    });
                   } finally {
                     setCreatingRestaurant(false);
                     setIsCreateRestaurantDialogOpen(false);

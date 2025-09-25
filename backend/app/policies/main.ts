@@ -18,4 +18,7 @@ export const policies = {
   UserPolicy: () => import('#policies/user_policy'),
   KitchenPolicy: () => import('#policies/kitchen_policy'),
   InvitePolicy: () => import('#policies/invite_policy'),
+  IdpPolicy: () => import('#policies/idp_policy'),
+  PerformancePolicy: () => import('#policies/performance_policy'),
+  PlPolicy: () => import('#policies/pl_policy'),
 }

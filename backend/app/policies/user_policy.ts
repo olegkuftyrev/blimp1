@@ -34,6 +34,11 @@ export default class UserPolicy extends BasePolicy {
       return relation !== null
     }
 
+    // Associates and tablets can only view their own profile
+    if (['associate', 'tablet'].includes(currentUser.role)) {
+      return false
+    }
+
     return false
   }
 
@@ -61,43 +66,11 @@ export default class UserPolicy extends BasePolicy {
       return await this.shareRestaurant(currentUser, targetUser)
     }
 
-    // Associate can edit other associate profiles in shared restaurants
-    if (currentUser.role === 'associate' && targetUser.role === 'associate') {
-      return await this.shareRestaurant(currentUser, targetUser)
-    }
+    // Associates and tablets cannot edit other user profiles
 
     return false
   }
 
-  /**
-   * Check if user can create invitations
-   */
-  async createInvite(user: User, role: string, restaurantId?: number): Promise<AuthorizerResponse> {
-    // Admin can create any invitations
-    if (user.role === 'admin') {
-      return true
-    }
-
-    // Ops Lead can invite black_shirt and associate to their restaurants
-    if (user.role === 'ops_lead') {
-      if (!['black_shirt', 'associate'].includes(role)) {
-        return false
-      }
-
-      if (restaurantId) {
-        return await this.hasRestaurantAccess(user, restaurantId)
-      }
-    }
-
-    // Black Shirt can invite associates to their restaurants
-    if (user.role === 'black_shirt' && role === 'associate') {
-      if (restaurantId) {
-        return await this.hasRestaurantAccess(user, restaurantId)
-      }
-    }
-
-    return false
-  }
 
   /**
    * Check if user can manage other users (assign to restaurants, etc.)
@@ -118,10 +91,7 @@ export default class UserPolicy extends BasePolicy {
       return await this.shareRestaurant(currentUser, targetUser)
     }
 
-    // Associate can manage other associates in shared restaurants
-    if (currentUser.role === 'associate' && targetUser.role === 'associate') {
-      return await this.shareRestaurant(currentUser, targetUser)
-    }
+    // Associates and tablets cannot manage other users
 
     return false
   }
@@ -176,10 +146,7 @@ export default class UserPolicy extends BasePolicy {
       return targetRole === 'associate'
     }
 
-    // Associate can create other associate users
-    if (user.role === 'associate' && targetRole) {
-      return targetRole === 'associate'
-    }
+    // Associates and tablets cannot create other users
 
     return false
   }
@@ -201,19 +168,6 @@ export default class UserPolicy extends BasePolicy {
     return user1Restaurants.some((id: number) => user2Restaurants.includes(id))
   }
 
-  /**
-   * Helper: Check if user has access to restaurant
-   */
-  private async hasRestaurantAccess(user: User, restaurantId: number): Promise<boolean> {
-    if (user.role === 'admin') return true
-
-    const userRestaurant = await UserRestaurant.query()
-      .where('user_id', user.id)
-      .where('restaurant_id', restaurantId)
-      .first()
-
-    return userRestaurant !== null
-  }
 }
 
 

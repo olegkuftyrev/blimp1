@@ -96,7 +96,7 @@ export function useFileUpload(options: FileUploadOptions = {}) {
 
   const uploadFile = useCallback(async (file: File, endpoint: string, additionalData?: Record<string, any>) => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('plFile', file);
     
     // Add any additional data
     if (additionalData) {
@@ -250,15 +250,13 @@ export function usePLFileUpload(storeId: number, year: number, period: string) {
   });
 
   const uploadPLFile = useCallback(async (file: File) => {
-    const endpoint = `/analytics/${storeId}/${year}/${period}/upload`;
+    const endpoint = `/api/pl-reports/upload`;
     const additionalData = {
-      storeId: storeId.toString(),
-      year: year.toString(),
-      period,
+      restaurantId: storeId.toString(),
     };
 
     return fileUpload.uploadFile(file, endpoint, additionalData);
-  }, [storeId, year, period, fileUpload]);
+  }, [storeId, fileUpload]);
 
   return {
     ...fileUpload,

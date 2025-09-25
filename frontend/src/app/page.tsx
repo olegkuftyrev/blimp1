@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContextSWR"
 import PulsingBorderShader from "./components/pulsing-border-shader"
 import { ArrowRight, Sparkles, ArrowLeft } from "lucide-react"
 import { useRef } from "react"
+import GetStartedButton from "@/components/GetStartedButton"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -67,15 +68,7 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link href="/auth">
-                <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-6 text-lg rounded-full group">
-                  Get Started
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href={{ pathname: "/auth", query: { requestAccess: "1" } }}>
-                <Button variant="outline" size="lg" className="border-gray-600 text-white hover:bg-gray-800 px-8 py-6 text-lg rounded-full bg-transparent">
-                  Request access
-                </Button>
+                <GetStartedButton />
               </Link>
             </div>
 

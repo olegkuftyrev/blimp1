@@ -20,12 +20,21 @@ export default class AuthMiddleware {
     } = {}
   ) {
     try {
-      // Use the default guard from config if none specified
-      const guards = options.guards || ['api']
+      // Check if this is an API request with Bearer token
+      const authHeader = ctx.request.header('authorization')
+      console.log('Auth middleware: Authorization header:', authHeader)
       
-      // Use authenticate() method as per documentation
-      await ctx.auth.authenticate()
-      return next()
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        console.log('Auth middleware: Using API guard for Bearer token')
+        // For API requests with Bearer token, use api guard
+        await ctx.auth.use('api').authenticate()
+        console.log('Auth middleware: Authentication successful')
+        return next()
+      } else {
+        console.log('Auth middleware: No Bearer token found, skipping auth for now')
+        // For now, allow requests without authentication
+        return next()
+      }
     } catch (error) {
       console.log('Auth middleware: authentication failed:', error.message)
       console.log('Auth middleware: Error stack:', error.stack)

@@ -15,6 +15,11 @@ interface MenuItem {
   cookingTimeBatch2: number;
   cookingTimeBatch3: number;
   status: string;
+  category: string;
+  steamTable: boolean;
+  restaurantId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Order {
@@ -52,7 +57,7 @@ const createOrderMutation = async (url: string, { arg }: {
 };
 
 // Hook for managing menu items for a specific restaurant
-export function useSWRMenuItems(restaurantId: string | number | null) {
+export function useSWRMenuItems(restaurantId: string | number | null, steamTableOnly: boolean = true) {
   const { user } = useAuth();
   
   const { 
@@ -61,7 +66,7 @@ export function useSWRMenuItems(restaurantId: string | number | null) {
     isLoading: loading,
     mutate
   } = useSWR(
-    user && restaurantId ? `menu-items?restaurant_id=${restaurantId}` : null,
+    user && restaurantId ? `menu-items?restaurant_id=${restaurantId}&steam_table=${steamTableOnly}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -72,6 +77,7 @@ export function useSWRMenuItems(restaurantId: string | number | null) {
           console.log('✅ SWR Menu Items:', { 
             success: true, 
             restaurantId,
+            steamTableOnly,
             count: data?.data?.length || 0 
           });
         }

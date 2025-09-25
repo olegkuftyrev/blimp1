@@ -13,7 +13,7 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
   const pathname = usePathname();
   
   // Define which pages should have sidebar
-  const shouldShowSidebar = pathname.startsWith('/profile');
+  const shouldShowSidebar = pathname.startsWith('/profile') || pathname.startsWith('/recipe-book');
   
   if (!shouldShowSidebar) {
     return <>{children}</>;
@@ -29,6 +29,7 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
           <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
           </div>
+          {/* Content is now positioned correctly by the main element's pt-16 */}
           {children}
         </div>
       </div>

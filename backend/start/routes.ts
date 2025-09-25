@@ -76,6 +76,7 @@ router
 router
   .group(() => {
     router.get('/', '#controllers/menu_item_controller.index')
+    router.get('/categories', '#controllers/menu_item_controller.categories')
     router.get('/:id', '#controllers/menu_item_controller.show')
     router.post('/', '#controllers/menu_item_controller.store')
     router.put('/:id', '#controllers/menu_item_controller.update')
@@ -195,6 +196,21 @@ router
     router.get('/users/:userId/stats', '#controllers/pl_questions_controller.getStatsForUser')
   })
   .prefix('/pl-questions')
+  .use(middleware.auth())
+
+// =============================================================================
+// P&L REPORT ROUTES (Protected)
+// =============================================================================
+
+router
+  .group(() => {
+      router.post('/upload', '#controllers/pl_report_controller.upload')
+      router.get('/', '#controllers/pl_report_controller.index')
+      router.get('/:id', '#controllers/pl_report_controller.show')
+      router.get('/:id/line-items', '#controllers/pl_report_controller.lineItems')
+      router.delete('/:id', '#controllers/pl_report_controller.destroy')
+  })
+  .prefix('/pl-reports')
   .use(middleware.auth())
 
 // =============================================================================

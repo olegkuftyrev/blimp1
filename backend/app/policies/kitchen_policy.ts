@@ -19,8 +19,8 @@ export default class KitchenPolicy extends BasePolicy {
       return await this.hasRestaurantAccess(user, restaurantId)
     }
 
-    // Associates can view kitchen in their restaurants (read-only)
-    if (user.role === 'associate') {
+    // Associates and tablets can view kitchen in their restaurants (read-only)
+    if (['associate', 'tablet'].includes(user.role)) {
       return await this.hasRestaurantAccess(user, restaurantId)
     }
 

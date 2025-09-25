@@ -9,6 +9,7 @@ export default class OrderPolicy extends BasePolicy {
    * Check if user can view orders in a restaurant
    */
   async view(user: User, restaurantId: number): Promise<AuthorizerResponse> {
+    // All authenticated users can view orders in restaurants they have access to
     return await this.hasRestaurantAccess(user, restaurantId)
   }
 
@@ -16,7 +17,7 @@ export default class OrderPolicy extends BasePolicy {
    * Check if user can create orders in a restaurant
    */
   async create(user: User, restaurantId: number): Promise<AuthorizerResponse> {
-    // All authenticated users can create orders in restaurants they have access to
+    // All authenticated users (including tablets) can create orders in restaurants they have access to
     return await this.hasRestaurantAccess(user, restaurantId)
   }
 

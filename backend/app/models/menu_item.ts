@@ -35,6 +35,12 @@ export default class MenuItem extends BaseModel {
   declare status: string
 
   @column()
+  declare category: string
+
+  @column({ columnName: 'steam_table' })
+  declare steamTable: boolean
+
+  @column()
   declare restaurantId: number
 
   @column.dateTime({ autoCreate: true })

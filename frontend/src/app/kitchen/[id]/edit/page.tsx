@@ -49,8 +49,9 @@ function EditRestaurantContent() {
 
   useEffect(() => {
     if (restaurant) {
+      const digitsOnly = (restaurant.name || '').replace(/\D/g, '');
       setFormData({
-        name: restaurant.name,
+        name: digitsOnly,
         address: restaurant.address,
         phone: restaurant.phone,
         isActive: restaurant.isActive
@@ -106,7 +107,7 @@ function EditRestaurantContent() {
       setError(null);
 
       const updateData = {
-        name: formData.name.trim(),
+        name: `px${formData.name.trim()}`,
         address: formData.address.trim(),
         phone: formData.phone.trim(),
         isActive: formData.isActive
@@ -218,17 +219,19 @@ function EditRestaurantContent() {
               </div>
             )}
 
-            {/* Restaurant Name */}
+            {/* Restaurant Name (digits only; will be saved as px{number}) */}
             <div className="space-y-2">
               <Label htmlFor="name" className="flex items-center space-x-2">
                 <Building2 className="h-4 w-4" />
-                <span>Restaurant Name</span>
+                <span>Restaurant Code (number only)</span>
               </Label>
               <Input
                 id="name"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Enter restaurant name"
+                onChange={(e) => handleInputChange('name', e.target.value.replace(/\D/g, ''))}
+                placeholder="e.g. 3245 (will save as px3245)"
                 disabled={!canEditRestaurant}
               />
             </div>

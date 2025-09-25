@@ -73,13 +73,11 @@ export const AnalyticsAPI = {
     file: File
   ): Promise<PLUploadResponse> => {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('storeId', storeId.toString());
-    formData.append('year', year.toString());
-    formData.append('period', period);
+    formData.append('plFile', file);
+    formData.append('restaurantId', storeId.toString());
 
     // Use fetch directly for file uploads with progress tracking
-    const url = `/api/analytics/${storeId}/${year}/${period}/upload`;
+    const url = `/api/pl-reports/upload`;
     const token = typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : null;
     
     const response = await fetch(url, {
@@ -100,24 +98,59 @@ export const AnalyticsAPI = {
 
   // Get P&L report data
   getPLReport: async (storeId: number, year: number, period: string): Promise<PLReportData> => {
-    return apiFetch<PLReportData>(`analytics/${storeId}/${year}/${period}/report`);
+    // First get all P&L reports for the restaurant, then filter by period
+    const reports = await apiFetch<{ data: any[] }>(`pl-reports?restaurantId=${storeId}&period=${period}`);
+    if (reports.data && reports.data.length > 0) {
+      return reports.data[0];
+    }
+    throw new Error('P&L report not found');
   },
 
   // Check if period has data
   getPeriodStatus: async (storeId: number, year: number, period: string): Promise<PeriodStatus> => {
-    return apiFetch<PeriodStatus>(`analytics/${storeId}/${year}/${period}/status`);
+    try {
+      await AnalyticsAPI.getPLReport(storeId, year, period);
+      return {
+        storeId,
+        year,
+        period,
+        hasData: true,
+        status: 'completed'
+      };
+    } catch {
+      return {
+        storeId,
+        year,
+        period,
+        hasData: false
+      };
+    }
   },
 
   // Get all periods with data for a store and year
   getStorePeriods: async (storeId: number, year: number): Promise<PeriodStatus[]> => {
-    return apiFetch<PeriodStatus[]>(`analytics/${storeId}/${year}/periods`);
+    const reports = await apiFetch<{ data: any[] }>(`pl-reports?restaurantId=${storeId}`);
+    return reports.data.map(report => ({
+      storeId: report.restaurantId,
+      year: parseInt(report.period.split(' ')[1]) || year,
+      period: report.period,
+      hasData: true,
+      lastUploaded: report.createdAt,
+      status: 'completed'
+    }));
   },
 
   // Delete P&L report
   deletePLReport: async (storeId: number, year: number, period: string): Promise<{ success: boolean; message: string }> => {
-    return apiFetch<{ success: boolean; message: string }>(`analytics/${storeId}/${year}/${period}/report`, {
-      method: 'DELETE',
-    });
+    // First find the report ID
+    const reports = await apiFetch<{ data: any[] }>(`pl-reports?restaurantId=${storeId}&period=${period}`);
+    if (reports.data && reports.data.length > 0) {
+      const reportId = reports.data[0].id;
+      return apiFetch<{ success: boolean; message: string }>(`pl-reports/${reportId}`, {
+        method: 'DELETE',
+      });
+    }
+    throw new Error('P&L report not found');
   },
 
   // Download P&L report

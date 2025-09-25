@@ -323,14 +323,19 @@ export function EnhancedFileUpload({
                   )}
                   
                   {fileItem.status === 'success' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {/* Handle download */}}
-                    >
-                      <Download className="h-3 w-3 mr-1" />
-                      Download
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-green-600 font-medium">
+                        File has been uploaded!
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {/* Handle download */}}
+                      >
+                        <Download className="h-3 w-3 mr-1" />
+                        Download
+                      </Button>
+                    </div>
                   )}
 
                   <Button
