@@ -16,6 +16,13 @@ router.get('/test', ({ response }) => {
 })
 
 // =============================================================================
+// GLOBAL API PREFIX
+// =============================================================================
+
+// All API routes are prefixed with /api
+router.group(() => {
+
+// =============================================================================
 // AUTHENTICATION ROUTES (No middleware required)
 // =============================================================================
 
@@ -287,4 +294,7 @@ router.post('/debug/test-timer-sound', async ({ request, response }) => {
     })
   }
 }).use(middleware.auth())
+
+// Close the global API prefix group
+}).prefix('/api')
 

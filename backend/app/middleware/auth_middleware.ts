@@ -15,7 +15,7 @@ export default class AuthMiddleware {
   async handle(
     ctx: HttpContext,
     next: NextFn,
-    options: {
+    _options: {
       guards?: (keyof Authenticators)[]
     } = {}
   ) {
@@ -28,12 +28,12 @@ export default class AuthMiddleware {
         console.log('Auth middleware: Using API guard for Bearer token')
         // For API requests with Bearer token, use api guard
         await ctx.auth.use('api').authenticate()
-        console.log('Auth middleware: Authentication successful')
+        console.log('Auth middleware: Authentication successful, user:', ctx.auth.user?.email)
         return next()
       } else {
-        console.log('Auth middleware: No Bearer token found, skipping auth for now')
-        // For now, allow requests without authentication
-        return next()
+        console.log('Auth middleware: No Bearer token found, denying access')
+        // Require authentication for protected routes
+        throw new Error('No authentication token provided')
       }
     } catch (error) {
       console.log('Auth middleware: authentication failed:', error.message)

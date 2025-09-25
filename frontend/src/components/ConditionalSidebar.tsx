@@ -2,11 +2,32 @@
 
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
 interface ConditionalSidebarProps {
   children: React.ReactNode;
+}
+
+function SidebarContent({ children }: { children: React.ReactNode }) {
+  const { state } = useSidebar();
+  
+  return (
+    <div className="flex flex-1 w-full">
+      {state === 'expanded' && (
+        <Suspense fallback={<div className="w-64 bg-background border-r" />}>
+          <AppSidebar />
+        </Suspense>
+      )}
+      <div className="flex-1">
+        <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background">
+          <SidebarTrigger className="-ml-1 hover:bg-accent" />
+          <div className="flex-1" />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
@@ -21,19 +42,9 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex flex-1 w-full">
-        <Suspense fallback={<div className="w-64 bg-background border-r" />}>
-          <AppSidebar />
-        </Suspense>
-        <div className="flex-1">
-          <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background">
-            <SidebarTrigger className="-ml-1 hover:bg-accent" />
-            <div className="flex-1" />
-          </div>
-          {/* Content is now positioned correctly by the main element's pt-16 */}
-          {children}
-        </div>
-      </div>
+      <SidebarContent>
+        {children}
+      </SidebarContent>
     </SidebarProvider>
   );
 }

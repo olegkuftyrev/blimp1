@@ -65,10 +65,7 @@ export function AppSidebar() {
   const tab = searchParams.get('tab') || 'my-profile';
   const [openCategory, setOpenCategory] = React.useState<string | null>('Chicken') // Default to Chicken being open
 
-  // Apply smooth transition classes based on sidebar state
-  const sidebarClasses = state === 'collapsed' 
-    ? 'w-0 opacity-0 pointer-events-none overflow-hidden' 
-    : 'w-[--sidebar-width] opacity-100 pointer-events-auto';
+  // No need for transition classes since we're conditionally rendering
 
   // Profile navigation items
   const profileItems = [
@@ -100,10 +97,7 @@ export function AppSidebar() {
 
 
   return (
-    <Sidebar 
-      collapsible="icon" 
-      className={`transition-all duration-300 ease-in-out ${sidebarClasses}`}
-    >
+    <Sidebar collapsible="icon">
       {/* Hide header (logo/profile) on recipe-book pages per request */}
       {!pathname.startsWith('/recipe-book') && (
         <SidebarHeader className="p-4">

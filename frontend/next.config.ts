@@ -11,11 +11,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["@chakra-ui/react"],
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:61340';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:49404';
     return [
       {
         source: "/api/:path*",
-        destination: `${backendUrl}/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: "/socket.io/:path*",

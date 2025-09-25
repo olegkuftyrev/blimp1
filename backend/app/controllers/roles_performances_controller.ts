@@ -69,7 +69,14 @@ export default class RolesPerformancesController {
    */
   async getUserAnswers({ params, auth, response }: HttpContext) {
     try {
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        return response.unauthorized({
+          success: false,
+          message: 'User not authenticated'
+        })
+      }
+      
       const roleId = params.id
 
       // Get all items for this role
@@ -128,7 +135,14 @@ export default class RolesPerformancesController {
    */
   async saveAnswer({ request, auth, response }: HttpContext) {
     try {
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        return response.unauthorized({
+          success: false,
+          message: 'User not authenticated'
+        })
+      }
+      
       const { performanceItemId, answer } = request.only(['performanceItemId', 'answer'])
 
       if (!['yes', 'no'].includes(answer)) {
@@ -196,7 +210,14 @@ export default class RolesPerformancesController {
    */
   async saveAnswersBulk({ params, request, auth, response }: HttpContext) {
     try {
-      const currentUser = auth.user!
+      const currentUser = auth.user
+      if (!currentUser) {
+        return response.unauthorized({
+          success: false,
+          message: 'User not authenticated'
+        })
+      }
+      
       const { roleId } = params
       const { answers, targetUserId } = request.only(['answers', 'targetUserId'])
 
@@ -318,7 +339,14 @@ export default class RolesPerformancesController {
    */
   async getUserProgress({ params, auth, response }: HttpContext) {
     try {
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        return response.unauthorized({
+          success: false,
+          message: 'User not authenticated'
+        })
+      }
+      
       const roleId = params.id
 
       // Get role with all items
@@ -395,7 +423,13 @@ export default class RolesPerformancesController {
    */
   async getOverallProgress({ auth, response }: HttpContext) {
     try {
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        return response.unauthorized({
+          success: false,
+          message: 'User not authenticated'
+        })
+      }
 
       const roles = await RolePerformance.query()
         .where('isActive', true)
