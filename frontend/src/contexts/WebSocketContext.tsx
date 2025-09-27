@@ -24,7 +24,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
   useEffect(() => {
     // Use same-origin so Next.js rewrites can proxy to backend
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || '/'
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3333'
     const newSocket = io(wsUrl, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],

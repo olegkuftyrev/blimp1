@@ -69,8 +69,8 @@ const modules: ModuleCard[] = [
     icon: BarChart3,
     href: '/analytics',
     color: 'bg-green-500',
-    badge: 'Active',
-    isActive: true
+    badge: 'Coming Soon',
+    isActive: false
   },
   {
     id: 'roles-performance',
@@ -89,8 +89,8 @@ const modules: ModuleCard[] = [
     icon: DollarSign,
     href: '/area-pl',
     color: 'bg-emerald-600',
-    badge: 'Active',
-    isActive: true
+    badge: 'Coming Soon',
+    isActive: false
   },
   {
     id: 'pl-practice-tests',
@@ -194,12 +194,11 @@ function DashboardContent() {
         };
       }
       if (module.id === 'area-pl') {
-        const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
         return {
           ...module,
-          badge: isAuthorized ? 'Active' : 'Restricted',
-          description: isAuthorized ? 'Comprehensive profit and loss analysis for your area' : 'Restricted Access - ACO and above',
-          isActive: isAuthorized
+          badge: 'Coming Soon',
+          description: 'Comprehensive profit and loss analysis for your area',
+          isActive: false
         };
       }
       if (module.id === 'staff') {
@@ -212,12 +211,11 @@ function DashboardContent() {
         };
       }
       if (module.id === 'analytics') {
-        const isAuthorized = user.role !== 'associate';
         return {
           ...module,
-          badge: isAuthorized ? 'Active' : 'Restricted',
-          description: isAuthorized ? 'Sales reports, performance metrics, and insights' : 'Restricted Access - Store Manager and above',
-          isActive: isAuthorized
+          badge: 'Coming Soon',
+          description: 'Sales reports, performance metrics, and insights',
+          isActive: false
         };
       }
       return module;
