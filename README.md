@@ -786,6 +786,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you have any questions or need help, please open an issue in the repository.
 
+## 📚 Additional Documentation
+
+- [Database Seeders Documentation](SEEDERS.md) - Detailed guide for seeder execution order and dependencies
+
 ---
 
 ## 🎯 Workflow
@@ -928,15 +932,53 @@ Notes:
 
 ### Seeders (Initial Data)
 Location: `backend/database/seeders`
+
+**⚠️ IMPORTANT: Seeders must be run in the correct order due to dependencies**
+
+#### Seeder Execution Order
+```bash
+# Method 1: Use the ordered script (recommended)
+npm run db:seed:ordered
+
+# Method 2: Use ace with specific files
+node ace db:seed --files database/seeders/admin_user_seeder,database/seeders/restaurant_seeder,database/seeders/idp_role_seeder,database/seeders/idp_competency_seeder,database/seeders/idp_description_seeder,database/seeders/idp_assessment_seeder,database/seeders/additional_data_seeder
+
+# Method 3: Run individual seeders in order
+node ace db:seed --files database/seeders/admin_user_seeder
+node ace db:seed --files database/seeders/restaurant_seeder
+node ace db:seed --files database/seeders/idp_role_seeder
+# ... continue in order
+```
+
+#### Seeder Dependencies
+1. **admin_user_seeder.ts** - Creates admin user and tablet user (no dependencies)
+2. **restaurant_seeder.ts** - Creates sample restaurants (no dependencies)
+3. **idp_role_seeder.ts** - Creates IDP roles (no dependencies)
+4. **idp_competency_seeder.ts** - Creates competencies, questions, actions (depends on idp_role_seeder)
+5. **idp_description_seeder.ts** - Creates competency descriptions (depends on idp_competency_seeder)
+6. **idp_assessment_seeder.ts** - Creates assessments for users (depends on admin_user_seeder + idp_role_seeder)
+7. **additional_data_seeder.ts** - Creates additional users and assessments (depends on all previous)
+8. **roles_performance_seeder.ts** - Creates performance data (independent)
+9. **pl_question_seeder.ts** - Creates P&L questions (independent)
+10. **menu_item_seeder.ts** - Creates menu items (independent)
+
+#### Seeder Files
 - `admin_user_seeder.ts`: Creates an admin or baseline user
 - `restaurant_seeder.ts`: Sample restaurant(s)
 - `menu_item_seeder.ts`: Baseline menu items for demo/testing
 - IDP/Performance seeders: `idp_role_seeder.ts`, `idp_competency_seeder.ts`, `idp_description_seeder.ts`, `idp_assessment_seeder.ts`, `roles_performance_seeder.ts`
 - `additional_data_seeder.ts`: Any extra data needed for local testing
 
-Lifecycle hooks:
-- `npm run dev` runs `predev`: applies pending migrations and seeds
+#### Lifecycle Hooks
+- `npm run dev` runs `predev`: applies pending migrations and seeds in correct order
 - `npm start` runs `prestart`: applies migrations only (no seed)
+
+#### Dependency Checks
+Each seeder includes dependency checks to prevent errors:
+- `idp_assessment_seeder` checks for users and IDP roles
+- `idp_competency_seeder` checks for IDP roles
+- `idp_description_seeder` checks for IDP competencies
+- `additional_data_seeder` checks for users, restaurants, and IDP roles
 
 ### Models & Relationships (Lucid)
 Location: `backend/app/models`
@@ -969,8 +1011,14 @@ node ace migration:rollback
 # Rerun all migrations from scratch
 node ace migration:reset && node ace migration:run
 
-# Seed database
+# Seed database (in correct order)
+npm run db:seed:ordered
+
+# Seed database (all seeders - may fail due to dependencies)
 node ace db:seed
+
+# Seed specific seeder
+node ace db:seed --files database/seeders/admin_user_seeder
 
 # Generate a new migration
 node ace make:migration add_field_to_table
@@ -980,9 +1028,10 @@ node ace make:seeder sample_data
 ```
 
 ### Reset, Backup, Restore (Postgres)
-- Reset (dev): `dropdb blimp && createdb blimp` then migrate + seed
+- Reset (dev): `dropdb blimp && createdb blimp` then migrate + seed in order
 - Backup: `pg_dump blimp > backup.sql`
 - Restore: `psql blimp < backup.sql`
+- Full reset with proper seeding: `dropdb blimp && createdb blimp && node ace migration:run && npm run db:seed:ordered`
 
 ### Production Notes
 - Keep `APP_KEY` secret and strong

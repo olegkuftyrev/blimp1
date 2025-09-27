@@ -13,6 +13,23 @@ export default class extends BaseSeeder {
     console.log('🔄 Starting additional data seeder...')
     
     try {
+      // Check dependencies first
+      const existingUsers = await User.all()
+      const existingRestaurants = await Restaurant.all()
+      const existingIdpRoles = await IdpRole.all()
+      
+      if (existingUsers.length === 0) {
+        console.log('⚠️ No users found. Please run admin_user_seeder first.')
+        return
+      }
+      if (existingRestaurants.length === 0) {
+        console.log('⚠️ No restaurants found. Please run restaurant_seeder first.')
+        return
+      }
+      if (existingIdpRoles.length === 0) {
+        console.log('⚠️ No IDP roles found. Please run idp_role_seeder first.')
+        return
+      }
       // Create 2 additional restaurants
       console.log('🏗️ Creating additional restaurants...')
       const additionalRestaurants = [

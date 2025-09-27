@@ -4,13 +4,17 @@ import IdpDescription from '#models/idp_description'
 
 export default class extends BaseSeeder {
   async run() {
-    // Clear existing descriptions
-    await IdpDescription.query().delete()
-
     console.log('🔄 Seeding IDP competency descriptions...')
 
-    // Get all competencies
+    // Check dependencies first
     const competencies = await IdpCompetency.query().where('isActive', true)
+    if (competencies.length === 0) {
+      console.log('⚠️ No IDP competencies found. Please run idp_competency_seeder first.')
+      return
+    }
+
+    // Clear existing descriptions
+    await IdpDescription.query().delete()
     const competencyDescriptions = this.getCompetencyDescriptions()
 
     for (const competency of competencies) {

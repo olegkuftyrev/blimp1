@@ -5,7 +5,7 @@
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
-    "predev": "node ace migration:run && node ace db:seed",
+    "predev": "node ace migration:run && node scripts/seed-in-order.js",
     "start": "node bin/server.js",
     "build": "node ace build",
     "dev": "node ace serve --hmr",
@@ -13,7 +13,8 @@
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:seed:ordered": "node scripts/seed-in-order.js"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",

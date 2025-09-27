@@ -7,14 +7,18 @@ import { competenciesData } from '../data/competencies_data.js'
 
 export default class extends BaseSeeder {
   async run() {
+    // Check dependencies first
+    const roles = await IdpRole.all()
+    if (roles.length === 0) {
+      console.log('⚠️ No IDP roles found. Please run idp_role_seeder first.')
+      return
+    }
+    const roleMap = new Map(roles.map(role => [role.label, role]))
+
     // Clear existing data in reverse order (due to foreign keys)
     await IdpAction.query().delete()
     await IdpQuestion.query().delete()
     await IdpCompetency.query().delete()
-
-    // Get all roles
-    const roles = await IdpRole.all()
-    const roleMap = new Map(roles.map(role => [role.label, role]))
 
     console.log('🔄 Seeding IDP competencies...')
 

@@ -9,12 +9,19 @@ export default class extends BaseSeeder {
   async run() {
     console.log('🔄 Seeding IDP assessments for all users...')
 
-    // Get all users
+    // Check dependencies first
     const users = await User.all()
+    if (users.length === 0) {
+      console.log('⚠️ No users found. Please run admin_user_seeder first.')
+      return
+    }
     console.log(`📋 Found ${users.length} users`)
 
-    // Get all IDP roles
     const idpRoles = await IdpRole.all()
+    if (idpRoles.length === 0) {
+      console.log('⚠️ No IDP roles found. Please run idp_role_seeder first.')
+      return
+    }
     const roleMap = new Map(idpRoles.map(role => [role.userRole, role]))
     console.log(`🎯 Found ${idpRoles.length} IDP roles`)
 
