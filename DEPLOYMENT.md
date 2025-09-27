@@ -164,6 +164,13 @@ CORS_ORIGIN=*
 WS_CORS_ORIGIN=*
 ADMIN_EMAIL=admin@blimp.com
 ADMIN_PASSWORD=SecureAdminPass123!
+# PostgreSQL configuration
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_DB_NAME=blimp
+PG_SSL=false
 ```
 
 **Frontend** (`/opt/blimp1/frontend/.env.local`):

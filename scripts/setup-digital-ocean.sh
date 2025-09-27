@@ -85,6 +85,16 @@ install_dependencies() {
         echo 'Installing PM2 globally...'
         npm install -g pm2
         
+        echo 'Installing PostgreSQL...'
+        apt-get install -y postgresql postgresql-contrib
+        
+        echo 'Starting PostgreSQL service...'
+        systemctl start postgresql
+        systemctl enable postgresql
+        
+        echo 'Setting up PostgreSQL database...'
+        sudo -u postgres psql -c \"CREATE DATABASE blimp;\"
+        sudo -u postgres psql -c \"ALTER USER postgres PASSWORD 'postgres';\"
         
         echo 'Setting up firewall...'
         ufw allow 22/tcp
@@ -200,6 +210,13 @@ CORS_ORIGIN=*
 WS_CORS_ORIGIN=*
 ADMIN_EMAIL=admin@blimp.com
 ADMIN_PASSWORD=SecureAdminPass123!
+# PostgreSQL configuration
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_DB_NAME=blimp
+PG_SSL=false
 EOF
         
         cat > frontend/.env.local << 'EOF'
@@ -214,6 +231,12 @@ EOF
         
         echo 'Building and starting application...'
         ./scripts/prod-build.sh
+        
+        echo 'Running database migrations...'
+        cd backend
+        node ace migration:run
+        node ace db:seed
+        cd ..
         
         echo 'Starting services with PM2...'
         pm2 stop all || true

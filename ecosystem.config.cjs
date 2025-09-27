@@ -18,7 +18,14 @@ module.exports = {
         LOG_LEVEL: 'info',
         SESSION_DRIVER: 'cookie',
         CORS_ORIGIN: '*',
-        WS_CORS_ORIGIN: '*'
+        WS_CORS_ORIGIN: '*',
+        // PostgreSQL configuration
+        PG_HOST: 'localhost',
+        PG_PORT: '5432',
+        PG_USER: 'postgres',
+        PG_PASSWORD: 'postgres',
+        PG_DB_NAME: 'blimp',
+        PG_SSL: 'false'
       },
       kill_timeout: 5000,
     },
