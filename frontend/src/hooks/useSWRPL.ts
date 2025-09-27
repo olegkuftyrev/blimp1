@@ -163,6 +163,7 @@ export function useSubmitPLAnswer() {
 // Hook for creating test sets
 export function useCreatePLTestSet() {
   const { mutate: mutateTestSets } = usePLTestSets()
+  const { mutate: mutateStats } = usePLStats()
   const [isCreating, setIsCreating] = useState(false)
 
   const createTestSet = async (name?: string, description?: string) => {
@@ -173,23 +174,28 @@ export function useCreatePLTestSet() {
 
     setIsCreating(true)
     try {
-      console.log('useCreatePLTestSet: Starting to create test set')
+      console.log('useCreatePLTestSet: Starting to create test set', { name, description })
       const result = await createPLTestSet(name, description)
-      console.log('useCreatePLTestSet: Test set created, revalidating...')
+      console.log('useCreatePLTestSet: Test set created successfully:', result)
       
-      // Revalidate test sets
-      await mutateTestSets()
+      // Revalidate both test sets and stats
+      console.log('useCreatePLTestSet: Revalidating test sets and stats...')
+      await Promise.all([
+        mutateTestSets(),
+        mutateStats()
+      ])
+      console.log('useCreatePLTestSet: Revalidation complete')
       
       return result
     } catch (error) {
-      console.error('Failed to create test set:', error)
+      console.error('useCreatePLTestSet: Failed to create test set:', error)
       throw error
     } finally {
       setIsCreating(false)
     }
   }
 
-  return { createTestSet }
+  return { createTestSet, isCreating }
 }
 
 // Function to reset a test set (admin only)
@@ -205,13 +211,17 @@ export async function resetPLTestSet(testSetId: number) {
 // Hook for resetting test sets (admin only)
 export function useResetPLTestSet() {
   const { mutate: mutateTestSets } = usePLTestSets()
+  const { mutate: mutateStats } = usePLStats()
 
   const resetTestSet = async (testSetId: number) => {
     try {
       const result = await resetPLTestSet(testSetId)
       
-      // Revalidate test sets
-      mutateTestSets()
+      // Revalidate both test sets and stats
+      await Promise.all([
+        mutateTestSets(),
+        mutateStats()
+      ])
       
       return result
     } catch (error) {
@@ -266,13 +276,17 @@ export async function fillCorrectAnswers(testSetId: number) {
 // Hook for filling random answers (admin only)
 export function useFillRandomAnswers() {
   const { mutate: mutateTestSets } = usePLTestSets()
+  const { mutate: mutateStats } = usePLStats()
 
   const fillRandom = async (testSetId: number) => {
     try {
       const result = await fillRandomAnswers(testSetId)
       
-      // Revalidate test sets
-      mutateTestSets()
+      // Revalidate both test sets and stats
+      await Promise.all([
+        mutateTestSets(),
+        mutateStats()
+      ])
       
       return result
     } catch (error) {
@@ -287,13 +301,17 @@ export function useFillRandomAnswers() {
 // Hook for filling correct answers only (admin only)
 export function useFillCorrectAnswers() {
   const { mutate: mutateTestSets } = usePLTestSets()
+  const { mutate: mutateStats } = usePLStats()
 
   const fillCorrect = async (testSetId: number) => {
     try {
       const result = await fillCorrectAnswers(testSetId)
       
-      // Revalidate test sets
-      mutateTestSets()
+      // Revalidate both test sets and stats
+      await Promise.all([
+        mutateTestSets(),
+        mutateStats()
+      ])
       
       return result
     } catch (error) {
@@ -353,29 +371,21 @@ export function usePLStatsForUser(userId: number | null) {
 
 // Hook for deleting all test sets (admin only)
 export function useDeleteAllTestSets() {
-  const { mutate: mutateTestSets } = useSWR('pl-questions/test-sets')
-  const { mutate: mutateStats } = useSWR('pl-questions/stats')
+  const { mutate: mutateTestSets } = usePLTestSets()
+  const { mutate: mutateStats } = usePLStats()
 
   const deleteAllTestSets = async () => {
     try {
-      const response = await fetch('/api/pl-questions/test-sets', {
+      const result = await apiFetch<{
+        success: boolean
+        message: string
+      }>('pl-questions/test-sets', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to delete test sets')
-      }
-
-      const result = await response.json()
-      
       // Refresh the data after deletion
-      mutateTestSets()
-      mutateStats()
+      await mutateTestSets()
+      await mutateStats()
       
       return result
     } catch (error) {

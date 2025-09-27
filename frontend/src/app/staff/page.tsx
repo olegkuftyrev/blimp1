@@ -15,6 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContextSWR';
+import { useUsers, useCreateUser } from '@/hooks/useSWRAuth';
+import { useConfirmDialog } from '@/components/ConfirmDialog';
+import { useToastAlerts, toast } from '@/components/ToastAlert';
 
 interface User {
   id: number;
@@ -97,9 +100,13 @@ function StaffManagementContent() {
     // For other roles, show all job titles
     return Object.entries(jobTitleLabels);
   };
-  const [users, setUsers] = useState<User[]>([]);
+  // Use SWR for users data
+  const { users, loading: usersLoading, error: usersError, mutate: refetchUsers } = useUsers();
+  const { createUser, isCreating, createError } = useCreateUser();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { addAlert, ToastContainer } = useToastAlerts();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  // moved to kitchen page
+  const [inactiveRestaurants, setInactiveRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   // moved to kitchen page
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -125,7 +132,6 @@ function StaffManagementContent() {
   // moved to kitchen page
 
   useEffect(() => {
-    fetchUsers();
     fetchRestaurants();
     checkUserRole();
   }, []);
@@ -148,38 +154,21 @@ function StaffManagementContent() {
     try {
       // Check if we have a token
       const token = localStorage.getItem('auth_token');
-      console.log('Auth token exists:', !!token);
-      console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
+      console.log('🔐 Auth token exists:', !!token);
+      console.log('🔐 Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
       
       // Get current user info
       try {
         const userData = await apiFetch<{user: any}>('auth/me');
-        console.log('Current user:', userData.user);
+        console.log('👤 Current user from auth/me:', userData.user);
       } catch (error) {
-        console.error('Failed to get current user:', error);
+        console.error('❌ Failed to get current user:', error);
       }
     } catch (error) {
-      console.error('Failed to check user role:', error);
+      console.error('❌ Failed to check user role:', error);
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const data = await apiFetch<{data: User[]}>('users/team');
-      setUsers(data.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-      
-      // Check if it's a permissions error
-      if (error.message.includes('403') || error.message.includes('Forbidden')) {
-        console.log('User does not have permission to view users list');
-        alert('You do not have permission to view the users list. Please contact your administrator.');
-      }
-      
-      setLoading(false);
-    }
-  };
 
   const fetchRestaurants = async () => {
     try {
@@ -195,50 +184,26 @@ function StaffManagementContent() {
       }
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCreateRestaurant = async () => {
-    if (!newRestaurant.name || !newRestaurant.address || !newRestaurant.phone) {
-      alert('Please fill in Name, Address and Phone');
-      return;
-    }
-    try {
-      setCreatingRestaurant(true);
-      await apiFetch('restaurants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newRestaurant.name,
-          address: newRestaurant.address,
-          phone: newRestaurant.phone,
-        }),
-      });
-      setIsCreateRestaurantDialogOpen(false);
-      setNewRestaurant({ name: '', address: '', phone: '' });
-      await fetchRestaurants();
-      alert('Restaurant created successfully');
-    } catch (error: any) {
-      alert(error?.message || 'Failed to create restaurant');
-    } finally {
-      setCreatingRestaurant(false);
-    }
-  };
 
   const handleCreateUser = async () => {
     if (!newUser.fullName || !newUser.email || !newUser.password || !newUser.role || !newUser.jobTitle) {
-      alert('Please fill in all required fields');
+      showConfirm({
+        title: 'Missing Information',
+        description: 'Please fill in all required fields before creating the user.',
+        confirmText: 'OK',
+        variant: 'default',
+        onConfirm: () => {}, // Just close the dialog
+      });
       return;
     }
 
     try {
-      await apiFetch('users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newUser),
-      });
+      await createUser(newUser);
       
       // Reset form
       setNewUser({
@@ -250,11 +215,13 @@ function StaffManagementContent() {
         restaurantIds: []
       });
       setIsCreateDialogOpen(false);
-      fetchUsers();
-      alert('User created successfully!');
+      refetchUsers();
+      
+      addAlert(toast.success('User Created!', `${newUser.fullName} has been created successfully.`));
     } catch (error) {
       console.error('Failed to create user:', error);
-      alert('Failed to create user: ' + (error.message || 'Unknown error'));
+      
+      addAlert(toast.error('Failed to Create User', error instanceof Error ? error.message : 'Unknown error occurred'));
     }
   };
 
@@ -267,21 +234,28 @@ function StaffManagementContent() {
     }));
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
-
-    try {
-      await apiFetch(`users/${userId}`, {
-        method: 'DELETE',
-      });
-      fetchUsers();
-      alert('User deleted successfully!');
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-      alert('Failed to delete user: ' + (error.message || 'Unknown error'));
-    }
+  const handleDeleteUser = async (user: User) => {
+    showConfirm({
+      title: 'Delete User',
+      description: `Are you sure you want to delete ${user.fullName}? This action cannot be undone and will permanently remove the user from the system.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await apiFetch(`users/${user.id}`, {
+            method: 'DELETE',
+          });
+          refetchUsers();
+          
+          addAlert(toast.success('User Deleted!', `${user.fullName} has been deleted successfully.`));
+        } catch (error) {
+          console.error('Failed to delete user:', error);
+          
+          addAlert(toast.error('Failed to Delete User', error instanceof Error ? error.message : 'Unknown error occurred'));
+        }
+      },
+    });
   };
 
   const handleEditUser = (user: User) => {
@@ -298,7 +272,13 @@ function StaffManagementContent() {
 
   const handleUpdateUser = async () => {
     if (!editingUser || !editUser.fullName || !editUser.email || !editUser.role || !editUser.jobTitle) {
-      alert('Please fill in all required fields');
+      showConfirm({
+        title: 'Missing Information',
+        description: 'Please fill in all required fields before updating the user.',
+        confirmText: 'OK',
+        variant: 'default',
+        onConfirm: () => {}, // Just close the dialog
+      });
       return;
     }
 
@@ -321,11 +301,13 @@ function StaffManagementContent() {
       });
       setEditingUser(null);
       setIsEditDialogOpen(false);
-      fetchUsers();
-      alert('User updated successfully!');
+      refetchUsers();
+      
+      addAlert(toast.success('User Updated!', `${editUser.fullName} has been updated successfully.`));
     } catch (error) {
       console.error('Failed to update user:', error);
-      alert('Failed to update user: ' + (error.message || 'Unknown error'));
+      
+      addAlert(toast.error('Failed to Update User', error instanceof Error ? error.message : 'Unknown error occurred'));
     }
   };
 
@@ -480,8 +462,8 @@ function StaffManagementContent() {
                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleCreateUser}>
-                      Create User
+                    <Button onClick={handleCreateUser} disabled={isCreating}>
+                      {isCreating ? 'Creating...' : 'Create User'}
                     </Button>
                   </div>
                 </div>
@@ -624,7 +606,7 @@ function StaffManagementContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter(u => u.role === 'associate').length}
+                {users.filter((u: User) => u.role === 'associate').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Regular users
@@ -639,7 +621,7 @@ function StaffManagementContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter(u => u.role === 'black_shirt').length}
+                {users.filter((u: User) => u.role === 'black_shirt').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Restaurant managers
@@ -654,7 +636,7 @@ function StaffManagementContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter(u => u.role === 'ops_lead').length}
+                {users.filter((u: User) => u.role === 'ops_lead').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Operations leaders
@@ -671,10 +653,16 @@ function StaffManagementContent() {
             <CardTitle>Users</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {usersLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p>Loading users...</p>
+              </div>
+            ) : usersError ? (
+              <div className="text-center py-8">
+                <div className="text-red-600 mb-4">Error loading users</div>
+                <p className="text-muted-foreground mb-4">{usersError.message}</p>
+                <Button onClick={() => refetchUsers()}>Retry</Button>
               </div>
             ) : users.length === 0 ? (
               <div className="text-center py-8">
@@ -695,22 +683,22 @@ function StaffManagementContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
+                    {users.map((user: User) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.fullName}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {roleLabels[user.role]}
+                            {roleLabels[user.role as keyof typeof roleLabels] || user.role}
                           </Badge>
                         </TableCell>
-                        <TableCell>{jobTitleLabels[user.jobTitle]}</TableCell>
+                        <TableCell>{jobTitleLabels[user.jobTitle as keyof typeof jobTitleLabels]}</TableCell>
                         <TableCell>
                           {user.role === 'admin' ? (
                             <span className="text-muted-foreground text-sm">All restaurants</span>
                           ) : (
                             <div className="flex flex-wrap gap-1">
-                              {user.restaurants?.map(restaurant => (
+                              {user.restaurants?.map((restaurant: Restaurant) => (
                                 <Badge key={restaurant.id} variant="outline" className="text-xs">
                                   {restaurant.name}
                                 </Badge>
@@ -732,7 +720,7 @@ function StaffManagementContent() {
                               variant="ghost" 
                               size="sm"
                               title="Delete user"
-                              onClick={() => handleDeleteUser(user.id)}
+                              onClick={() => handleDeleteUser(user)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -747,6 +735,12 @@ function StaffManagementContent() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Confirm Dialog Component */}
+      <ConfirmDialogComponent />
+      
+      {/* Toast Alerts */}
+      <ToastContainer />
     </div>
   );
 }

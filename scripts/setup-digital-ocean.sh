@@ -85,8 +85,6 @@ install_dependencies() {
         echo 'Installing PM2 globally...'
         npm install -g pm2
         
-        echo 'Installing sqlite3 for database...'
-        apt-get install -y sqlite3
         
         echo 'Setting up firewall...'
         ufw allow 22/tcp
@@ -197,8 +195,6 @@ APP_NAME=blimp-backend
 APP_URL=http://$SERVER_IP:3333
 APP_KEY=YgnOBzI7fZsasQDUSL94JE7ae_dBLv5-
 LOG_LEVEL=info
-DB_CONNECTION=sqlite
-SQLITE_DB_PATH=./tmp/db.sqlite3
 SESSION_DRIVER=cookie
 CORS_ORIGIN=*
 WS_CORS_ORIGIN=*

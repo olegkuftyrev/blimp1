@@ -6,7 +6,8 @@ import { ArrowLeft, User, Mail, Shield, Briefcase } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AuthAPI, TeamMember, IDPAPI, IDPAssessment, IDPCompetencyScores } from '@/lib/api';
+import { AuthAPI, TeamMember } from '@/lib/api';
+import { useUserIDPAssessment, IDPUtils } from '@/hooks/useSWRIDP';
 import { IDPDevelopmentPlanTable } from '@/components/idp/IDPDevelopmentPlanTable';
 
 export default function UserIDP() {
@@ -15,10 +16,17 @@ export default function UserIDP() {
   const userId = searchParams.get('userId');
 
   const [teamMember, setTeamMember] = useState<TeamMember | null>(null);
-  const [idpAssessment, setIdpAssessment] = useState<IDPAssessment | null>(null);
-  const [idpScores, setIdpScores] = useState<IDPCompetencyScores>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use SWR hook for IDP assessment data
+  const { 
+    user: idpUser, 
+    assessment: idpAssessment, 
+    scores: idpScores, 
+    loading: idpLoading, 
+    error: idpError 
+  } = useUserIDPAssessment(userId ? parseInt(userId) : 0);
 
   useEffect(() => {
     if (userId) {
@@ -49,15 +57,6 @@ export default function UserIDP() {
         throw new Error('Failed to load team members');
       }
 
-      // Load user's IDP data
-      const idpResponse = await IDPAPI.getUserAssessment(parseInt(userId));
-      if (idpResponse.data) {
-        setIdpAssessment(idpResponse.data.assessment);
-        setIdpScores(idpResponse.data.scores || {});
-      } else {
-        throw new Error(idpResponse.message || 'Failed to load user IDP');
-      }
-
     } catch (err: any) {
       console.error('Failed to load user data:', err);
       setError(err.message || 'Failed to load user data');
@@ -80,7 +79,11 @@ export default function UserIDP() {
     router.push('/profile?tab=team');
   };
 
-  if (loading) {
+  // Combine loading states
+  const isLoading = loading || idpLoading;
+  const hasError = error || idpError;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
@@ -91,7 +94,7 @@ export default function UserIDP() {
     );
   }
 
-  if (error) {
+  if (hasError) {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
@@ -104,7 +107,7 @@ export default function UserIDP() {
         <Card>
           <CardContent className="text-center py-12">
             <p className="text-lg text-destructive mb-2">Error loading user IDP</p>
-            <p className="text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground">{error || idpError}</p>
           </CardContent>
         </Card>
       </div>
@@ -222,14 +225,14 @@ export default function UserIDP() {
           {/* Development Plan Table */}
           {idpAssessment.status === 'completed' && idpScores && idpAssessment.role?.competencies && (
             <IDPDevelopmentPlanTable
-              competencyScores={idpAssessment.role.competencies.map(comp => ({
+              competencyScores={idpAssessment.role.competencies.map((comp: any) => ({
                 id: comp.id,
                 score: idpScores[comp.id.toString()] || 0,
                 questions: comp.questions || [],
                 actions: comp.actions || [],
                 label: comp.label
               }))}
-              answers={idpAssessment.answers?.reduce((acc, answer) => {
+              answers={idpAssessment.answers?.reduce((acc: any, answer: any) => {
                 acc[answer.questionId] = answer.answer;
                 return acc;
               }, {} as { [questionId: number]: 'yes' | 'no' }) || {}}

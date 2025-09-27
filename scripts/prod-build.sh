@@ -13,7 +13,7 @@ printf "\n==> Building backend...\n"
 (cd "$BACKEND_DIR" && node ace build --ignore-ts-errors)
 
 printf "\n==> Running migrations...\n"
-# Ensure SQLite directory exists
+# Ensure tmp directory exists
 mkdir -p "$BACKEND_DIR/tmp"
 (cd "$BACKEND_DIR" && node ace migration:run)
 

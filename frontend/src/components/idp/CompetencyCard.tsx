@@ -22,9 +22,9 @@ export function CompetencyCard({
   // Color schemes for different statuses
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'expert': return 'text-green-600';
-      case 'proficient': return 'text-blue-600';
-      case 'developing': return 'text-yellow-600';
+      case 'master': return 'text-green-600';
+      case 'skilled': return 'text-blue-600';
+      case 'in-development': return 'text-yellow-600';
       case 'needs-development': return 'text-red-600';
       default: return 'text-gray-600';
     }
@@ -69,15 +69,15 @@ export function CompetencyCard({
                   {score}/{competency.questions?.length || 0}
                 </span>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  status === 'expert' ? 'bg-green-100 text-green-800' :
-                  status === 'proficient' ? 'bg-blue-100 text-blue-800' :
-                  status === 'developing' ? 'bg-yellow-100 text-yellow-800' :
+                  status === 'master' ? 'bg-green-100 text-green-800' :
+                  status === 'skilled' ? 'bg-blue-100 text-blue-800' :
+                  status === 'in-development' ? 'bg-yellow-100 text-yellow-800' :
                   'bg-red-100 text-red-800'
                 }`}>
-                  {status === 'expert' ? 'Expert' :
-                   status === 'proficient' ? 'Proficient' :
-                   status === 'developing' ? 'Developing' :
-                   'Needs Dev.'}
+                  {status === 'master' ? 'Master' :
+                   status === 'skilled' ? 'Skilled' :
+                   status === 'in-development' ? 'In Development' :
+                   'Needs Development'}
                 </span>
               </div>
             </div>

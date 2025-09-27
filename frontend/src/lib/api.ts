@@ -211,6 +211,8 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     const token = window.localStorage.getItem('auth_token')
     if (token) authHeader = { Authorization: `Bearer ${token}` }
   }
+  
+  
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -222,7 +224,21 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
   });
   if (!res.ok) {
     let err: any = null;
-    try { err = await res.json(); } catch {}
+    let responseText = '';
+    try { 
+      responseText = await res.text();
+      err = JSON.parse(responseText);
+    } catch (e) {
+      console.log('Failed to parse response as JSON:', responseText);
+    }
+    console.error('API Error:', { 
+      status: res.status, 
+      statusText: res.statusText, 
+      error: err,
+      responseText: responseText,
+      url: url,
+      method: init?.method || 'GET'
+    });
     throw new Error(err?.error || `Request failed: ${res.status}`);
   }
   try { return (await res.json()) as T; } catch { return undefined as unknown as T; }

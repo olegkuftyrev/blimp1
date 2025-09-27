@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePLTestSets, usePLStats, useCreatePLTestSet, useDeleteAllTestSets, type PLTestSet } from '@/hooks/useSWRPL'
 import { useAuth } from '@/contexts/AuthContextSWR'
+import { useConfirmDialog } from '@/components/ConfirmDialog'
+import { useToastAlerts, toast } from '@/components/ToastAlert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,29 +16,29 @@ export default function PLPracticeTestsPage() {
   const { user } = useAuth()
   const { testSets, isLoading: testSetsLoading, error: testSetsError, mutate: mutateTestSets } = usePLTestSets()
   const { stats, isLoading: statsLoading } = usePLStats()
-  const { createTestSet } = useCreatePLTestSet()
+  const { createTestSet, isCreating } = useCreatePLTestSet()
   const { deleteAllTestSets } = useDeleteAllTestSets()
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog()
+  const { addAlert, ToastContainer } = useToastAlerts()
   
-  const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const handleCreateNewTest = async () => {
     // Prevent double clicks
-    if (creating) {
+    if (isCreating) {
       console.log('Preventing duplicate test set creation')
       return
     }
-    
-    setCreating(true)
     
     try {
       console.log('Creating new test set...')
       const result = await createTestSet()
       console.log('Test set created successfully:', result)
+      
+      addAlert(toast.success('Test Set Created!', 'New practice test has been created successfully.'))
     } catch (error) {
       console.error('Failed to create test set:', error)
-    } finally {
-      setCreating(false)
+      addAlert(toast.error('Failed to Create Test Set', error instanceof Error ? error.message : 'Unknown error occurred'))
     }
   }
 
@@ -45,24 +47,25 @@ export default function PLPracticeTestsPage() {
       return
     }
 
-    const confirmed = window.confirm(
-      'Are you sure you want to delete ALL test sets? This action cannot be undone and will remove all test sets and answers for all users.'
-    )
-
-    if (!confirmed) {
-      return
-    }
-
-    setDeleting(true)
-    try {
-      await deleteAllTestSets()
-      // The hook will automatically refresh the data
-    } catch (error) {
-      console.error('Failed to delete test sets:', error)
-      alert('Failed to delete test sets. Please try again.')
-    } finally {
-      setDeleting(false)
-    }
+    showConfirm({
+      title: 'Delete All Test Sets',
+      description: 'Are you sure you want to delete ALL test sets? This action cannot be undone and will remove all test sets and answers for all users.',
+      confirmText: 'Delete All',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      onConfirm: async () => {
+        setDeleting(true)
+        try {
+          await deleteAllTestSets()
+          addAlert(toast.success('Test Sets Deleted!', 'All test sets have been deleted successfully.'))
+        } catch (error) {
+          console.error('Failed to delete test sets:', error)
+          addAlert(toast.error('Failed to Delete Test Sets', error instanceof Error ? error.message : 'Unknown error occurred'))
+        } finally {
+          setDeleting(false)
+        }
+      },
+    })
   }
 
   if (testSetsLoading || statsLoading) {
@@ -123,11 +126,11 @@ export default function PLPracticeTestsPage() {
           
           <Button 
             onClick={handleCreateNewTest} 
-            disabled={creating}
+            disabled={isCreating}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            {creating ? 'Creating...' : 'Create New Test'}
+            {isCreating ? 'Creating...' : 'Create New Test'}
           </Button>
         </div>
       </div>
@@ -261,19 +264,19 @@ export default function PLPracticeTestsPage() {
             <CardContent className="h-full flex flex-col items-center justify-center p-8">
               <div className="flex flex-col items-center justify-center space-y-4">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-                  creating 
+                  isCreating 
                     ? 'bg-primary/20 animate-pulse' 
                     : 'bg-primary/10 hover:bg-primary/20'
                 }`}>
                   <Plus className={`h-8 w-8 transition-all ${
-                    creating 
+                    isCreating 
                       ? 'text-primary animate-spin' 
                       : 'text-primary'
                   }`} />
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-medium mb-1">
-                    {creating ? 'Creating...' : 'Create New Test'}
+                    {isCreating ? 'Creating...' : 'Create New Test'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     Generate a new practice test with random questions
@@ -294,13 +297,19 @@ export default function PLPracticeTestsPage() {
             <p className="text-muted-foreground mb-6">
               Create your first P&L practice test to get started with financial calculations.
             </p>
-            <Button onClick={handleCreateNewTest} disabled={creating}>
+            <Button onClick={handleCreateNewTest} disabled={isCreating}>
               <Plus className="h-4 w-4 mr-2" />
-              {creating ? 'Creating...' : 'Create Your First Test'}
+              {isCreating ? 'Creating...' : 'Create Your First Test'}
             </Button>
           </CardContent>
         </Card>
       )}
+      
+      {/* Confirm Dialog Component */}
+      <ConfirmDialogComponent />
+      
+      {/* Toast Alerts */}
+      <ToastContainer />
     </div>
   )
 }

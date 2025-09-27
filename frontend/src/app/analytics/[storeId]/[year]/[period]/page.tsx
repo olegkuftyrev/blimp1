@@ -44,6 +44,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   const [loadingReport, setLoadingReport] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   
   // All useEffect hooks must be declared before any conditional returns
   useEffect(() => {
@@ -310,6 +311,16 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
 
       {/* File Upload Success Message */}
       <div className="space-y-6">
+        {/* Error Message */}
+        {deleteError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {deleteError}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {plReport && !showUploadForm ? ( // Only show success message if report exists and form is hidden
           <Card>
             <CardHeader>
@@ -324,6 +335,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
                     size="sm"
                     onClick={async () => {
                       console.log('Delete button clicked, plReport:', plReport);
+                      setDeleteError(null); // Clear any previous errors
                       
                       if (plReport?.id) {
                         console.log('Attempting to delete report with ID:', plReport.id);
@@ -340,23 +352,29 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
                           
                           if (response.ok) {
                             console.log('P&L report deleted successfully');
+                            // Only reset the UI state if deletion was successful
+                            console.log('Resetting report data...');
+                            setPlReport(null);
+                            setPlLineItems([]);
+                            setLoadingReport(false);
+                            setShowUploadForm(true);
+                            setDeleteError(null);
                           } else {
-                            const errorText = await response.text();
-                            console.error('Failed to delete P&L report:', response.status, errorText);
+                            const errorData = await response.json();
+                            const errorMessage = errorData.message || errorData.error || 'Failed to delete P&L report';
+                            console.error('Failed to delete P&L report:', response.status, errorMessage);
+                            setDeleteError(errorMessage);
+                            // Don't reset UI state on error - keep showing the report
                           }
                         } catch (error) {
                           console.error('Error deleting P&L report:', error);
+                          setDeleteError('Network error occurred while deleting the report');
+                          // Don't reset UI state on error - keep showing the report
                         }
                       } else {
                         console.log('No plReport.id found, cannot delete');
+                        setDeleteError('No report ID found - cannot delete');
                       }
-                      
-                      // Reset the report data to show upload form again
-                      console.log('Resetting report data...');
-                      setPlReport(null);
-                      setPlLineItems([]);
-                      setLoadingReport(false);
-                      setShowUploadForm(true);
                     }}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >

@@ -77,12 +77,17 @@ apiClient.interceptors.request.use(
     if (process.env.NODE_ENV === 'development') {
       console.error('🚨 Axios API Error:', {
         status: error.response?.status,
+        statusText: error.response?.statusText,
         url: error.config?.url,
         baseURL: error.config?.baseURL,
         fullUrl: `${error.config?.baseURL}${error.config?.url}`,
-        error: error.response?.data?.error || error.message,
         method: error.config?.method?.toUpperCase(),
-        responseData: error.response?.data
+        errorMessage: error.message,
+        responseData: error.response?.data,
+        requestData: error.config?.data,
+        headers: error.config?.headers,
+        timeout: error.code === 'ECONNABORTED' ? 'Request timeout' : null,
+        networkError: !error.response ? 'Network error - no response received' : null
       });
     }
     

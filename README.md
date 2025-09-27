@@ -239,7 +239,7 @@ frontend/
 
 - **Frontend**: Next.js 15.5.2 with TypeScript and Tailwind CSS
 - **Backend**: AdonisJS 6.19.0 (Node.js framework)
-- **Database**: SQLite with Lucid ORM (built-in AdonisJS ORM)
+- **Database**: PostgreSQL with Lucid ORM (built-in AdonisJS ORM)
 - **Real-time Communication**: Socket.IO WebSocket integration
 - **Architecture**: API-Driven Development with WebSocket events
 - **Data Synchronization**: Real-time WebSocket events + 5-second polling fallback
@@ -504,7 +504,7 @@ project/
 │   │   └── validators/   # Request validation
 │   ├── config/       # Configuration files
 │   ├── database/     # Database migrations and seeders
-│   ├── tmp/          # SQLite database file (auto-generated)
+│   ├── tmp/          # Temporary files directory
 │   └── package.json  # Backend dependencies
 └── README.md        # This file
 ```
@@ -995,98 +995,10 @@ node ace make:seeder sample_data
 - Seeders: `backend/database/seeders`
 - Models: `backend/app/models`
 
-### Postgres Migration Guide (Optional)
+### Database Configuration
 
-If/when you outgrow SQLite, switching to Postgres with Lucid is straightforward.
+The application uses PostgreSQL as the primary database. Configure your database connection in `backend/.env`:
 
-1) Install dependency (backend)
-```bash
-cd backend
-npm i pg
-```
-
-2) Add env variables (`backend/.env`)
-```env
-DB_CLIENT=pg
-PG_HOST=127.0.0.1
-PG_PORT=5432
-PG_USER=postgres
-PG_PASSWORD=postgres
-PG_DB_NAME=blimp
-PG_SSL=false
-```
-
-3) Update env schema (`backend/start/env.ts`)
-Add optional Postgres keys (keep existing SQLite keys):
-```ts
-// ... existing keys ...
-DB_CLIENT: Env.schema.enum.optional(['sqlite', 'pg'] as const),
-PG_HOST: Env.schema.string.optional(),
-PG_PORT: Env.schema.number.optional(),
-PG_USER: Env.schema.string.optional(),
-PG_PASSWORD: Env.schema.string.optional(),
-PG_DB_NAME: Env.schema.string.optional(),
-PG_SSL: Env.schema.boolean.optional(),
-```
-
-4) Update DB config (`backend/config/database.ts`)
-```ts
-import env from '#start/env'
-import { defineConfig } from '@adonisjs/lucid'
-
-const dbConfig = defineConfig({
-  connection: env.get('DB_CLIENT') || 'sqlite',
-  connections: {
-    sqlite: {
-      client: 'better-sqlite3',
-      connection: { filename: env.get('SQLITE_DB_PATH') || app.tmpPath('db.sqlite3') },
-      useNullAsDefault: true,
-      migrations: { naturalSort: true, paths: ['database/migrations'] },
-    },
-    pg: {
-      client: 'pg',
-      connection: {
-        host: env.get('PG_HOST'),
-        port: env.get('PG_PORT'),
-        user: env.get('PG_USER'),
-        password: env.get('PG_PASSWORD'),
-        database: env.get('PG_DB_NAME'),
-        ssl: env.get('PG_SSL') ? { rejectUnauthorized: false } : false,
-      },
-      migrations: { naturalSort: true, paths: ['database/migrations'] },
-    },
-  },
-})
-
-export default dbConfig
-```
-
-5) Create DB, migrate, seed
-```bash
-# ensure the database exists
-createdb blimp || true
-
-# run migrations and (optionally) seeds
-node ace migration:run
-node ace db:seed
-```
-
-6) Data migration from SQLite (optional)
-- Dev reset: simplest path is to start Postgres empty and re-seed.
-- Real data: export CSV from SQLite per table and import with `psql` `\copy`.
-
-Compatibility notes
-- Booleans, timestamps, and JSON fields map cleanly via Lucid.
-- Unique constraints and foreign keys are fully enforced (as with SQLite FK pragma enabled).
-- Remove `useNullAsDefault` (only for SQLite) if you later drop SQLite config.
-- Review any raw SQL in migrations/seeders for vendor-specific syntax.
-
-Production notes
-- Use SSL for managed Postgres; configure pooler (e.g., pgbouncer) if needed.
-- Run `ANALYZE` after large imports; add appropriate indexes.
-- Rotate credentials and keep env secrets out of VCS.
-
-Env template (backend/.env)
 ```env
 NODE_ENV=development
 HOST=0.0.0.0
@@ -1102,9 +1014,7 @@ SESSION_DRIVER=cookie
 # CORS
 CORS_ORIGIN=*
 
-# Database (SQLite kept for fallback; Postgres is default)
-SQLITE_DB_PATH=./tmp/db.sqlite3
-DB_CLIENT=pg
+# Database (PostgreSQL)
 PG_HOST=127.0.0.1
 PG_PORT=5432
 PG_USER=postgres

@@ -258,6 +258,15 @@ export default class PlReportController {
 
     } catch (error) {
       console.error('P&L delete error:', error)
+      
+      // Check if it's a "Row not found" error from findOrFail
+      if (error.message && error.message.includes('Row not found')) {
+        return response.notFound({ 
+          message: 'P&L report not found',
+          error: 'The requested P&L report does not exist or has already been deleted'
+        })
+      }
+      
       return response.internalServerError({ 
         message: 'Failed to delete P&L report',
         error: error.message 

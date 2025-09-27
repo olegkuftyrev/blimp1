@@ -150,18 +150,15 @@ db_operations() {
         1)
             sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "
                 cd $PROJECT_DIR/backend
-                echo '=== Database Info ==='
-                ls -la tmp/db.sqlite3
-                echo ''
-                echo '=== Database Schema ==='
-                sqlite3 tmp/db.sqlite3 '.schema' | head -20
+                echo '=== Database Connection Test ==='
+                node ace db:query 'SELECT version();' || echo 'Database connection failed'
             "
             ;;
         2)
-            backup_file="db_backup_$(date +%Y%m%d_%H%M%S).sqlite3"
+            backup_file="db_backup_$(date +%Y%m%d_%H%M%S).sql"
             sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "
                 cd $PROJECT_DIR/backend
-                cp tmp/db.sqlite3 tmp/$backup_file
+                pg_dump \$PG_DB_NAME > tmp/$backup_file
                 echo 'Database backed up as: $backup_file'
             "
             print_success "Database backed up successfully"
@@ -186,8 +183,7 @@ db_operations() {
             if [ "$confirm" = "yes" ]; then
                 sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "
                     cd $PROJECT_DIR/backend
-                    rm -f tmp/db.sqlite3
-                    node ace migration:run
+                    node ace migration:reset
                     node ace db:seed
                 "
                 print_success "Database reset completed"

@@ -20,6 +20,21 @@ interface LoginResponse {
   token: string;
 }
 
+interface CreateUserRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  role: string;
+  jobTitle: string;
+  restaurantIds?: number[];
+}
+
+interface CreateUserResponse {
+  success: boolean;
+  data: AuthUser;
+  message: string;
+}
+
 // Fetcher functions for SWR
 const fetcher = async (url: string) => {
   const response = await apiClient.get(url);
@@ -28,6 +43,11 @@ const fetcher = async (url: string) => {
 
 // Mutation functions
 const loginMutation = async (url: string, { arg }: { arg: LoginCredentials }) => {
+  const response = await apiClient.post(url, arg);
+  return response.data;
+};
+
+const createUserMutation = async (url: string, { arg }: { arg: CreateUserRequest }) => {
   const response = await apiClient.post(url, arg);
   return response.data;
 };
@@ -113,6 +133,75 @@ export function useSWRLogin() {
     login,
     isLogging,
     loginError
+  };
+}
+
+// Hook for creating users
+export function useCreateUser() {
+  const { 
+    trigger: createUser, 
+    isMutating: isCreating,
+    error: createError
+  } = useSWRMutation(
+    '/users',
+    createUserMutation,
+    {
+      onSuccess: (data: CreateUserResponse) => {
+        console.log('✅ User created successfully:', data.data.email);
+      },
+      onError: (error) => {
+        console.error('❌ User creation failed:', error.message);
+      }
+    }
+  );
+
+  return {
+    createUser,
+    isCreating,
+    createError
+  };
+}
+
+// Hook for fetching team members
+export function useUsers() {
+  const { 
+    data: usersData, 
+    error, 
+    isLoading,
+    mutate
+  } = useSWR(
+    // Use a function to avoid hydration mismatch
+    () => {
+      if (typeof window === 'undefined') return null;
+      return window.localStorage.getItem('auth_token') ? '/users/team' : null;
+    },
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000, // 1 minute - users data can change
+      shouldRetryOnError: true,
+      onSuccess: (data) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ SWR Users:', { 
+            success: true, 
+            count: data?.data?.length || 0
+          });
+        }
+      },
+      onError: (error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ SWR Users Error:', error.message);
+        }
+      }
+    }
+  );
+
+  return {
+    users: usersData?.data || [],
+    loading: isLoading,
+    error,
+    mutate
   };
 }
 

@@ -15,7 +15,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContextSWR';
-import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useIDP';
+import { useIDPAssessment, useCompetencies, useSaveAnswers, useCompleteAssessment, IDPUtils } from '@/hooks/useSWRIDP';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 function QuestionsPageContent() {
@@ -26,13 +26,21 @@ function QuestionsPageContent() {
     answers, 
     loading: assessmentLoading, 
     error: assessmentError,
-    updateAnswer,
-    completeAssessment 
+    mutate: mutateAssessment
   } = useIDPAssessment();
-  const { competencies, loading: competenciesLoading, error: competenciesError } = useCompetencies();
+  const { competencies, loading: competenciesLoading, error: competenciesError, mutate: mutateCompetencies } = useCompetencies(user?.role);
+  const { saveAnswers, isSaving } = useSaveAnswers();
+  const { completeAssessment, isCompleting } = useCompleteAssessment();
 
   const loading = assessmentLoading || competenciesLoading;
   const error = assessmentError || competenciesError;
+
+  // Revalidate competencies when role becomes available (handles reseed/cache)
+  useEffect(() => {
+    if (user?.role) {
+      mutateCompetencies();
+    }
+  }, [user?.role, mutateCompetencies]);
 
   // Calculate progress
   const overallProgress = IDPUtils.getOverallProgress(competencies, answers);
@@ -46,7 +54,9 @@ function QuestionsPageContent() {
   // Handle answer selection
   const handleAnswer = async (competencyId: number, questionId: number, answer: 'yes' | 'no') => {
     try {
-      await updateAnswer(questionId, answer);
+      await saveAnswers({ answers: { [questionId]: answer } });
+      // Invalidate assessment cache to get updated answers
+      await mutateAssessment();
     } catch (error) {
       console.error('Failed to save answer:', error);
     }
@@ -55,6 +65,9 @@ function QuestionsPageContent() {
   // Smart test data - fills 3 random competencies with some "No" answers, rest "Yes"
   const handleSmartTest = async () => {
     try {
+      console.log('🎯 Starting Smart Test Data generation...');
+      console.log('📊 Total competencies:', competencies.length);
+      
       const smartAnswers: { [questionId: number]: 'yes' | 'no' } = {};
       
       // First, set all answers to "yes"
@@ -63,6 +76,8 @@ function QuestionsPageContent() {
           smartAnswers[q.id] = "yes";
         });
       });
+      
+      console.log('✅ Set all answers to "yes", total questions:', Object.keys(smartAnswers).length);
       
       // Randomly select 3 competencies to have development needs
       const competencyIds = competencies.map((comp: any) => comp.id);
@@ -76,6 +91,8 @@ function QuestionsPageContent() {
           competenciesToChange.push(randomCompId);
         }
       }
+      
+      console.log('🎲 Selected competencies to change:', competenciesToChange);
       
       // For each selected competency, change at least 3 questions to "no"
       competenciesToChange.forEach(compId => {
@@ -97,22 +114,26 @@ function QuestionsPageContent() {
             const question = comp.questions![qIndex];
             smartAnswers[question.id] = "no";
           });
+          
+          console.log(`📝 Changed ${numQuestionsToChange} questions to "no" in competency: ${comp.label}`);
         }
       });
       
-      // Save all answers at once
-      const firstQuestionId = parseInt(Object.keys(smartAnswers)[0]);
-      const firstAnswer = Object.values(smartAnswers)[0] as 'yes' | 'no';
-      await updateAnswer(firstQuestionId, firstAnswer); // This will trigger a re-render
+      const noAnswers = Object.values(smartAnswers).filter(answer => answer === 'no').length;
+      const yesAnswers = Object.values(smartAnswers).filter(answer => answer === 'yes').length;
+      console.log(`📊 Final answers: ${yesAnswers} "yes", ${noAnswers} "no"`);
       
-      // Update all answers in sequence (could be optimized later)
-      for (const [questionIdStr, answer] of Object.entries(smartAnswers)) {
-        const questionId = parseInt(questionIdStr);
-        await handleAnswer(0, questionId, answer); // competencyId not used in our implementation
-      }
+      // Save all answers at once using the new SWR mutation
+      console.log('💾 Saving answers...');
+      await saveAnswers({ answers: smartAnswers });
+      console.log('✅ Answers saved successfully');
+      
+      // Invalidate assessment cache to get updated answers
+      await mutateAssessment();
+      console.log('🔄 Assessment cache invalidated');
       
     } catch (error) {
-      console.error('Failed to apply smart test data:', error);
+      console.error('❌ Failed to apply smart test data:', error);
     }
   };
 
@@ -120,6 +141,8 @@ function QuestionsPageContent() {
   const handleComplete = async () => {
     try {
       await completeAssessment();
+      // Invalidate assessment cache to get updated status and scores
+      await mutateAssessment();
       router.push('/idp'); // Return to main IDP page where results are displayed
     } catch (error) {
       console.error('Failed to complete assessment:', error);
@@ -156,15 +179,33 @@ function QuestionsPageContent() {
         <Card className="border-red-200 bg-red-50/30">
           <CardContent className="p-6">
             <div className="text-center py-8">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={() => router.push('/idp')} variant="outline">
-                Back to IDP Home
-              </Button>
+              <p className="text-red-600 mb-4">{(error as Error)?.message || 'Unexpected error'}</p>
+              <div className="flex items-center justify-center gap-3">
+                <Button onClick={() => { mutateAssessment(); mutateCompetencies(); }} variant="outline">
+                  Try again
+                </Button>
+                <Button onClick={() => router.push('/idp')} variant="outline">
+                  Back to IDP Home
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       ) : (
         <>
+          {/* Empty state when no competencies */}
+          {competencies.length === 0 && (
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-2">No competencies found for your role.</p>
+                  {user?.role && (
+                    <p className="text-sm text-muted-foreground">Role: {user.role}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Overall Progress */}
           <Card className="mb-6">
             <CardContent className="p-6">

@@ -230,9 +230,9 @@ export const IDPUtils = {
     const percentage = (score / totalQuestions) * 100;
     
     if (percentage <= 40) return 'needs-development'; // 0-2 out of 5
-    if (percentage <= 60) return 'developing'; // 3 out of 5
-    if (percentage <= 80) return 'proficient'; // 4 out of 5
-    return 'expert'; // 5 out of 5
+    if (percentage <= 60) return 'in-development'; // 3 out of 5
+    if (percentage <= 80) return 'skilled'; // 4 out of 5
+    return 'master'; // 5 out of 5
   },
 
   // Check if competency is complete (all questions answered)

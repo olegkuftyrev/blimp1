@@ -937,7 +937,7 @@ router.group(() => {
       console.error('Error updating restaurant:', error)
       
       // Handle unique constraint violation
-      if (error.message?.includes('UNIQUE constraint failed') || error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if (error.message?.includes('UNIQUE constraint failed') || error.code === '23505') {
         return response.status(400).json({ error: 'Restaurant name must be unique' })
       }
       

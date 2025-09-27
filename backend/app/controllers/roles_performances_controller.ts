@@ -69,6 +69,8 @@ export default class RolesPerformancesController {
    */
   async getUserAnswers({ params, auth, response }: HttpContext) {
     try {
+      // Ensure authentication context is populated
+      await auth.authenticate()
       const user = auth.user
       if (!user) {
         return response.unauthorized({
@@ -135,6 +137,7 @@ export default class RolesPerformancesController {
    */
   async saveAnswer({ request, auth, response }: HttpContext) {
     try {
+      await auth.authenticate()
       const user = auth.user
       if (!user) {
         return response.unauthorized({
@@ -210,6 +213,7 @@ export default class RolesPerformancesController {
    */
   async saveAnswersBulk({ params, request, auth, response }: HttpContext) {
     try {
+      await auth.authenticate()
       const currentUser = auth.user
       if (!currentUser) {
         return response.unauthorized({
@@ -339,6 +343,7 @@ export default class RolesPerformancesController {
    */
   async getUserProgress({ params, auth, response }: HttpContext) {
     try {
+      await auth.authenticate()
       const user = auth.user
       if (!user) {
         return response.unauthorized({
@@ -423,6 +428,7 @@ export default class RolesPerformancesController {
    */
   async getOverallProgress({ auth, response }: HttpContext) {
     try {
+      await auth.authenticate()
       const user = auth.user
       if (!user) {
         return response.unauthorized({
@@ -474,7 +480,8 @@ export default class RolesPerformancesController {
       const totalItemsAcrossRoles = progressData.reduce((sum, role) => sum + role.totalItems, 0)
       const totalAnsweredAcrossRoles = progressData.reduce((sum, role) => sum + role.answeredItems, 0)
       const totalYesAnswers = progressData.reduce((sum, role) => sum + role.yesAnswers, 0)
-      const overallProgressPercentage = totalItemsAcrossRoles > 0 ? Math.round((totalAnsweredAcrossRoles / totalItemsAcrossRoles) * 100) : 0
+      // Overall progress should reflect mastery ("yes" answers), not just answered items
+      const overallProgressPercentage = totalItemsAcrossRoles > 0 ? Math.round((totalYesAnswers / totalItemsAcrossRoles) * 100) : 0
       const completedRoles = progressData.filter(role => role.isCompleted).length
 
       return response.ok({

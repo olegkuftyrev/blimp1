@@ -159,7 +159,7 @@ function RolesPerformancePageContent() {
                 {progress.overall.overallProgressPercentage}%
               </div>
               <p className="text-xs text-muted-foreground">
-                {progress.overall.totalAnsweredAcrossRoles} of {progress.overall.totalItemsAcrossRoles} skills
+                {progress.overall.totalYesAnswers} of {progress.overall.totalItemsAcrossRoles} skills mastered
               </p>
             </CardContent>
           </Card>

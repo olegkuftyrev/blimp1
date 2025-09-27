@@ -153,3 +153,4 @@ export default class RestaurantPolicy extends BasePolicy {
     return relation !== null
   }
 }
+

@@ -11,7 +11,7 @@ import Link from 'next/link';
 interface IDPSidebarData {
   assessment: IDPAssessment | null;
   progress: number;
-  expertCompetencies: number;
+  masterCompetencies: number;
   developmentAreas: number;
   lastAssessmentDate: string | null;
   loading: boolean;
@@ -23,7 +23,7 @@ export function IDPSidebarInfo() {
   const [data, setData] = useState<IDPSidebarData>({
     assessment: null,
     progress: 0,
-    expertCompetencies: 0,
+    masterCompetencies: 0,
     developmentAreas: 0,
     lastAssessmentDate: null,
     loading: true,
@@ -54,7 +54,7 @@ export function IDPSidebarInfo() {
             loading: false,
             assessment: null,
             progress: 0,
-            expertCompetencies: 0,
+            masterCompetencies: 0,
             developmentAreas: 0,
             lastAssessmentDate: null
           }));
@@ -72,7 +72,7 @@ export function IDPSidebarInfo() {
             loading: false,
             assessment: null,
             progress: 0,
-            expertCompetencies: 0,
+            masterCompetencies: 0,
             developmentAreas: 0,
             lastAssessmentDate: null
           }));
@@ -87,7 +87,7 @@ export function IDPSidebarInfo() {
         const progress = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
         
         // Calculate competency scores if assessment is completed
-        let expertCompetencies = 0;
+        let masterCompetencies = 0;
         let developmentAreas = 0;
         
         if (assessment.status === 'completed' && assessment.answers) {
@@ -101,7 +101,7 @@ export function IDPSidebarInfo() {
               return answersMap[question.id] === 'yes' ? total + 1 : total;
             }, 0) || 0;
             
-            if (score >= 4) expertCompetencies++;
+            if (score >= 4) masterCompetencies++;
             else if (score < 3) developmentAreas++;
           });
         }
@@ -111,7 +111,7 @@ export function IDPSidebarInfo() {
           loading: false,
           assessment,
           progress,
-          expertCompetencies,
+          masterCompetencies,
           developmentAreas,
           lastAssessmentDate: assessment.completedAt || assessment.updatedAt
         }));
@@ -126,7 +126,7 @@ export function IDPSidebarInfo() {
             loading: false,
             assessment: null,
             progress: 0,
-            expertCompetencies: 0,
+            masterCompetencies: 0,
             developmentAreas: 0,
             lastAssessmentDate: null,
             error: assessmentErr.message?.includes('Role not found') ? 'Role not found' : null
@@ -145,7 +145,7 @@ export function IDPSidebarInfo() {
           loading: false,
           assessment: null,
           progress: 0,
-          expertCompetencies: 0,
+          masterCompetencies: 0,
           developmentAreas: 0,
           lastAssessmentDate: null,
           error: 'Role not found'
@@ -247,8 +247,8 @@ export function IDPSidebarInfo() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs">
             <Award className="h-3 w-3 text-green-600" />
-            <span className="text-sidebar-foreground/60">Expert Areas</span>
-            <span className="ml-auto text-sidebar-foreground font-medium">{data.expertCompetencies}</span>
+            <span className="text-sidebar-foreground/60">Master Areas</span>
+            <span className="ml-auto text-sidebar-foreground font-medium">{data.masterCompetencies}</span>
           </div>
           
           <div className="flex items-center gap-2 text-xs">

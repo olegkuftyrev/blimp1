@@ -6,6 +6,67 @@ import { DateTime } from 'luxon'
 
 export default class UsersController {
   /**
+   * Helper function to manually authenticate user from token
+   */
+  private async authenticateUser(request: any): Promise<User | null> {
+    try {
+      const authHeader = request.header('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null
+      }
+      
+      const token = authHeader.substring(7)
+      
+      // Find token in database using the hash
+      const db = await import('@adonisjs/lucid/services/db')
+      const tokenRecord = await db.default
+        .from('auth_access_tokens')
+        .where('hash', token)
+        .first()
+      
+      if (!tokenRecord) {
+        return null
+      }
+      
+      // Find user
+      const user = await User.find(tokenRecord.tokenable_id)
+      return user
+    } catch (error) {
+      console.error('Authentication error:', error)
+      return null
+    }
+  }
+
+  /**
+   * Test endpoint to get all users without auth
+   */
+  async testUsers({ response }: HttpContext) {
+    try {
+      const users = await User.query()
+        .whereNull('deleted_at')
+        .orderBy('created_at', 'desc')
+        .limit(10)
+      
+      return response.json({
+        success: true,
+        data: users.map(user => ({
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          jobTitle: user.jobTitle
+        }))
+      })
+    } catch (error) {
+      return response.status(500).json({
+        success: false,
+        message: 'Failed to fetch users',
+        error: error.message
+      })
+    }
+  }
+
+  /**
    * Debug current user info - using simple auth
    */
   async debug({ request, response }: HttpContext) {
@@ -57,7 +118,11 @@ export default class UsersController {
    */
   async getTeamMembers({ auth, response }: HttpContext) {
     try {
+      // Authenticate user using the API guard (same as /auth/me)
+      await auth.authenticate()
+      
       const currentUser = auth.user!
+      console.log('getTeamMembers: Current user:', currentUser.id, currentUser.email, currentUser.role)
       
       // Check permission using policy
       const userPolicy = new UserPolicy()
@@ -143,6 +208,9 @@ export default class UsersController {
    */
   async index({ auth, response }: HttpContext) {
     try {
+      // Authenticate user using the API guard (same as /auth/me)
+      await auth.authenticate()
+      
       const currentUser = auth.user!
       
       // Check permission using policy
@@ -208,6 +276,9 @@ export default class UsersController {
    */
   async store({ auth, request, response }: HttpContext) {
     try {
+      // Authenticate user using the API guard (same as /auth/me)
+      await auth.authenticate()
+      
       const currentUser = auth.user!
       
       const { fullName, email, password, role, jobTitle, restaurantIds = [] } = request.only([
@@ -270,6 +341,9 @@ export default class UsersController {
    */
   async update({ auth, params, request, response }: HttpContext) {
     try {
+      // Authenticate user using the API guard (same as /auth/me)
+      await auth.authenticate()
+      
       const currentUser = auth.user!
       const targetUser = await User.findOrFail(params.id)
       
@@ -336,6 +410,9 @@ export default class UsersController {
    */
   async destroy({ auth, params, response }: HttpContext) {
     try {
+      // Authenticate user using the API guard (same as /auth/me)
+      await auth.authenticate()
+      
       const currentUser = auth.user!
       const targetUser = await User.findOrFail(params.id)
       

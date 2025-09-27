@@ -1,6 +1,7 @@
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import apiClient from '@/lib/axios';
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContextSWR';
 import type { 
   RolePerformance, 
@@ -11,20 +12,31 @@ import type {
 } from '@/lib/api';
 
 // Fetcher functions for SWR
-const fetcher = async (url: string) => {
-  const response = await apiClient.get(url);
-  return response.data;
-};
+const fetcher = async (url: string) => apiFetch(url);
 
 // Mutation function for saving answers
 const saveAnswerMutation = async (url: string, { arg }: { arg: { performanceItemId: number; answer: 'yes' | 'no' } }) => {
-  const response = await apiClient.post(url, arg);
-  return response.data;
+  return apiFetch(url, {
+    method: 'POST',
+    body: JSON.stringify(arg),
+  });
+};
+
+// Mutation function for saving answers in bulk
+const saveAnswersBulkMutation = async (
+  url: string,
+  { arg }: { arg: { answers: Array<{ performanceItemId: number; answer: 'yes' | 'no' }> } }
+) => {
+  return apiFetch(url, {
+    method: 'POST',
+    body: JSON.stringify(arg),
+  });
 };
 
 // Hook for managing all roles performance data
 export function useSWRRolesPerformance() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const hasToken = typeof window !== 'undefined' && !!window.localStorage.getItem('auth_token');
   
   
   // Fetch all roles
@@ -34,12 +46,13 @@ export function useSWRRolesPerformance() {
     isLoading: rolesLoading,
     mutate: mutateRoles
   } = useSWR(
-    user ? '/roles-performance' : null,
+    !authLoading && user && hasToken ? '/roles-performance' : null,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 30000, // 30 seconds
+      shouldRetryOnError: false,
       onSuccess: (data) => {
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ SWR Roles:', { 
@@ -51,8 +64,11 @@ export function useSWRRolesPerformance() {
         }
       },
       onError: (error) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ SWR Roles Error:', error.message);
+        const status = (error as any)?.response?.status;
+        const message = (error as any)?.message || '';
+        const is401 = status === 401 || /401|unauthorized/i.test(message);
+        if (process.env.NODE_ENV === 'development' && !is401) {
+          console.error('❌ SWR Roles Error:', message || error);
         }
       }
     }
@@ -65,12 +81,13 @@ export function useSWRRolesPerformance() {
     isLoading: progressLoading,
     mutate: mutateProgress
   } = useSWR(
-    user ? '/roles-performance/progress/overall' : null,
+    !authLoading && user && hasToken ? '/roles-performance/progress/overall' : null,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 10000, // 10 seconds - progress changes more often
+      shouldRetryOnError: false,
       onSuccess: (data) => {
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ SWR Progress:', { 
@@ -82,8 +99,11 @@ export function useSWRRolesPerformance() {
         }
       },
       onError: (error) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ SWR Progress Error:', error.message);
+        const status = (error as any)?.response?.status;
+        const message = (error as any)?.message || '';
+        const is401 = status === 401 || /401|unauthorized/i.test(message);
+        if (process.env.NODE_ENV === 'development' && !is401) {
+          console.error('❌ SWR Progress Error:', message || error);
         }
       }
     }
@@ -109,7 +129,8 @@ export function useSWRRolesPerformance() {
 
 // Hook for managing single role performance data
 export function useSWRRolePerformance(roleId: number) {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const hasToken = typeof window !== 'undefined' && !!window.localStorage.getItem('auth_token');
   
   // Fetch role details
   const { 
@@ -118,12 +139,13 @@ export function useSWRRolePerformance(roleId: number) {
     isLoading: roleLoading,
     mutate: mutateRole
   } = useSWR(
-    user && roleId ? `/roles-performance/${roleId}` : null,
+    !authLoading && user && hasToken && roleId ? `/roles-performance/${roleId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 60000, // 1 minute - role structure doesn't change often
+      shouldRetryOnError: false,
     }
   );
 
@@ -134,12 +156,13 @@ export function useSWRRolePerformance(roleId: number) {
     isLoading: answersLoading,
     mutate: mutateAnswers
   } = useSWR(
-    user && roleId ? `/roles-performance/${roleId}/answers` : null,
+    !authLoading && user && hasToken && roleId ? `/roles-performance/${roleId}/answers` : null,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000, // 5 seconds - answers change frequently
+      shouldRetryOnError: false,
     }
   );
 
@@ -150,12 +173,13 @@ export function useSWRRolePerformance(roleId: number) {
     isLoading: progressLoading,
     mutate: mutateProgress
   } = useSWR(
-    user && roleId ? `/roles-performance/${roleId}/progress` : null,
+    !authLoading && user && hasToken && roleId ? `/roles-performance/${roleId}/progress` : null,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 10000, // 10 seconds
+      shouldRetryOnError: false,
     }
   );
 
@@ -174,6 +198,9 @@ export function useSWRRolePerformance(roleId: number) {
         console.log('🔄 Refreshing answers and progress...');
         mutateAnswers();
         mutateProgress();
+        // Also refresh overall progress and roles list dashboards
+        globalMutate('/roles-performance/progress/overall');
+        globalMutate('/roles-performance');
       },
       onError: (error) => {
         console.error('💥 SWR Mutation Error:', error);
@@ -275,3 +302,33 @@ export const RolesPerformanceUtils = {
     return Math.round((progress.yesAnswers / progress.answeredItems) * 100);
   },
 };
+
+// Hook for saving answers in bulk (similar to P&L bulk operations style)
+export function useSaveRoleAnswersBulk(roleId: number | null) {
+  const key = roleId ? `/roles-performance/${roleId}/answers/bulk` : null;
+
+  const { trigger, isMutating, error } = useSWRMutation(
+    key,
+    saveAnswersBulkMutation,
+    {
+      onSuccess: () => {
+        // Revalidate role-specific caches and overall dashboards
+        if (roleId) {
+          globalMutate(`/roles-performance/${roleId}/answers`);
+          globalMutate(`/roles-performance/${roleId}/progress`);
+        }
+        globalMutate('/roles-performance/progress/overall');
+        globalMutate('/roles-performance');
+      }
+    }
+  );
+
+  const saveAnswersBulk = async (
+    answers: Array<{ performanceItemId: number; answer: 'yes' | 'no' }>
+  ) => {
+    if (!roleId) return;
+    return trigger({ answers });
+  };
+
+  return { saveAnswersBulk, isSavingBulk: isMutating, bulkError: error };
+}

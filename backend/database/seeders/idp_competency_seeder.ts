@@ -18,6 +18,8 @@ export default class extends BaseSeeder {
 
     console.log('🔄 Seeding IDP competencies...')
 
+    let competencyIndex = 1; // Start from 1 for sort order
+
     for (const competencyData of competenciesData) {
       console.log(`  📝 Processing: ${competencyData.label}`)
       
@@ -35,7 +37,7 @@ export default class extends BaseSeeder {
           competencyId: competencyData.id,
           label: competencyData.label,
           description: null,
-          sortOrder: 0,
+          sortOrder: competencyIndex, // Use incremental index as sort order
           isActive: true,
         })
 
@@ -74,6 +76,8 @@ export default class extends BaseSeeder {
 
         console.log(`    🎯 Created ${competencyData.actions.length} actions`)
       }
+      
+      competencyIndex++; // Increment for next competency
     }
 
     console.log('✅ IDP Competencies seeded successfully')

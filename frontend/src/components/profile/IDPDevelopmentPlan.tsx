@@ -1,233 +1,160 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Target, Play } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContextSWR';
-import { IDPAPI, IDPAssessment, IDPRole } from '@/lib/api';
+import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useSWRIDP';
 import { IDPDevelopmentPlanTable } from '@/components/idp/IDPDevelopmentPlanTable';
 import Link from 'next/link';
 
-interface IDPData {
-  assessment: IDPAssessment | null;
-  role: IDPRole | null;
-  competencyScores: any[];
-  answers: { [questionId: number]: 'yes' | 'no' };
-  loading: boolean;
-  error: string | null;
-}
-
 export default function IDPDevelopmentPlan() {
   const { user } = useAuth();
-  const [data, setData] = useState<IDPData>({
-    assessment: null,
-    role: null,
-    competencyScores: [],
-    answers: {},
-    loading: true,
-    error: null
+  const { 
+    assessment, 
+    answers, 
+    loading: assessmentLoading, 
+    error: assessmentError 
+  } = useIDPAssessment();
+  const { 
+    role, 
+    competencies, 
+    loading: competenciesLoading, 
+    error: competenciesError 
+  } = useCompetencies(user?.role);
+
+  const loading = assessmentLoading || competenciesLoading;
+  const error = assessmentError || competenciesError;
+
+  // Calculate competency scores
+  const competencyScores = competencies.map(comp => {
+    const score = IDPUtils.calculateCompetencyScore(comp, answers);
+    
+    return {
+      ...comp,
+      score,
+      questions: comp.questions || [],
+      actions: comp.actions || []
+    };
   });
 
-  useEffect(() => {
-    if (!user) {
-      setData(prev => ({ ...prev, loading: false }));
-      return;
-    }
-
-    loadIDPData();
-  }, [user]);
-
-  const loadIDPData = async () => {
-    try {
-      setData(prev => ({ ...prev, loading: true, error: null }));
-      
-      // Get current user's role
-      const roleResponse = await IDPAPI.getCurrentUserRole();
-      if (!roleResponse.data) {
-        setData(prev => ({
-          ...prev,
-          loading: false,
-          error: 'Role not found'
-        }));
-        return;
-      }
-
-      const role = roleResponse.data;
-      const competencies = role.competencies || [];
-      
-      // Get current assessment
-      const assessmentResponse = await IDPAPI.getCurrentAssessment();
-      const assessment = assessmentResponse.data;
-      
-      if (!assessment) {
-        setData(prev => ({
-          ...prev,
-          loading: false,
-          assessment: null,
-          role,
-          competencyScores: [],
-          answers: {}
-        }));
-        return;
-      }
-
-      // Convert answers to map
-      const answersMap: { [questionId: number]: 'yes' | 'no' } = {};
-      if (assessment.answers) {
-        assessment.answers.forEach(answer => {
-          answersMap[answer.questionId] = answer.answer;
-        });
-      }
-
-      // Calculate competency scores
-      const competencyScores = competencies.map(comp => {
-        const score = comp.questions?.reduce((total, question) => {
-          return answersMap[question.id] === 'yes' ? total + 1 : total;
-        }, 0) || 0;
-        
-        return {
-          ...comp,
-          score,
-          questions: comp.questions || [],
-          actions: comp.actions || []
-        };
-      });
-
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        assessment,
-        role,
-        competencyScores,
-        answers: answersMap
-      }));
-      
-    } catch (err: any) {
-      console.error('Error loading IDP data:', err);
-      if (err.message?.includes('Role not found')) {
-        setData(prev => ({
-          ...prev,
-          loading: false,
-          error: 'Role not found'
-        }));
-        return;
-      }
-      
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        error: err.message || 'Failed to load IDP data'
-      }));
-    }
-  };
-
-
-  if (data.loading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Loading IDP data...</p>
-        </div>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Individual Development Plan
+            </CardTitle>
+            <CardDescription>
+              Loading your development plan...
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (data.error?.includes('Role not found')) {
+  if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Individual Development Plan
-          </CardTitle>
-          <CardDescription>Development objectives based on your assessment results</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-12">
-          <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-lg font-semibold mb-2">IDP Not Available</p>
-          <p className="text-muted-foreground">
-            IDP assessment is not available for your current role.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Individual Development Plan
+            </CardTitle>
+            <CardDescription>
+              Error loading your development plan
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  if (data.error) {
+  if (!assessment) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center text-destructive">Error</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-muted-foreground mb-4">{data.error}</p>
-          <Button onClick={loadIDPData}>Try Again</Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Individual Development Plan
+            </CardTitle>
+            <CardDescription>
+              Complete your assessment to view your development plan
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                You haven't completed your IDP assessment yet.
+              </p>
+              <Link href="/idp/questions">
+                <Button className="flex items-center gap-2">
+                  <Play className="h-4 w-4" />
+                  Start Assessment
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  if (!data.assessment) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Individual Development Plan
-          </CardTitle>
-          <CardDescription>Development objectives based on your assessment results</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-12">
-          <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-lg font-semibold mb-2">No Assessment Started</p>
-          <p className="text-muted-foreground mb-6">
-            Start your Individual Development Plan assessment to create your development objectives.
-          </p>
-          <Button asChild>
-            <Link href="/idp">
-              <Play className="h-4 w-4 mr-2" />
-              Start IDP Assessment
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (data.assessment.status !== 'completed') {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Individual Development Plan
-          </CardTitle>
-          <CardDescription>Development objectives based on your assessment results</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-12">
-          <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-lg font-semibold mb-2">Assessment In Progress</p>
-          <p className="text-muted-foreground mb-6">
-            Complete your assessment to generate your development plan.
-          </p>
-          <Button asChild>
-            <Link href="/idp/questions">
-              <Play className="h-4 w-4 mr-2" />
-              Continue Assessment
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Use the reusable table component
   return (
-    <IDPDevelopmentPlanTable 
-      competencyScores={data.competencyScores}
-      answers={data.answers}
-    />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Individual Development Plan
+          </CardTitle>
+          <CardDescription>
+            Your personalized development plan based on your assessment results
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Assessment Status</h3>
+                <p className="text-sm text-muted-foreground">
+                  {assessment.status === 'completed' ? 'Completed' : 'In Progress'}
+                </p>
+              </div>
+              <Link href="/idp">
+                <Button variant="outline">
+                  View Full Assessment
+                </Button>
+              </Link>
+            </div>
+            
+            {assessment.status === 'completed' && competencyScores.length > 0 && (
+              <IDPDevelopmentPlanTable 
+                competencyScores={competencyScores}
+                answers={answers}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

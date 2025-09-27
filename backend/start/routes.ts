@@ -48,6 +48,12 @@ router.post('/invites', '#controllers/invites_controller.create').use(middleware
 // Debug endpoint (no auth middleware)
 router.get('/users/debug', '#controllers/users_controller.debug')
 
+// Test endpoint (no auth middleware)
+router.get('/users/test', '#controllers/users_controller.testUsers')
+
+// Temporary debug endpoint for team members (no auth middleware)
+router.get('/users/team-debug', '#controllers/users_controller.getTeamMembers')
+
 // Protected user routes
 router
   .group(() => {
@@ -156,6 +162,16 @@ router
     router.post('/assessment/answers', '#controllers/idp_controller.saveAnswers')
     router.post('/assessment/complete', '#controllers/idp_controller.completeAssessment')
     router.post('/assessment/reset', '#controllers/idp_controller.resetAssessment')
+    
+    // Development plan endpoints
+    router.get('/development-plan', '#controllers/idp_controller.getDevelopmentPlan')
+    router.post('/development-plan', '#controllers/idp_controller.saveDevelopmentPlan')
+    router.delete('/development-plan/:id', '#controllers/idp_controller.deleteDevelopmentPlanItem')
+    
+    // Results endpoints
+    router.get('/results', '#controllers/idp_controller.getResults')
+    router.post('/results', '#controllers/idp_controller.saveResult')
+    router.delete('/results/:id', '#controllers/idp_controller.deleteResult')
   })
   .prefix('/idp')
   .use(middleware.auth())

@@ -18,7 +18,6 @@ module.exports = {
         LOG_LEVEL: 'info',
         SESSION_DRIVER: 'cookie',
         CORS_ORIGIN: '*',
-        SQLITE_DB_PATH: './tmp/db.sqlite3',
         WS_CORS_ORIGIN: '*'
       },
       kill_timeout: 5000,

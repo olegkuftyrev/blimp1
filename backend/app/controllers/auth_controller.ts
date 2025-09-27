@@ -98,7 +98,8 @@ export default class AuthController {
         return response.unauthorized({ error: 'Invalid credentials' })
       }
       
-      console.log('User found:', user.id, user.email)
+      console.log('User found:', user.id, user.email, user.fullName, user.role)
+      console.log('User object:', JSON.stringify(user.toJSON(), null, 2))
       
       // Verify password using hash service
       let isValid = false

@@ -63,7 +63,7 @@ If you prefer manual setup, follow these steps:
    npm install -g pm2
    
    # Install other tools
-   apt-get install -y git nginx ufw sqlite3
+   apt-get install -y git nginx ufw
    ```
 
 4. **Configure firewall:**
@@ -159,8 +159,6 @@ APP_NAME=blimp-backend
 APP_URL=http://146.190.53.83:3333
 APP_KEY=YgnOBzI7fZsasQDUSL94JE7ae_dBLv5-
 LOG_LEVEL=info
-DB_CONNECTION=sqlite
-SQLITE_DB_PATH=./tmp/db.sqlite3
 SESSION_DRIVER=cookie
 CORS_ORIGIN=*
 WS_CORS_ORIGIN=*

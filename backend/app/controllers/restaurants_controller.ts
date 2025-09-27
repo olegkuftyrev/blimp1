@@ -58,7 +58,7 @@ export default class RestaurantsController {
       
       return response.created({ data: restaurant })
     } catch (error: any) {
-      if (error.message === 'Restaurant name must be unique' || error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if (error.message === 'Restaurant name must be unique' || error.code === '23505') {
         return response.badRequest({ error: 'Restaurant name must be unique' })
       }
       return response.badRequest({ error: 'Failed to create restaurant' })
@@ -124,7 +124,7 @@ export default class RestaurantsController {
       await restaurant.save()
       return response.ok({ data: restaurant })
     } catch (error: any) {
-      if (error.message === 'Restaurant name must be unique' || error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if (error.message === 'Restaurant name must be unique' || error.code === '23505') {
         return response.badRequest({ error: 'Restaurant name must be unique' })
       }
       return response.badRequest({ error: 'Failed to update restaurant' })

@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePLTestSet, useSubmitPLAnswer, useResetPLTestSet, useFillRandomAnswers, useFillCorrectAnswers, usePLStats, type PLQuestion } from '@/hooks/useSWRPL'
 import { useSWRCurrentUser } from '@/hooks/useSWRAuth'
+import { useConfirmDialog } from '@/components/ConfirmDialog'
+import { useToastAlerts, toast } from '@/components/ToastAlert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +29,8 @@ export default function PLTestSetPage({ params }: PageProps) {
   const { fillCorrectAnswers } = useFillCorrectAnswers()
   const { stats } = usePLStats()
   const { user } = useSWRCurrentUser()
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog()
+  const { addAlert, ToastContainer } = useToastAlerts()
   
   const [submittingAnswers, setSubmittingAnswers] = useState<Set<number>>(new Set())
   const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set())
@@ -72,75 +76,101 @@ export default function PLTestSetPage({ params }: PageProps) {
   const handleResetTestSet = async () => {
     if (!testSet || !user || user.role !== 'admin') return
     
-    if (!confirm('Are you sure you want to reset all answers for this test set? This action cannot be undone.')) {
-      return
-    }
-
-    setIsResetting(true)
-    try {
-      await resetTestSet(testSetId)
-      // Reset local state
-      setAnsweredQuestions(new Set())
-      setSubmittingAnswers(new Set())
-      // Refresh the test set data
-      mutateTestSet()
-    } catch (error) {
-      console.error('Failed to reset test set:', error)
-    } finally {
-      setIsResetting(false)
-    }
+    showConfirm({
+      title: 'Reset Test Set',
+      description: `Are you sure you want to reset all answers for "${testSet.name}"? This action cannot be undone.`,
+      confirmText: 'Reset',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      onConfirm: async () => {
+        setIsResetting(true)
+        try {
+          await resetTestSet(testSetId)
+          // Reset local state
+          setAnsweredQuestions(new Set())
+          setSubmittingAnswers(new Set())
+          // Refresh the test set data
+          mutateTestSet()
+          addAlert(toast.success('Test Set Reset!', 'All answers have been reset successfully.'))
+        } catch (error) {
+          console.error('Failed to reset test set:', error)
+          addAlert(toast.error('Failed to Reset Test Set', error instanceof Error ? error.message : 'Unknown error occurred'))
+        } finally {
+          setIsResetting(false)
+        }
+      },
+    })
   }
 
   const handleFillRandomAnswers = async () => {
     if (!testSet || !user || user.role !== 'admin') return
     
-    if (!confirm('Are you sure you want to fill this test set with random answers? This will replace any existing answers.')) {
-      return
-    }
-
-    setIsFillingRandom(true)
-    try {
-      const result = await fillRandomAnswers(testSetId)
-      // Update local state to show all questions as answered
-      const allQuestionIndices = new Set(testSet.questions.map((_, index) => index))
-      setAnsweredQuestions(allQuestionIndices)
-      setSubmittingAnswers(new Set())
-      // Refresh the test set data
-      mutateTestSet()
-      
-      // Show success message with stats
-      alert(`Random answers filled successfully!\n\nCorrect answers: ${result.data.correctAnswers}/${result.data.answersCount}\nAccuracy: ${Math.round((result.data.correctAnswers / result.data.answersCount) * 100)}%`)
-    } catch (error) {
-      console.error('Failed to fill random answers:', error)
-    } finally {
-      setIsFillingRandom(false)
-    }
+    showConfirm({
+      title: 'Fill Random Answers',
+      description: `Are you sure you want to fill "${testSet.name}" with random answers? This will replace any existing answers.`,
+      confirmText: 'Fill Random',
+      cancelText: 'Cancel',
+      variant: 'default',
+      onConfirm: async () => {
+        setIsFillingRandom(true)
+        try {
+          const result = await fillRandomAnswers(testSetId)
+          // Update local state to show all questions as answered
+          const allQuestionIndices = new Set(testSet.questions.map((_, index) => index))
+          setAnsweredQuestions(allQuestionIndices)
+          setSubmittingAnswers(new Set())
+          // Refresh the test set data
+          mutateTestSet()
+          
+          // Show success message with stats
+          const accuracy = Math.round((result.data.correctAnswers / result.data.answersCount) * 100)
+          addAlert(toast.success(
+            'Random Answers Filled!', 
+            `Correct answers: ${result.data.correctAnswers}/${result.data.answersCount} (${accuracy}% accuracy)`
+          ))
+        } catch (error) {
+          console.error('Failed to fill random answers:', error)
+          addAlert(toast.error('Failed to Fill Random Answers', error instanceof Error ? error.message : 'Unknown error occurred'))
+        } finally {
+          setIsFillingRandom(false)
+        }
+      },
+    })
   }
 
   const handleFillCorrectAnswers = async () => {
     if (!testSet || !user || user.role !== 'admin') return
     
-    if (!confirm('Are you sure you want to fill this test set with correct answers only? This will replace any existing answers.')) {
-      return
-    }
-
-    setIsFillingCorrect(true)
-    try {
-      const result = await fillCorrectAnswers(testSetId)
-      // Update local state to show all questions as answered
-      const allQuestionIndices = new Set(testSet.questions.map((_, index) => index))
-      setAnsweredQuestions(allQuestionIndices)
-      setSubmittingAnswers(new Set())
-      // Refresh the test set data
-      mutateTestSet()
-      
-      // Show success message with stats
-      alert(`Correct answers filled successfully!\n\nAll answers are correct: ${result.data.correctAnswers}/${result.data.answersCount}\nAccuracy: 100%`)
-    } catch (error) {
-      console.error('Failed to fill correct answers:', error)
-    } finally {
-      setIsFillingCorrect(false)
-    }
+    showConfirm({
+      title: 'Fill Correct Answers',
+      description: `Are you sure you want to fill "${testSet.name}" with correct answers only? This will replace any existing answers.`,
+      confirmText: 'Fill Correct',
+      cancelText: 'Cancel',
+      variant: 'default',
+      onConfirm: async () => {
+        setIsFillingCorrect(true)
+        try {
+          const result = await fillCorrectAnswers(testSetId)
+          // Update local state to show all questions as answered
+          const allQuestionIndices = new Set(testSet.questions.map((_, index) => index))
+          setAnsweredQuestions(allQuestionIndices)
+          setSubmittingAnswers(new Set())
+          // Refresh the test set data
+          mutateTestSet()
+          
+          // Show success message with stats
+          addAlert(toast.success(
+            'Correct Answers Filled!', 
+            `All answers are correct: ${result.data.correctAnswers}/${result.data.answersCount} (100% accuracy)`
+          ))
+        } catch (error) {
+          console.error('Failed to fill correct answers:', error)
+          addAlert(toast.error('Failed to Fill Correct Answers', error instanceof Error ? error.message : 'Unknown error occurred'))
+        } finally {
+          setIsFillingCorrect(false)
+        }
+      },
+    })
   }
 
   if (isLoading) {
@@ -406,6 +436,12 @@ export default function PLTestSetPage({ params }: PageProps) {
           )
         })}
       </div>
+      
+      {/* Confirm Dialog Component */}
+      <ConfirmDialogComponent />
+      
+      {/* Toast Alerts */}
+      <ToastContainer />
     </div>
   )
 }
