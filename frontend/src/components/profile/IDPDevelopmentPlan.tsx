@@ -1,15 +1,17 @@
 'use client';
 
-import { Target, Play } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Play } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useSWRIDP';
+import { IndividualDevelopmentPlanCard } from '@/components/idp/IndividualDevelopmentPlanCard';
 import { IDPDevelopmentPlanTable } from '@/components/idp/IDPDevelopmentPlanTable';
 import Link from 'next/link';
 
 export default function IDPDevelopmentPlan() {
   const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const { 
     assessment, 
     answers, 
@@ -41,22 +43,15 @@ export default function IDPDevelopmentPlan() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Individual Development Plan
-            </CardTitle>
-            <CardDescription>
-              Loading your development plan...
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <IndividualDevelopmentPlanCard 
+          title="Individual Development Plan"
+          description="Loading your development plan..."
+          content={
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
@@ -64,25 +59,18 @@ export default function IDPDevelopmentPlan() {
   if (error) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Individual Development Plan
-            </CardTitle>
-            <CardDescription>
-              Error loading your development plan
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <IndividualDevelopmentPlanCard 
+          title="Individual Development Plan"
+          description="Error loading your development plan"
+          content={
             <div className="text-center py-8">
               <p className="text-destructive mb-4">{error}</p>
               <Button onClick={() => window.location.reload()}>
                 Try Again
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
@@ -90,17 +78,10 @@ export default function IDPDevelopmentPlan() {
   if (!assessment) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Individual Development Plan
-            </CardTitle>
-            <CardDescription>
-              Complete your assessment to view your development plan
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <IndividualDevelopmentPlanCard 
+          title="Individual Development Plan"
+          description="Complete your assessment to view your development plan"
+          content={
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
                 You haven't completed your IDP assessment yet.
@@ -112,49 +93,82 @@ export default function IDPDevelopmentPlan() {
                 </Button>
               </Link>
             </div>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Individual Development Plan
-          </CardTitle>
-          <CardDescription>
-            Your personalized development plan based on your assessment results
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Assessment Status</h3>
-                <p className="text-sm text-muted-foreground">
-                  {assessment.status === 'completed' ? 'Completed' : 'In Progress'}
-                </p>
-              </div>
-              <Link href="/idp">
-                <Button variant="outline">
-                  View Full Assessment
-                </Button>
-              </Link>
-            </div>
+    <div className="space-y-4">
+       
             
-            {assessment.status === 'completed' && competencyScores.length > 0 && (
-              <IDPDevelopmentPlanTable 
-                competencyScores={competencyScores}
-                answers={answers}
-              />
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    {assessment.status === 'completed' && competencyScores.length > 0 && (
+      <IndividualDevelopmentPlanCard 
+        title="Development Plan Details"
+        description="Switch between table and cards view"
+        showSwitch={true}
+        switchEnabled={viewMode === 'cards'}
+        onSwitchChange={(enabled) => {
+          setViewMode(enabled ? 'cards' : 'table');
+        }}
+        switchLabels={{ left: "Cards", right: "Table" }}
+        content={
+          viewMode === 'table' ? (
+            <IDPDevelopmentPlanTable 
+              competencyScores={competencyScores}
+              answers={answers}
+            />
+          ) : (
+            <div className="space-y-4">
+              {competencyScores
+                .filter(comp => comp.score < 4)
+                .map((comp) => (
+                  <div key={comp.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{comp.label}</span>
+                        <span className="text-sm text-muted-foreground">
+                          Score: {comp.score}/{comp.questions?.length || 0}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {comp.questions?.filter((q: any) => answers[q.id] === 'no').map((question: any, index: number) => {
+                        const actionIndex = comp.questions?.findIndex((q: any) => q.id === question.id) || 0;
+                        const action = comp.actions?.[actionIndex];
+                        if (!action) return null;
+                        
+                        return (
+                          <div key={index} className="border rounded-lg p-4 bg-muted/50">
+                            <div className="space-y-2">
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Measurement:</span>
+                                <p className="text-sm">{action.measurement || 'No measurement defined'}</p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Action Steps:</span>
+                                <p className="text-sm">{action.action || 'No action steps defined'}</p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Timeline:</span>
+                                <p className="text-sm">
+                                  {action.startDate || 'Not set'} - {action.endDate || 'Not set'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )
+        }
+      />
+    )}
+  </div>
   );
 }

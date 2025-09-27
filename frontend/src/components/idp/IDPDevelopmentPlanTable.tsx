@@ -1,7 +1,6 @@
 'use client';
 
-import { Target, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingUp } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 
 interface IDPDevelopmentPlanTableProps {
@@ -74,17 +73,7 @@ export function IDPDevelopmentPlanTable({
   }).filter(Boolean);
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="h-5 w-5" />
-          Individual Development Plan
-        </CardTitle>
-        <CardDescription>
-          Development objectives based on your assessment results
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className={className}>
         {developmentPlanRows.length === 0 ? (
           <div className="text-center py-8">
             <TrendingUp className="h-12 w-12 text-green-600 mx-auto mb-4" />
@@ -137,7 +126,6 @@ export function IDPDevelopmentPlanTable({
             </table>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

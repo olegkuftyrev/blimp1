@@ -434,7 +434,7 @@ export function useSaveDevelopmentPlan() {
 export function useDeleteDevelopmentPlanMeasurement() {
   const { trigger, isMutating } = useSWRMutation(
     'idp/development-plan/measurement',
-    async (url: string, { arg }: { arg: { measurementId: string | number; mutate?: () => Promise<any> } }) => {
+    async (url: string, { arg }: { arg: { measurementId: number; mutate?: () => Promise<any> } }) => {
       const response = await apiFetch(`idp/development-plan/${arg.measurementId}`, {
         method: 'DELETE'
       });

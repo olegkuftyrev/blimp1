@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Target, Plus, Trash2, Save, Edit3, X, Check } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Target, Trash2, Edit3, X } from 'lucide-react';
+import { IndividualDevelopmentPlanCard } from './IndividualDevelopmentPlanCard';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,8 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label"
-import * as Switch from "@radix-ui/react-switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useCompetencies, useDevelopmentPlan, useSaveDevelopmentPlan, useDeleteDevelopmentPlanMeasurement, IDPUtils } from '@/hooks/useSWRIDP';
@@ -20,7 +18,7 @@ import { apiFetch } from '@/lib/api';
 import { useConfirmDialog } from '@/components/ConfirmDialog';
 
 interface DevelopmentPlanMeasurement {
-  id: string | number;
+  id: number;
   text: string;
   actionSteps: string;
   responsibleResources: string;
@@ -57,7 +55,7 @@ export function EditableDevelopmentPlanTable({
   const [saving, setSaving] = useState<number | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedCompetencyId, setSelectedCompetencyId] = useState<number>(0);
-  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string>('');
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<number | null>(null);
   const [showCompetencySelection, setShowCompetencySelection] = useState(true);
   const [switchEnabled, setSwitchEnabled] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -89,17 +87,6 @@ export function EditableDevelopmentPlanTable({
     setShowDeleteConfirmation(false);
   };
 
-  const saveFromDialog = async () => {
-    if (editingItemIndex !== null) {
-      try {
-        await saveItem(editingItemIndex);
-        closeEditDialog();
-      } catch (error) {
-        console.error('Error saving from dialog:', error);
-        // Don't close dialog on error, let user try again
-      }
-    }
-  };
 
   const handleDeleteMeasurementFromDialog = () => {
     setShowDeleteConfirmation(true);
@@ -119,7 +106,7 @@ export function EditableDevelopmentPlanTable({
 
 
   const getCurrentScore = (competencyId: number) => {
-    const competency = competencyScores.find(comp => comp.id === competencyId);
+    const competency = competencyScores.find((comp: any) => comp.id === competencyId);
     if (!competency) return '0/5';
     return `${competency.score}/${competency.questions?.length || 0}`;
   };
@@ -128,22 +115,22 @@ export function EditableDevelopmentPlanTable({
   const addNewItem = () => {
     setShowAddDialog(true);
     setSelectedCompetencyId(0);
-    setSelectedMeasurementId('');
+    setSelectedMeasurementId(null);
     setShowCompetencySelection(true);
   };
 
   const confirmAddItem = async () => {
-    if (!selectedCompetencyId || selectedCompetencyId === 0 || !selectedMeasurementId) {
+    if (!selectedCompetencyId || selectedCompetencyId === 0 || selectedMeasurementId === null) {
       alert('Please select a competency and a measurement');
       return;
     }
 
-    const competency = competencies.find(comp => comp.id === selectedCompetencyId);
+    const competency = competencies.find((comp: any) => comp.id === selectedCompetencyId);
     if (!competency) return;
 
     try {
       // Get the selected measurement index
-      const measurementIndex = parseInt(selectedMeasurementId.replace('measurement-', ''));
+      const measurementIndex = selectedMeasurementId;
       const action = competency.actions?.[measurementIndex];
       
       if (!action) {
@@ -153,7 +140,7 @@ export function EditableDevelopmentPlanTable({
 
       // Create single measurement
       const selectedMeasurement = {
-        id: `new-${Date.now()}`,
+        id: Date.now(),
         text: action.measurement || 'Define specific success criteria for this competency',
         actionSteps: action.action || 'Create actionable steps to improve this competency',
         responsibleResources: [...(action.responsible || []), ...(action.resources || [])].join(', ') || 'Identify responsible parties and required resources',
@@ -178,19 +165,18 @@ export function EditableDevelopmentPlanTable({
   };
 
   const selectMeasurement = (actionIndex: number) => {
-    const measurementId = `measurement-${actionIndex}`;
-    setSelectedMeasurementId(measurementId);
+    setSelectedMeasurementId(actionIndex);
   };
 
   const handleCompetencySelect = (competencyId: number) => {
     setSelectedCompetencyId(competencyId);
     setShowCompetencySelection(false);
-    setSelectedMeasurementId(''); // Reset measurement selection
+    setSelectedMeasurementId(null); // Reset measurement selection
   };
 
   const handleBackToCompetencySelection = () => {
     setShowCompetencySelection(true);
-    setSelectedMeasurementId('');
+    setSelectedMeasurementId(null);
   };
 
   const updateItem = (index: number, field: keyof DevelopmentPlanItem, value: string) => {
@@ -199,7 +185,7 @@ export function EditableDevelopmentPlanTable({
     
     // Update competency name when competency is selected
     if (field === 'competencyId') {
-      const competency = competencies.find(comp => comp.id === parseInt(value));
+      const competency = competencies.find((comp: any) => comp.id === parseInt(value));
       if (competency) {
         updatedItems[index].competencyName = competency.label;
         updatedItems[index].currentScore = getCurrentScore(competency.id);
@@ -247,7 +233,7 @@ export function EditableDevelopmentPlanTable({
   const addMeasurement = (itemIndex: number) => {
     const updatedItems = [...planItems];
     const newMeasurement: DevelopmentPlanMeasurement = {
-      id: `new-${Date.now()}`,
+      id: Date.now(),
       text: 'Define specific success criteria for this competency',
       actionSteps: 'Create actionable steps to improve this competency',
       responsibleResources: 'Identify responsible parties and required resources',
@@ -351,50 +337,18 @@ export function EditableDevelopmentPlanTable({
 
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Individual Development Plan
-            </CardTitle>
-            <CardDescription>
-              Edit your development objectives based on assessment results
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-            <Label htmlFor="auto-mode" className="text-sm text-muted-foreground">
-                Cards
-              </Label>
-         
-              <button
-                type="button"
-                onClick={() => handleSwitchChange(!switchEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                  switchEnabled ? 'bg-primary' : 'bg-input'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    switchEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <Label htmlFor="auto-mode" className="text-sm text-muted-foreground">
-                Table
-              </Label>
-            </div>
-            <Button onClick={addNewItem} size="sm" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Item
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {switchEnabled ? (
+    <>
+    <IndividualDevelopmentPlanCard 
+      className={className}
+      showSwitch={true}
+      switchEnabled={switchEnabled}
+      onSwitchChange={handleSwitchChange}
+      switchLabels={{ left: "Cards", right: "Table" }}
+      showAddButton={true}
+      addButtonText="Add Item"
+      onAddClick={addNewItem}
+      content={
+        switchEnabled ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -523,10 +477,11 @@ export function EditableDevelopmentPlanTable({
               </div>
             ))}
           </div>
-        )}
-      </CardContent>
+        )
+      }
+    />
 
-      {/* Add Item Dialog */}
+    {/* Add Item Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -546,8 +501,8 @@ export function EditableDevelopmentPlanTable({
                 </div>
                 <div className="space-y-2">
                   {competencies
-                    .filter(comp => comp.questions?.some((q: any) => answers[q.id] === 'no'))
-                    .map((comp) => (
+                    .filter((comp: any) => comp.questions?.some((q: any) => answers[q.id] === 'no'))
+                    .map((comp: any) => (
                       <div 
                         key={comp.id}
                         className="p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
@@ -579,7 +534,7 @@ export function EditableDevelopmentPlanTable({
                 
                 <div className="p-3 bg-muted/30 rounded-lg">
                   <div className="text-sm font-medium">
-                    {competencies.find(comp => comp.id === selectedCompetencyId)?.label}
+                    {competencies.find((comp: any) => comp.id === selectedCompetencyId)?.label}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Current Score: {getCurrentScore(selectedCompetencyId)}
@@ -588,12 +543,12 @@ export function EditableDevelopmentPlanTable({
 
                 <div className="space-y-3">
                   {competencies
-                    .find(comp => comp.id === selectedCompetencyId)
+                    .find((comp: any) => comp.id === selectedCompetencyId)
                     ?.actions?.map((action: any, index: number) => (
                       <div 
                         key={index} 
                         className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                          selectedMeasurementId === `measurement-${index}` 
+                          selectedMeasurementId === index 
                             ? 'border-primary bg-primary/5' 
                             : 'hover:bg-muted/50'
                         }`}
@@ -601,11 +556,11 @@ export function EditableDevelopmentPlanTable({
                       >
                         <div className="flex items-start gap-3">
                           <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                            selectedMeasurementId === `measurement-${index}` 
+                            selectedMeasurementId === index 
                               ? 'border-primary bg-primary' 
                               : 'border-muted-foreground'
                           }`}>
-                            {selectedMeasurementId === `measurement-${index}` && (
+                            {selectedMeasurementId === index && (
                               <div className="w-2 h-2 rounded-full bg-white" />
                             )}
                           </div>
@@ -676,7 +631,7 @@ export function EditableDevelopmentPlanTable({
               <DialogHeader>
                 <DialogTitle>Edit Measurement</DialogTitle>
                 <DialogDescription>
-                  Edit this specific measurement for your development plan.
+                  Edit this specific measurement for your development plan. Changes are saved automatically.
                 </DialogDescription>
               </DialogHeader>
 
@@ -780,26 +735,12 @@ export function EditableDevelopmentPlanTable({
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </Button>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    Changes are autosaved
+                  </span>
                   <Button variant="outline" onClick={closeEditDialog}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={saveFromDialog}
-                    disabled={isSaving}
-                    className="flex items-center gap-2"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Save Changes
-                      </>
-                    )}
+                    Close
                   </Button>
                 </div>
               </div>
@@ -810,6 +751,6 @@ export function EditableDevelopmentPlanTable({
       
       {/* Confirm Dialog Component */}
       <ConfirmDialogComponent />
-    </Card>
+    </>
   );
 }
