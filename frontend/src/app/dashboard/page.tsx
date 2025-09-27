@@ -269,7 +269,8 @@ function DashboardContent() {
           </p>
         </div>
 
-        {/* Quick Actions - moved to top */}
+        {/* Quick Actions - moved to top - COMMENTED OUT FOR LATER WORK */}
+        {/* 
         <div className="bg-card rounded-lg p-6 mb-8">
           <h3 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -330,6 +331,7 @@ function DashboardContent() {
             </Link>
           </div>
         </div>
+        */}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
