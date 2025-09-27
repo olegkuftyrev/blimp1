@@ -429,3 +429,35 @@ export function useSaveDevelopmentPlan() {
     isSaving: isMutating
   };
 }
+
+// Hook for deleting development plan measurement
+export function useDeleteDevelopmentPlanMeasurement() {
+  const { trigger, isMutating } = useSWRMutation(
+    'idp/development-plan/measurement',
+    async (url: string, { arg }: { arg: { measurementId: string | number; mutate?: () => Promise<any> } }) => {
+      const response = await apiFetch(`idp/development-plan/${arg.measurementId}`, {
+        method: 'DELETE'
+      });
+      
+      // Trigger revalidation of development plan data if mutate function is provided
+      if (arg.mutate) {
+        await arg.mutate();
+      }
+      
+      return response;
+    },
+    {
+      onSuccess: (data) => {
+        console.log('✅ Measurement deleted successfully');
+      },
+      onError: (error) => {
+        console.error('❌ Failed to delete measurement:', error);
+      }
+    }
+  );
+
+  return {
+    deleteMeasurement: trigger,
+    isDeleting: isMutating
+  };
+}

@@ -9,9 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label"
+import * as Switch from "@radix-ui/react-switch"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useAuth } from '@/contexts/AuthContextSWR';
-import { useCompetencies, useDevelopmentPlan, useSaveDevelopmentPlan, IDPUtils } from '@/hooks/useSWRIDP';
+import { useCompetencies, useDevelopmentPlan, useSaveDevelopmentPlan, useDeleteDevelopmentPlanMeasurement, IDPUtils } from '@/hooks/useSWRIDP';
 import { apiFetch } from '@/lib/api';
 import { useConfirmDialog } from '@/components/ConfirmDialog';
 
@@ -47,19 +51,71 @@ export function EditableDevelopmentPlanTable({
   const { competencies } = useCompetencies(user?.role);
   const { planItems: swrPlanItems, isLoading, mutate } = useDevelopmentPlan();
   const { savePlan, isSaving } = useSaveDevelopmentPlan();
+  const { deleteMeasurement, isDeleting } = useDeleteDevelopmentPlanMeasurement();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
   const [planItems, setPlanItems] = useState<DevelopmentPlanItem[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState<number | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedCompetencyId, setSelectedCompetencyId] = useState<number>(0);
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string>('');
   const [showCompetencySelection, setShowCompetencySelection] = useState(true);
+  const [switchEnabled, setSwitchEnabled] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [editingMeasurementIndex, setEditingMeasurementIndex] = useState<number | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   // Sync SWR data with local state
   useEffect(() => {
     setPlanItems(swrPlanItems);
   }, [swrPlanItems]);
+
+  // Handle switch change
+  const handleSwitchChange = (checked: boolean) => {
+    setSwitchEnabled(checked);
+  };
+
+  // Handle edit dialog
+  const openEditDialog = (itemIndex: number, measurementIndex: number) => {
+    setEditingItemIndex(itemIndex);
+    setEditingMeasurementIndex(measurementIndex);
+    setShowEditDialog(true);
+  };
+
+  const closeEditDialog = () => {
+    setShowEditDialog(false);
+    setEditingItemIndex(null);
+    setEditingMeasurementIndex(null);
+    setShowDeleteConfirmation(false);
+  };
+
+  const saveFromDialog = async () => {
+    if (editingItemIndex !== null) {
+      try {
+        await saveItem(editingItemIndex);
+        closeEditDialog();
+      } catch (error) {
+        console.error('Error saving from dialog:', error);
+        // Don't close dialog on error, let user try again
+      }
+    }
+  };
+
+  const handleDeleteMeasurementFromDialog = () => {
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteMeasurement = async () => {
+    if (editingItemIndex !== null && editingMeasurementIndex !== null) {
+      await deleteMeasurementFromServer(editingItemIndex, editingMeasurementIndex);
+      closeEditDialog();
+    }
+  };
+
+  const cancelDeleteMeasurement = () => {
+    setShowDeleteConfirmation(false);
+  };
+
 
 
   const getCurrentScore = (competencyId: number) => {
@@ -208,6 +264,25 @@ export function EditableDevelopmentPlanTable({
     setPlanItems(updatedItems);
   };
 
+  const deleteMeasurementFromServer = async (itemIndex: number, measurementIndex: number) => {
+    const item = planItems[itemIndex];
+    const measurement = item.measurements[measurementIndex];
+    
+    try {
+      // Delete measurement using SWR mutation with mutate function
+      await deleteMeasurement({ 
+        measurementId: measurement.id,
+        mutate: mutate
+      });
+      
+      // Update local state
+      removeMeasurement(itemIndex, measurementIndex);
+    } catch (error) {
+      console.error('Error deleting measurement:', error);
+      alert('Failed to delete measurement');
+    }
+  };
+
   const saveItem = async (index: number) => {
     const item = planItems[index];
     if (!item.competencyId || item.competencyId === 0 || item.measurements.length === 0) {
@@ -225,7 +300,6 @@ export function EditableDevelopmentPlanTable({
         updateMode: true // Indicate this is an update, not a new creation
       });
       
-      setEditingId(null);
       await mutate(); // Refresh SWR data
     } catch (error) {
       console.error('Error saving development plan item:', error);
@@ -289,14 +363,91 @@ export function EditableDevelopmentPlanTable({
               Edit your development objectives based on assessment results
             </CardDescription>
           </div>
-          <Button onClick={addNewItem} size="sm" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Item
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+            <Label htmlFor="auto-mode" className="text-sm text-muted-foreground">
+                Cards
+              </Label>
+         
+              <button
+                type="button"
+                onClick={() => handleSwitchChange(!switchEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  switchEnabled ? 'bg-primary' : 'bg-input'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    switchEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <Label htmlFor="auto-mode" className="text-sm text-muted-foreground">
+                Table
+              </Label>
+            </div>
+            <Button onClick={addNewItem} size="sm" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Item
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {switchEnabled ? (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Competency</TableHead>
+                  <TableHead>Measurement</TableHead>
+                  <TableHead>Actionable Steps</TableHead>
+                  <TableHead>Responsible/Resources</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>Completion Date</TableHead>
+                  <TableHead className="w-[50px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {planItems.map((item, itemIndex) => (
+                  item.measurements.map((measurement, measurementIndex) => (
+                    <TableRow key={`${itemIndex}-${measurementIndex}`}>
+                      <TableCell className="font-medium">
+                        {measurementIndex === 0 ? item.competencyName || 'Select Competency' : ''}
+                      </TableCell>
+                      <TableCell>{measurement.text}</TableCell>
+                      <TableCell>{measurement.actionSteps}</TableCell>
+                      <TableCell>{measurement.responsibleResources}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {measurement.startDate && formatDate(measurement.startDate)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {measurement.completionDate && formatDate(measurement.completionDate)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openEditDialog(itemIndex, measurementIndex)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ))}
+                {planItems.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      No development plan items yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        ) : isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
             <div className="h-12 w-12 mx-auto mb-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <p>Loading development plan...</p>
@@ -317,27 +468,6 @@ export function EditableDevelopmentPlanTable({
                     <span className="font-medium">{item.competencyName || 'Select Competency'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {editingId === index ? (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setEditingId(null)}
-                        className="flex items-center gap-2"
-                      >
-                        <X className="h-4 w-4" />
-                        Cancel
-                      </Button>
-                    ) : (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setEditingId(index)}
-                        className="flex items-center gap-2"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    )}
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -354,152 +484,41 @@ export function EditableDevelopmentPlanTable({
                     <div key={measurement.id} className="border rounded-lg p-4 bg-muted/50">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-muted-foreground">Measurement {measurementIndex + 1}</span>
-                        {editingId === index && (
-                          <div className="flex items-center gap-2">
-                            {item.measurements.length > 1 && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => removeMeasurement(index, measurementIndex)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEditDialog(index, measurementIndex)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
 
-                      {editingId === index ? (
-                        <div className="space-y-4">
-                          {measurementIndex === 0 && (
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">Competency</label>
-                              <Select 
-                                value={item.competencyId.toString()} 
-                                onValueChange={(value) => updateItem(index, 'competencyId', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select competency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {competencies
-                                    .filter(comp => comp.questions?.some((q: any) => answers[q.id] === 'no'))
-                                    .map((comp) => (
-                                      <SelectItem key={comp.id} value={comp.id.toString()}>
-                                        {comp.label}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Measurement</label>
-                            <Textarea
-                              value={measurement.text}
-                              onChange={(e) => updateMeasurement(index, measurementIndex, 'text', e.target.value)}
-                              placeholder="How will you measure success?"
-                              rows={2}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Action Steps</label>
-                            <Textarea
-                              value={measurement.actionSteps}
-                              onChange={(e) => updateMeasurement(index, measurementIndex, 'actionSteps', e.target.value)}
-                              placeholder="What specific actions will you take?"
-                              rows={2}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Responsible/Resources</label>
-                            <Input
-                              value={measurement.responsibleResources}
-                              onChange={(e) => updateMeasurement(index, measurementIndex, 'responsibleResources', e.target.value)}
-                              placeholder="Who is responsible? What resources are needed?"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">Start Date</label>
-                              <Input
-                                value={measurement.startDate}
-                                onChange={(e) => updateMeasurement(index, measurementIndex, 'startDate', e.target.value)}
-                                placeholder="e.g., 7d, 1w, 2024-01-15"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">Completion Date</label>
-                              <Input
-                                value={measurement.completionDate}
-                                onChange={(e) => updateMeasurement(index, measurementIndex, 'completionDate', e.target.value)}
-                                placeholder="e.g., 28d, 1m, 2024-02-15"
-                              />
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-muted-foreground">Measurement:</span>
+                          <p className="mt-1">{measurement.text}</p>
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-muted-foreground">Measurement:</span>
-                            <p className="mt-1">{measurement.text}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-muted-foreground">Action Steps:</span>
-                            <p className="mt-1">{measurement.actionSteps}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-muted-foreground">Responsible/Resources:</span>
-                            <p className="mt-1">{measurement.responsibleResources}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-muted-foreground">Timeline:</span>
-                            <p className="mt-1">
-                              {measurement.startDate && formatDate(measurement.startDate)} - {measurement.completionDate && formatDate(measurement.completionDate)}
-                            </p>
-                          </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">Action Steps:</span>
+                          <p className="mt-1">{measurement.actionSteps}</p>
                         </div>
-                      )}
+                        <div>
+                          <span className="font-medium text-muted-foreground">Responsible/Resources:</span>
+                          <p className="mt-1">{measurement.responsibleResources}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">Timeline:</span>
+                          <p className="mt-1">
+                            {measurement.startDate && formatDate(measurement.startDate)} - {measurement.completionDate && formatDate(measurement.completionDate)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ))}
 
-                  {editingId === index && (
-                    <div className="flex justify-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => addMeasurement(index)}
-                        className="flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add Measurement
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        onClick={() => saveItem(index)}
-                        disabled={isSaving}
-                        className="flex items-center gap-2"
-                      >
-                        {isSaving ? (
-                          <>
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="h-4 w-4" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
@@ -620,6 +639,171 @@ export function EditableDevelopmentPlanTable({
             >
               {isSaving ? 'Adding...' : 'Add to Plan'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Measurement Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {showDeleteConfirmation ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Delete Measurement</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this measurement? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <div className="mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Measurement for: {editingItemIndex !== null && planItems[editingItemIndex]?.competencyName}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium">Measurement:</span>
+                    <p className="mt-1">
+                      {editingItemIndex !== null && editingMeasurementIndex !== null && 
+                       planItems[editingItemIndex]?.measurements[editingMeasurementIndex]?.text}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Edit Measurement</DialogTitle>
+                <DialogDescription>
+                  Edit this specific measurement for your development plan.
+                </DialogDescription>
+              </DialogHeader>
+
+              {editingItemIndex !== null && editingMeasurementIndex !== null && planItems[editingItemIndex] && planItems[editingItemIndex].measurements[editingMeasurementIndex] && (
+                <div className="space-y-6">
+                  <div className="border rounded-lg p-4 bg-muted/50">
+                    <div className="mb-4">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Measurement for: {planItems[editingItemIndex].competencyName}
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Measurement</label>
+                        <Textarea
+                          value={planItems[editingItemIndex].measurements[editingMeasurementIndex].text}
+                          onChange={(e) => updateMeasurement(editingItemIndex, editingMeasurementIndex, 'text', e.target.value)}
+                          placeholder="How will you measure success?"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Action Steps</label>
+                        <Textarea
+                          value={planItems[editingItemIndex].measurements[editingMeasurementIndex].actionSteps}
+                          onChange={(e) => updateMeasurement(editingItemIndex, editingMeasurementIndex, 'actionSteps', e.target.value)}
+                          placeholder="What specific actions will you take?"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Responsible/Resources</label>
+                        <Input
+                          value={planItems[editingItemIndex].measurements[editingMeasurementIndex].responsibleResources}
+                          onChange={(e) => updateMeasurement(editingItemIndex, editingMeasurementIndex, 'responsibleResources', e.target.value)}
+                          placeholder="Who is responsible? What resources are needed?"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Start Date</label>
+                          <Input
+                            value={planItems[editingItemIndex].measurements[editingMeasurementIndex].startDate}
+                            onChange={(e) => updateMeasurement(editingItemIndex, editingMeasurementIndex, 'startDate', e.target.value)}
+                            placeholder="e.g., 7d, 1w, 2024-01-15"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Completion Date</label>
+                          <Input
+                            value={planItems[editingItemIndex].measurements[editingMeasurementIndex].completionDate}
+                            onChange={(e) => updateMeasurement(editingItemIndex, editingMeasurementIndex, 'completionDate', e.target.value)}
+                            placeholder="e.g., 28d, 1m, 2024-02-15"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <DialogFooter>
+            {showDeleteConfirmation ? (
+              <div className="flex justify-between w-full">
+                <Button variant="outline" onClick={cancelDeleteMeasurement}>
+                  Cancel
+                </Button>
+                     <Button
+                       variant="destructive"
+                       onClick={confirmDeleteMeasurement}
+                       disabled={isDeleting}
+                       className="flex items-center gap-2"
+                     >
+                       {isDeleting ? (
+                         <>
+                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                           Deleting...
+                         </>
+                       ) : (
+                         <>
+                           <Trash2 className="h-4 w-4" />
+                           Delete Measurement
+                         </>
+                       )}
+                     </Button>
+              </div>
+            ) : (
+              <div className="flex justify-between w-full">
+                <Button 
+                  variant="outline"
+                  onClick={handleDeleteMeasurementFromDialog}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={closeEditDialog}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={saveFromDialog}
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
