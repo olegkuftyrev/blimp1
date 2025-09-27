@@ -1,7 +1,8 @@
 'use client';
 
 import { Play } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useIDPAssessment, useCompetencies, IDPUtils } from '@/hooks/useSWRIDP';
@@ -11,6 +12,7 @@ import Link from 'next/link';
 
 export default function IDPDevelopmentPlan() {
   const { user } = useAuth();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const { 
     assessment, 
@@ -39,6 +41,17 @@ export default function IDPDevelopmentPlan() {
       actions: comp.actions || []
     };
   });
+
+  // Redirect to main IDP page if no data to display
+  useEffect(() => {
+    if (!loading && !error && assessment) {
+      // Check if there are competencies that need development (score < 4)
+      const needsDevelopment = competencyScores.some(comp => comp.score < 4);
+      if (!needsDevelopment || competencyScores.length === 0) {
+        router.push('/idp');
+      }
+    }
+  }, [loading, error, assessment, competencyScores, router]);
 
   if (loading) {
     return (
