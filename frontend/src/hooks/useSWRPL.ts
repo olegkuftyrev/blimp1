@@ -1,4 +1,4 @@
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { apiFetch } from '@/lib/api';
 
@@ -197,7 +197,7 @@ export function useUploadPLFile() {
         console.log('✅ P&L file uploaded successfully:', data.message);
         // Invalidate all P&L related caches to refresh the UI
         mutate(
-          (key) => typeof key === 'string' && key.includes('pl-reports'),
+          (key: any) => typeof key === 'string' && key.includes('pl-reports'),
           undefined,
           { revalidate: true }
         );
@@ -784,3 +784,32 @@ export const PLUtils = {
     });
   }
 };
+
+// P&L Calculations Interface
+export interface PLCalculations {
+  sss?: number;
+  sst?: number;
+  primeCost?: number;
+  rentTotal?: number;
+  overtimeHours?: number;
+  flowThru?: number;
+  adjustedControllableProfitThisYear?: number;
+  adjustedControllableProfitLastYear?: number;
+  bonusCalculations?: {
+    gmBonus: number;
+    smBonus: number;
+    amChefBonus: number;
+  };
+}
+
+// P&L Calculations Hook
+export const usePLCalculations = (reportId: string | number | null) => {
+  return useSWR<{ data: PLCalculations }>(
+    reportId ? `pl-reports/${reportId}/calculations` : null,
+    apiFetch,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 300000, // 5 minutes
+    }
+  )
+}

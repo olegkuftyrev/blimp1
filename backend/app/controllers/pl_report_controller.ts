@@ -3,7 +3,7 @@ import PlReport from '#models/pl_report'
 import PlReportLineItem from '#models/pl_report_line_item'
 import Restaurant from '#models/restaurant'
 import { PlExcelParserService } from '#services/pl_excel_parser_service'
-import { inject } from '@adonisjs/core'
+// import { inject } from '@adonisjs/core'
 import AuditService from '#services/audit_service'
 
 export default class PlReportController {
@@ -21,7 +21,7 @@ export default class PlReportController {
       }
 
       // Verify restaurant exists
-      const restaurant = await Restaurant.findOrFail(restaurantId)
+      await Restaurant.findOrFail(restaurantId)
       
       // Get uploaded file
       const plFile = request.file('plFile')
@@ -225,6 +225,140 @@ export default class PlReportController {
         error: error.message
       })
     }
+  }
+
+  /**
+   * Get calculated metrics for a P&L report
+   */
+  async calculations({ params, response }: HttpContext) {
+    try {
+      const report = await PlReport.findOrFail(params.id)
+      
+      // Get all line items for calculations
+      const lineItems = await PlReportLineItem.query()
+        .where('pl_report_id', report.id)
+
+      // Calculate all metrics
+      const calculations = this.calculateMetrics(lineItems)
+
+      return response.ok({
+        data: calculations
+      })
+    } catch (error) {
+      console.error('Calculations error:', error)
+      return response.internalServerError({ message: 'Failed to calculate metrics' })
+    }
+  }
+
+  /**
+   * Calculate all financial metrics from line items
+   */
+  private calculateMetrics(lineItems: PlReportLineItem[]) {
+    const metrics: Record<string, any> = {}
+
+    // Helper function to find line item by ledger account
+    const findItem = (ledgerAccount: string) => {
+      return lineItems.find(item => item.ledgerAccount === ledgerAccount)
+    }
+
+    // Helper function to parse numeric value
+    const parseValue = (value: any): number => {
+      if (value === null || value === undefined) return 0
+      return parseFloat(value.toString()) || 0
+    }
+
+    // SSS (Same Store Sales) = (Actual Net Sales - Prior Year Net Sales) / Prior Year Net Sales × 100%
+    const netSalesItem = findItem('Net Sales')
+    if (netSalesItem && netSalesItem.actuals && netSalesItem.priorYear) {
+      const actualNetSales = parseValue(netSalesItem.actuals)
+      const priorYearNetSales = parseValue(netSalesItem.priorYear)
+      if (priorYearNetSales !== 0) {
+        metrics.sss = ((actualNetSales - priorYearNetSales) / priorYearNetSales) * 100
+      }
+    }
+
+    // SST% (Same Store Transactions) = (This Year Transactions - Last Year Transactions) / Last Year Transactions × 100%
+    const transactionsItem = findItem('Total Transactions')
+    if (transactionsItem && transactionsItem.actuals && transactionsItem.priorYear) {
+      const actualTransactions = parseValue(transactionsItem.actuals)
+      const priorYearTransactions = parseValue(transactionsItem.priorYear)
+      if (priorYearTransactions !== 0) {
+        metrics.sst = ((actualTransactions - priorYearTransactions) / priorYearTransactions) * 100
+      }
+    }
+
+    // Prime Cost = COGS % + Labor % (actual)
+    const cogsItem = findItem('Cost of Goods Sold')
+    const laborItem = findItem('Total Labor')
+    if (cogsItem && laborItem && cogsItem.actualsPercentage && laborItem.actualsPercentage) {
+      const cogsPercentage = parseValue(cogsItem.actualsPercentage)
+      const laborPercentage = parseValue(laborItem.actualsPercentage)
+      metrics.primeCost = cogsPercentage + laborPercentage
+    }
+
+    // Rent Total = Rent - MIN + Storage + Percent + Other + Deferred
+    const rentMin = parseValue(findItem('Rent - MIN')?.actuals)
+    const rentStorage = parseValue(findItem('Rent - Storage')?.actuals)
+    const rentPercent = parseValue(findItem('Rent - Percent')?.actuals)
+    const rentOther = parseValue(findItem('Rent - Other')?.actuals)
+    const rentDeferred = parseValue(findItem('Rent - Deferred Preopening')?.actuals)
+    metrics.rentTotal = rentMin + rentStorage + rentPercent + rentOther + rentDeferred
+
+    // Overtime Hours = Overtime Hours (actual) / Average Hourly Wage (actual)
+    const overtimeHoursItem = findItem('Overtime Hours')
+    const averageWageItem = findItem('Average Hourly Wage')
+    if (overtimeHoursItem && averageWageItem && overtimeHoursItem.actuals && averageWageItem.actuals) {
+      const overtimeHours = parseValue(overtimeHoursItem.actuals)
+      const averageWage = parseValue(averageWageItem.actuals)
+      if (averageWage !== 0) {
+        metrics.overtimeHours = overtimeHours / averageWage
+      }
+    }
+
+    // Flow Thru = (Actual Controllable Profit - Last Year Controllable Profit) / (Actual Net Sales - Prior Year Net Sales)
+    const controllableProfitItem = findItem('Controllable Profit')
+    if (netSalesItem && controllableProfitItem && 
+        netSalesItem.actuals && netSalesItem.priorYear &&
+        controllableProfitItem.actuals && controllableProfitItem.priorYear) {
+      const actualNetSales = parseValue(netSalesItem.actuals)
+      const priorYearNetSales = parseValue(netSalesItem.priorYear)
+      const actualControllableProfit = parseValue(controllableProfitItem.actuals)
+      const priorYearControllableProfit = parseValue(controllableProfitItem.priorYear)
+      const netSalesDiff = actualNetSales - priorYearNetSales
+      if (netSalesDiff !== 0) {
+        metrics.flowThru = (actualControllableProfit - priorYearControllableProfit) / netSalesDiff
+      }
+    }
+
+    // Adjusted Controllable Profit = CP + Bonus + Workers Comp
+    const bonusItem = findItem('Bonus')
+    const workersCompItem = findItem('Workers Comp')
+    if (controllableProfitItem && bonusItem && workersCompItem) {
+      const actualCP = parseValue(controllableProfitItem.actuals)
+      const actualBonus = parseValue(bonusItem.actuals)
+      const actualWorkersComp = parseValue(workersCompItem.actuals)
+      metrics.adjustedControllableProfitThisYear = actualCP + actualBonus + actualWorkersComp
+
+      const priorCP = parseValue(controllableProfitItem.priorYear)
+      const priorBonus = parseValue(bonusItem.priorYear)
+      const priorWorkersComp = parseValue(workersCompItem.priorYear)
+      metrics.adjustedControllableProfitLastYear = priorCP + priorBonus + priorWorkersComp
+    }
+
+    // Bonus Calculations
+    if (metrics.adjustedControllableProfitThisYear && metrics.adjustedControllableProfitLastYear) {
+      const ACPTY = metrics.adjustedControllableProfitThisYear
+      const ACPLY = metrics.adjustedControllableProfitLastYear
+      const difference = ACPTY - ACPLY
+      
+      metrics.bonusCalculations = {
+        gmBonus: difference * 0.20,
+        smBonus: difference * 0.15,
+        amChefBonus: difference * 0.10
+      }
+    }
+
+    return metrics
   }
 
   /**

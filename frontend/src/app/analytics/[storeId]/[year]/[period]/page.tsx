@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Upload, CheckCircle, FileSpreadsheet, Trash2 } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { usePLReports, usePLLineItems, useDeletePLReport, PLLineItem } from '@/hooks/useSWRPL';
+import { usePLReports, usePLLineItems, useDeletePLReport, usePLCalculations, PLLineItem } from '@/hooks/useSWRPL';
 import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
 import { mutate } from 'swr';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
@@ -59,6 +59,10 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   
   const { lineItems, loading: lineItemsLoading, error: lineItemsError } = usePLLineItems(
     plReport?.id || undefined
+  );
+
+  const { data: calculationsData, error: calculationsError, isLoading: calculationsLoading } = usePLCalculations(
+    plReport?.id || null
   );
   
   const plLineItems = plReport?.lineItems || lineItems || [];
@@ -296,277 +300,137 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">SSS (Same Store Sales)</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find Net Sales data from plLineItems
-                    const netSalesItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Net Sales');
-                    
-                    if (netSalesItem && netSalesItem.actuals && netSalesItem.priorYear) {
-                      const actualNetSales = parseFloat(netSalesItem.actuals.toString());
-                      const priorYearNetSales = parseFloat(netSalesItem.priorYear.toString());
-                      
-                      if (priorYearNetSales !== 0) {
-                        const sss = ((actualNetSales - priorYearNetSales) / priorYearNetSales) * 100;
-                        const color = sss >= 0 ? 'text-green-600' : 'text-red-600';
-                        return (
-                          <span className={color}>
-                            {sss.toFixed(2)}%
-                          </span>
-                        );
-                      }
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.sss !== undefined ? (
+                    <span className={calculationsData.data.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {calculationsData.data.sss.toFixed(2)}%
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">SST% (Same Store Transactions)</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find Total Transactions data from plLineItems
-                    const transactionsItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Total Transactions');
-                    
-                    if (transactionsItem && transactionsItem.actuals && transactionsItem.priorYear) {
-                      const actualTransactions = parseFloat(transactionsItem.actuals.toString());
-                      const priorYearTransactions = parseFloat(transactionsItem.priorYear.toString());
-                      
-                      if (priorYearTransactions !== 0) {
-                        const sst = ((actualTransactions - priorYearTransactions) / priorYearTransactions) * 100;
-                        const color = sst >= 0 ? 'text-green-600' : 'text-red-600';
-                        return (
-                          <span className={color}>
-                            {sst.toFixed(2)}%
-                          </span>
-                        );
-                      }
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.sst !== undefined ? (
+                    <span className={calculationsData.data.sst >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {calculationsData.data.sst.toFixed(2)}%
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Prime Cost</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find COGS and Total Labor data from plLineItems
-                    const cogsItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold');
-                    const laborItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor');
-                    
-                    if (cogsItem && laborItem && 
-                        cogsItem.actualsPercentage && laborItem.actualsPercentage) {
-                      
-                      const cogsPercentage = parseFloat(cogsItem.actualsPercentage.toString());
-                      const laborPercentage = parseFloat(laborItem.actualsPercentage.toString());
-                      const primeCost = cogsPercentage + laborPercentage;
-                      
-                      return (
-                        <span className="text-blue-600">
-                          {primeCost.toFixed(2)}%
-                        </span>
-                      );
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.primeCost !== undefined ? (
+                    <span className="text-blue-600">
+                      {calculationsData.data.primeCost.toFixed(2)}%
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Rent Total</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find all rent components from plLineItems
-                    const rentMinItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Rent - MIN');
-                    const rentStorageItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Rent - Storage');
-                    const rentPercentItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Rent - Percent');
-                    const rentOtherItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Rent - Other');
-                    const rentDeferredItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Rent - Deferred Preopening');
-                    
-                    if (rentMinItem || rentStorageItem || rentPercentItem || rentOtherItem || rentDeferredItem) {
-                      const rentMin = parseFloat(rentMinItem?.actuals?.toString() || '0');
-                      const rentStorage = parseFloat(rentStorageItem?.actuals?.toString() || '0');
-                      const rentPercent = parseFloat(rentPercentItem?.actuals?.toString() || '0');
-                      const rentOther = parseFloat(rentOtherItem?.actuals?.toString() || '0');
-                      const rentDeferred = parseFloat(rentDeferredItem?.actuals?.toString() || '0');
-                      
-                      const rentTotal = rentMin + rentStorage + rentPercent + rentOther + rentDeferred;
-                      
-                      return (
-                        <span className="text-purple-600">
-                          ${rentTotal.toLocaleString()}
-                        </span>
-                      );
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.rentTotal !== undefined ? (
+                    <span className="text-purple-600">
+                      ${calculationsData.data.rentTotal.toLocaleString()}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Overtime Hours</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find Overtime Hours and Average Hourly Wage data from plLineItems
-                    const overtimeHoursItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Overtime Hours');
-                    const averageWageItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Average Hourly Wage');
-                    
-                    if (overtimeHoursItem && averageWageItem && 
-                        overtimeHoursItem.actuals && averageWageItem.actuals) {
-                      
-                      const overtimeHours = parseFloat(overtimeHoursItem.actuals.toString());
-                      const averageWage = parseFloat(averageWageItem.actuals.toString());
-                      
-                      if (averageWage !== 0) {
-                        const overtimeCost = overtimeHours / averageWage;
-                        
-                        return (
-                          <span className="text-orange-600">
-                            {overtimeCost.toFixed(2)} hours
-                          </span>
-                        );
-                      }
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.overtimeHours !== undefined ? (
+                    <span className="text-orange-600">
+                      {calculationsData.data.overtimeHours.toFixed(2)} hours
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Flow Thru</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find Net Sales and Controllable Profit data from plLineItems
-                    const netSalesItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Net Sales');
-                    const controllableProfitItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Controllable Profit');
-                    
-                    if (netSalesItem && controllableProfitItem && 
-                        netSalesItem.actuals && netSalesItem.priorYear &&
-                        controllableProfitItem.actuals && controllableProfitItem.priorYear) {
-                      
-                      const actualNetSales = parseFloat(netSalesItem.actuals.toString());
-                      const priorYearNetSales = parseFloat(netSalesItem.priorYear.toString());
-                      const actualControllableProfit = parseFloat(controllableProfitItem.actuals.toString());
-                      const priorYearControllableProfit = parseFloat(controllableProfitItem.priorYear.toString());
-                      
-                      const netSalesDiff = actualNetSales - priorYearNetSales;
-                      
-                      if (netSalesDiff !== 0) {
-                        const flowThru = (actualControllableProfit - priorYearControllableProfit) / netSalesDiff;
-                        const color = flowThru >= 0 ? 'text-green-600' : 'text-red-600';
-                        return (
-                          <span className={color}>
-                            {flowThru.toFixed(2)}
-                          </span>
-                        );
-                      }
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.flowThru !== undefined ? (
+                    <span className={calculationsData.data.flowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {calculationsData.data.flowThru.toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Adjusted Controllable Profit</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find CP, Bonus, and Workers Comp data from plLineItems
-                    const controllableProfitItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Controllable Profit');
-                    const bonusItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Bonus');
-                    const workersCompItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Workers Comp');
-                    
-                    if (controllableProfitItem && bonusItem && workersCompItem) {
-                      // Calculate This Year (Actual)
-                      const actualCP = parseFloat(controllableProfitItem.actuals?.toString() || '0');
-                      const actualBonus = parseFloat(bonusItem.actuals?.toString() || '0');
-                      const actualWorkersComp = parseFloat(workersCompItem.actuals?.toString() || '0');
-                      const adjustedCPThisYear = actualCP + actualBonus + actualWorkersComp;
-                      
-                      // Calculate Last Year (Prior)
-                      const priorCP = parseFloat(controllableProfitItem.priorYear?.toString() || '0');
-                      const priorBonus = parseFloat(bonusItem.priorYear?.toString() || '0');
-                      const priorWorkersComp = parseFloat(workersCompItem.priorYear?.toString() || '0');
-                      const adjustedCPLastYear = priorCP + priorBonus + priorWorkersComp;
-                      
-                      return (
-                        <div className="space-y-1">
-                          <div className="text-sm">
-                            <span className="font-medium">This Year:</span> 
-                            <span className="ml-2 text-green-600">${adjustedCPThisYear.toLocaleString()}</span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-medium">Last Year:</span> 
-                            <span className="ml-2 text-blue-600">${adjustedCPLastYear.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.adjustedControllableProfitThisYear !== undefined && calculationsData?.data?.adjustedControllableProfitLastYear !== undefined ? (
+                    <div className="space-y-1">
+                      <div className="text-sm">
+                        <span className="font-medium">This Year:</span> 
+                        <span className="ml-2 text-green-600">${calculationsData.data.adjustedControllableProfitThisYear.toLocaleString()}</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">Last Year:</span> 
+                        <span className="ml-2 text-blue-600">${calculationsData.data.adjustedControllableProfitLastYear.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Bonus Calculations</TableCell>
                 <TableCell>
-                  {(() => {
-                    // Find CP, Bonus, and Workers Comp data to calculate Adjusted CP
-                    const controllableProfitItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Controllable Profit');
-                    const bonusItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Bonus');
-                    const workersCompItem = plLineItems?.find((item: PLLineItem) => item.ledgerAccount === 'Workers Comp');
-                    
-                    if (controllableProfitItem && bonusItem && workersCompItem) {
-                      // Calculate Adjusted Controllable Profit This Year (ACPTY)
-                      const actualCP = parseFloat(controllableProfitItem.actuals?.toString() || '0');
-                      const actualBonus = parseFloat(bonusItem.actuals?.toString() || '0');
-                      const actualWorkersComp = parseFloat(workersCompItem.actuals?.toString() || '0');
-                      const ACPTY = actualCP + actualBonus + actualWorkersComp;
-                      
-                      // Calculate Adjusted Controllable Profit Last Year (ACPLY)
-                      const priorCP = parseFloat(controllableProfitItem.priorYear?.toString() || '0');
-                      const priorBonus = parseFloat(bonusItem.priorYear?.toString() || '0');
-                      const priorWorkersComp = parseFloat(workersCompItem.priorYear?.toString() || '0');
-                      const ACPLY = priorCP + priorBonus + priorWorkersComp;
-                      
-                      // Calculate bonuses
-                      const difference = ACPTY - ACPLY;
-                      const gmBonus = difference * 0.20;
-                      const smBonus = difference * 0.15;
-                      const amChefBonus = difference * 0.10;
-                      
-                      return (
-                        <div className="space-y-1">
-                          <div className="text-sm">
-                            <span className="font-medium">GM Bonus:</span> 
-                            <span className={`ml-2 ${gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              ${gmBonus.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-medium">SM Bonus:</span> 
-                            <span className={`ml-2 ${smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              ${smBonus.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-medium">AM/Chef Bonus:</span> 
-                            <span className={`ml-2 ${amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              ${amChefBonus.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    // Fallback if no real data available
-                    return <span className="text-gray-500">No calculation available</span>;
-                  })()}
+                  {calculationsLoading ? (
+                    <span className="text-gray-400">Loading...</span>
+                  ) : calculationsData?.data?.bonusCalculations ? (
+                    <div className="space-y-1">
+                      <div className="text-sm">
+                        <span className="font-medium">GM Bonus:</span> 
+                        <span className={`ml-2 ${calculationsData.data.bonusCalculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${calculationsData.data.bonusCalculations.gmBonus.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">SM Bonus:</span> 
+                        <span className={`ml-2 ${calculationsData.data.bonusCalculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${calculationsData.data.bonusCalculations.smBonus.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">AM/Chef Bonus:</span> 
+                        <span className={`ml-2 ${calculationsData.data.bonusCalculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${calculationsData.data.bonusCalculations.amChefBonus.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">No calculation available</span>
+                  )}
                 </TableCell>
               </TableRow>
             </TableBody>

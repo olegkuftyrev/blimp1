@@ -231,6 +231,7 @@ router
       router.get('/', '#controllers/pl_report_controller.index')
       router.get('/:id', '#controllers/pl_report_controller.show')
       router.get('/:id/line-items', '#controllers/pl_report_controller.lineItems')
+      router.get('/:id/calculations', '#controllers/pl_report_controller.calculations')
       router.get('/:id/raw-data', '#controllers/pl_report_controller.getRawData')
       router.delete('/:id', '#controllers/pl_report_controller.destroy')
   })
