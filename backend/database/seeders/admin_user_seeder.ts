@@ -6,8 +6,8 @@ export default class extends BaseSeeder {
   public static environment = ['development', 'testing'] as const
 
   async run() {
-    const adminEmail = env.get('ADMIN_EMAIL', 'admin@example.com')
-    const adminPassword = env.get('ADMIN_PASSWORD', 'pA55w0rd!')
+    const adminEmail = env.get('ADMIN_EMAIL', 'oleg@kuftyrev.us')
+    const adminPassword = env.get('ADMIN_PASSWORD', 'Panda2475!asd')
 
     const existing = await User.findBy('email', adminEmail)
     if (existing) {

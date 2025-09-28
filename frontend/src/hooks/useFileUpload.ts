@@ -253,10 +253,11 @@ export function usePLFileUpload(storeId: number, year: number, period: string) {
     const endpoint = `/api/pl-reports/upload`;
     const additionalData = {
       restaurantId: storeId.toString(),
+      period: period,
     };
 
     return fileUpload.uploadFile(file, endpoint, additionalData);
-  }, [storeId, fileUpload]);
+  }, [storeId, period, fileUpload]);
 
   return {
     ...fileUpload,

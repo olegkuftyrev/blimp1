@@ -8,7 +8,12 @@ import {
   DollarSign, 
   Users, 
   Clock,
-  BarChart3
+  BarChart3,
+  FileText,
+  Upload,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 
 interface PLReportData {
@@ -17,6 +22,12 @@ interface PLReportData {
   company: string;
   period: string;
   translationCurrency: string;
+  year: number;
+  fileName: string;
+  fileSize: number;
+  uploadStatus: string;
+  errorMessage?: string;
+  uploadedBy?: number;
   netSales: number;
   grossSales: number;
   costOfGoodsSold: number;
@@ -64,20 +75,114 @@ export function PLReportDisplay({ report }: PLReportDisplayProps) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: report.translationCurrency || 'USD',
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 20,
     }).format(amount);
   };
 
   const formatPercentage = (value: number) => {
-    return `${(value * 100).toFixed(1)}%`;
+    return `${(value * 100).toFixed(2)}%`;
   };
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-US').format(value);
+    return value.toString();
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-100 text-green-800';
+      case 'error':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* File Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            File Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">File Name</span>
+              </div>
+              <p className="text-sm text-muted-foreground truncate" title={report.fileName}>
+                {report.fileName || 'N/A'}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">File Size</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {report.fileSize ? formatFileSize(report.fileSize) : 'N/A'}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {getStatusIcon(report.uploadStatus)}
+                <span className="text-sm font-medium">Status</span>
+              </div>
+              <Badge className={getStatusColor(report.uploadStatus)}>
+                {report.uploadStatus || 'Unknown'}
+              </Badge>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Year</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {report.year || 'N/A'}
+              </p>
+            </div>
+          </div>
+          
+          {report.errorMessage && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm font-medium text-red-800">Error Message</span>
+              </div>
+              <p className="text-sm text-red-700 mt-1">{report.errorMessage}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

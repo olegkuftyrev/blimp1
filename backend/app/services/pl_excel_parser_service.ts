@@ -28,16 +28,98 @@ export interface PlReportData {
   translationCurrency: string
   lineItems: PlLineItemData[]
   summaryData: {
+    // Financial metrics with all columns
     netSales: number
+    netSalesPlan: number
+    netSalesVfp: number
+    netSalesPriorYear: number
+    netSalesActualYtd: number
+    netSalesPlanYtd: number
+    netSalesVfpYtd: number
+    netSalesPriorYearYtd: number
+    
     grossSales: number
+    grossSalesPlan: number
+    grossSalesVfp: number
+    grossSalesPriorYear: number
+    grossSalesActualYtd: number
+    grossSalesPlanYtd: number
+    grossSalesVfpYtd: number
+    grossSalesPriorYearYtd: number
+    
     costOfGoodsSold: number
+    costOfGoodsSoldPlan: number
+    costOfGoodsSoldVfp: number
+    costOfGoodsSoldPriorYear: number
+    costOfGoodsSoldActualYtd: number
+    costOfGoodsSoldPlanYtd: number
+    costOfGoodsSoldVfpYtd: number
+    costOfGoodsSoldPriorYearYtd: number
+    
     totalLabor: number
+    totalLaborPlan: number
+    totalLaborVfp: number
+    totalLaborPriorYear: number
+    totalLaborActualYtd: number
+    totalLaborPlanYtd: number
+    totalLaborVfpYtd: number
+    totalLaborPriorYearYtd: number
+    
     controllables: number
+    controllablesPlan: number
+    controllablesVfp: number
+    controllablesPriorYear: number
+    controllablesActualYtd: number
+    controllablesPlanYtd: number
+    controllablesVfpYtd: number
+    controllablesPriorYearYtd: number
+    
     controllableProfit: number
+    controllableProfitPlan: number
+    controllableProfitVfp: number
+    controllableProfitPriorYear: number
+    controllableProfitActualYtd: number
+    controllableProfitPlanYtd: number
+    controllableProfitVfpYtd: number
+    controllableProfitPriorYearYtd: number
+    
     advertising: number
+    advertisingPlan: number
+    advertisingVfp: number
+    advertisingPriorYear: number
+    advertisingActualYtd: number
+    advertisingPlanYtd: number
+    advertisingVfpYtd: number
+    advertisingPriorYearYtd: number
+    
     fixedCosts: number
+    fixedCostsPlan: number
+    fixedCostsVfp: number
+    fixedCostsPriorYear: number
+    fixedCostsActualYtd: number
+    fixedCostsPlanYtd: number
+    fixedCostsVfpYtd: number
+    fixedCostsPriorYearYtd: number
+    
     restaurantContribution: number
+    restaurantContributionPlan: number
+    restaurantContributionVfp: number
+    restaurantContributionPriorYear: number
+    restaurantContributionActualYtd: number
+    restaurantContributionPlanYtd: number
+    restaurantContributionVfpYtd: number
+    restaurantContributionPriorYearYtd: number
+    
     cashflow: number
+    cashflowPlan: number
+    cashflowVfp: number
+    cashflowPriorYear: number
+    cashflowActualYtd: number
+    cashflowPlanYtd: number
+    cashflowVfpYtd: number
+    cashflowPriorYearYtd: number
+    
+    // Performance metrics (keeping as single values for now)
     totalTransactions: number
     checkAverage: number
     directLaborHours: number
@@ -68,7 +150,7 @@ export interface PlReportData {
 }
 
 export class PlExcelParserService {
-  static parseExcelFile(filePath: string): PlReportData {
+  static parseExcelFile(filePath: string, periodOverride?: string): PlReportData {
     const workbook = XLSX.readFile(filePath)
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
@@ -108,7 +190,10 @@ export class PlExcelParserService {
     const fileName = filePath.split('/').pop() || ''
     const periodFromFile = this.extractPeriodFromFileName(fileName)
     
-    return this.parsePlData(jsonData, periodFromFile, metadata)
+    // Use period override if provided, otherwise use metadata period, otherwise use filename period
+    const finalPeriod = periodOverride || metadata?.period || periodFromFile
+    
+    return this.parsePlData(jsonData, finalPeriod, metadata)
   }
 
   static parseExcelBuffer(buffer: Buffer, fileName?: string): PlReportData {
@@ -150,7 +235,10 @@ export class PlExcelParserService {
     // Extract period from filename if possible
     const periodFromFile = fileName ? this.extractPeriodFromFileName(fileName) : undefined
     
-    return this.parsePlData(jsonData, periodFromFile, metadata)
+    // Use metadata period if available, otherwise use filename period
+    const finalPeriod = metadata?.period || periodFromFile
+    
+    return this.parsePlData(jsonData, finalPeriod, metadata)
   }
 
   // --- UTIL: Normalize text ---
@@ -281,6 +369,8 @@ export class PlExcelParserService {
       translationCurrency
     })
 
+    console.log('Data array length:', data.length)
+
     // The header row is now data[0] since we used range: headerRowIndex
     const headerRowIndex = 0
 
@@ -322,12 +412,14 @@ export class PlExcelParserService {
         planYtdPercentage: this.parsePercentage(row[11]),
         vfpYtd: this.parseNumber(row[12]),
         priorYearYtd: this.parseNumber(row[13]),
-        priorYearYtdPercentage: this.parsePercentage(row[14]),
+        priorYearYtdPercentage: this.parsePercentage(row[14]), // This is "Prior Year %" for YTD in the Excel
         sortOrder: sortOrder++
       }
 
       lineItems.push(lineItem)
     }
+
+    console.log(`Total line items parsed: ${lineItems.length}`)
 
     // Extract summary data from specific line items
     const summaryData = this.extractSummaryData(lineItems)
@@ -343,7 +435,6 @@ export class PlExcelParserService {
   }
 
   private static extractSummaryData(lineItems: PlLineItemData[]) {
-
     // Find key line items by ledger account name
     const findLineItem = (accountName: string) => 
       lineItems.find(item => 
@@ -395,16 +486,107 @@ export class PlExcelParserService {
     const virtualFundraisingSales = findLineItem('Virtual Fundraising Sales')
 
     return {
+      // Net Sales with all columns
       netSales: netSales?.actuals || 0,
+      netSalesPlan: netSales?.plan || 0,
+      netSalesVfp: netSales?.vfp || 0,
+      netSalesPriorYear: netSales?.priorYear || 0,
+      netSalesActualYtd: netSales?.actualYtd || 0,
+      netSalesPlanYtd: netSales?.planYtd || 0,
+      netSalesVfpYtd: netSales?.vfpYtd || 0,
+      netSalesPriorYearYtd: netSales?.priorYearYtd || 0,
+      
+      // Gross Sales with all columns
       grossSales: grossSales?.actuals || 0,
+      grossSalesPlan: grossSales?.plan || 0,
+      grossSalesVfp: grossSales?.vfp || 0,
+      grossSalesPriorYear: grossSales?.priorYear || 0,
+      grossSalesActualYtd: grossSales?.actualYtd || 0,
+      grossSalesPlanYtd: grossSales?.planYtd || 0,
+      grossSalesVfpYtd: grossSales?.vfpYtd || 0,
+      grossSalesPriorYearYtd: grossSales?.priorYearYtd || 0,
+      
+      // Cost of Goods Sold with all columns
       costOfGoodsSold: costOfGoodsSold?.actuals || 0,
+      costOfGoodsSoldPlan: costOfGoodsSold?.plan || 0,
+      costOfGoodsSoldVfp: costOfGoodsSold?.vfp || 0,
+      costOfGoodsSoldPriorYear: costOfGoodsSold?.priorYear || 0,
+      costOfGoodsSoldActualYtd: costOfGoodsSold?.actualYtd || 0,
+      costOfGoodsSoldPlanYtd: costOfGoodsSold?.planYtd || 0,
+      costOfGoodsSoldVfpYtd: costOfGoodsSold?.vfpYtd || 0,
+      costOfGoodsSoldPriorYearYtd: costOfGoodsSold?.priorYearYtd || 0,
+      
+      // Total Labor with all columns
       totalLabor: totalLabor?.actuals || 0,
+      totalLaborPlan: totalLabor?.plan || 0,
+      totalLaborVfp: totalLabor?.vfp || 0,
+      totalLaborPriorYear: totalLabor?.priorYear || 0,
+      totalLaborActualYtd: totalLabor?.actualYtd || 0,
+      totalLaborPlanYtd: totalLabor?.planYtd || 0,
+      totalLaborVfpYtd: totalLabor?.vfpYtd || 0,
+      totalLaborPriorYearYtd: totalLabor?.priorYearYtd || 0,
+      
+      // Controllables with all columns
       controllables: controllables?.actuals || 0,
+      controllablesPlan: controllables?.plan || 0,
+      controllablesVfp: controllables?.vfp || 0,
+      controllablesPriorYear: controllables?.priorYear || 0,
+      controllablesActualYtd: controllables?.actualYtd || 0,
+      controllablesPlanYtd: controllables?.planYtd || 0,
+      controllablesVfpYtd: controllables?.vfpYtd || 0,
+      controllablesPriorYearYtd: controllables?.priorYearYtd || 0,
+      
+      // Controllable Profit with all columns
       controllableProfit: controllableProfit?.actuals || 0,
+      controllableProfitPlan: controllableProfit?.plan || 0,
+      controllableProfitVfp: controllableProfit?.vfp || 0,
+      controllableProfitPriorYear: controllableProfit?.priorYear || 0,
+      controllableProfitActualYtd: controllableProfit?.actualYtd || 0,
+      controllableProfitPlanYtd: controllableProfit?.planYtd || 0,
+      controllableProfitVfpYtd: controllableProfit?.vfpYtd || 0,
+      controllableProfitPriorYearYtd: controllableProfit?.priorYearYtd || 0,
+      
+      // Advertising with all columns
       advertising: advertising?.actuals || 0,
+      advertisingPlan: advertising?.plan || 0,
+      advertisingVfp: advertising?.vfp || 0,
+      advertisingPriorYear: advertising?.priorYear || 0,
+      advertisingActualYtd: advertising?.actualYtd || 0,
+      advertisingPlanYtd: advertising?.planYtd || 0,
+      advertisingVfpYtd: advertising?.vfpYtd || 0,
+      advertisingPriorYearYtd: advertising?.priorYearYtd || 0,
+      
+      // Fixed Costs with all columns
       fixedCosts: fixedCosts?.actuals || 0,
+      fixedCostsPlan: fixedCosts?.plan || 0,
+      fixedCostsVfp: fixedCosts?.vfp || 0,
+      fixedCostsPriorYear: fixedCosts?.priorYear || 0,
+      fixedCostsActualYtd: fixedCosts?.actualYtd || 0,
+      fixedCostsPlanYtd: fixedCosts?.planYtd || 0,
+      fixedCostsVfpYtd: fixedCosts?.vfpYtd || 0,
+      fixedCostsPriorYearYtd: fixedCosts?.priorYearYtd || 0,
+      
+      // Restaurant Contribution with all columns
       restaurantContribution: restaurantContribution?.actuals || 0,
+      restaurantContributionPlan: restaurantContribution?.plan || 0,
+      restaurantContributionVfp: restaurantContribution?.vfp || 0,
+      restaurantContributionPriorYear: restaurantContribution?.priorYear || 0,
+      restaurantContributionActualYtd: restaurantContribution?.actualYtd || 0,
+      restaurantContributionPlanYtd: restaurantContribution?.planYtd || 0,
+      restaurantContributionVfpYtd: restaurantContribution?.vfpYtd || 0,
+      restaurantContributionPriorYearYtd: restaurantContribution?.priorYearYtd || 0,
+      
+      // Cashflow with all columns
       cashflow: cashflow?.actuals || 0,
+      cashflowPlan: cashflow?.plan || 0,
+      cashflowVfp: cashflow?.vfp || 0,
+      cashflowPriorYear: cashflow?.priorYear || 0,
+      cashflowActualYtd: cashflow?.actualYtd || 0,
+      cashflowPlanYtd: cashflow?.planYtd || 0,
+      cashflowVfpYtd: cashflow?.vfpYtd || 0,
+      cashflowPriorYearYtd: cashflow?.priorYearYtd || 0,
+      
+      // Performance metrics (keeping as single values for now)
       totalTransactions: totalTransactions?.actuals || 0,
       checkAverage: checkAverage?.actuals || 0,
       directLaborHours: directLaborHours?.actuals || 0,
@@ -434,9 +616,6 @@ export class PlExcelParserService {
     }
   }
 
-  private static extractValue(data: any[][], row: number, col: number): string {
-    return data[row] && data[row][col] ? data[row][col].toString().trim() : ''
-  }
 
   private static extractPeriodFromFileName(fileName: string): string | undefined {
     // Look for patterns like P01, P10, P1, etc.

@@ -18,8 +18,6 @@ export default class extends BaseSchema {
         full_name: identifier,
         email,
         password,
-        role: 'tablet',
-        job_title: 'Hourly Associate',
         created_at: new Date(),
         updated_at: new Date(),
       })

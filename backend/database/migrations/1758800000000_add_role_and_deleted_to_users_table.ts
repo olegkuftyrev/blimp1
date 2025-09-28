@@ -6,7 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
       table
-        .enum('role', ['admin', 'ops_lead', 'black_shirt', 'associate'], {
+        .enum('role', ['admin', 'ops_lead', 'black_shirt', 'associate', 'tablet'], {
           useNative: false,
           enumName: 'user_role_enum',
           existingType: false,

@@ -12,6 +12,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { apiFetch } from '@/lib/api';
+import { WebSocketStatus } from '@/components/WebSocketStatus';
 
 interface Restaurant {
   id: number;
@@ -86,7 +87,9 @@ function KitchenModuleContent() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">Kitchen Management</h1>
-              <Badge className="mt-2 bg-green-500">Active</Badge>
+              <div className="mt-2">
+                <WebSocketStatus />
+              </div>
             </div>
           </div>
           <p className="text-muted-foreground text-lg">
@@ -119,8 +122,8 @@ function KitchenModuleContent() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {restaurants.map((restaurant: Restaurant) => (
-                <Card key={restaurant.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
+                <Card key={restaurant.id} className="hover:shadow-lg transition-shadow h-full flex flex-col">
+                  <CardHeader className="flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{restaurant.name}</CardTitle>
                       <Badge variant={restaurant.isActive ? "default" : "secondary"}>
@@ -128,9 +131,9 @@ function KitchenModuleContent() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 mb-4">
-                      <p className="text-sm text-muted-foreground">
+                  <CardContent className="flex-1 flex flex-col">
+                    <div className="space-y-2 mb-4 flex-1">
+                      <p className="text-sm text-muted-foreground min-h-[2.5rem]">
                         📍 {restaurant.address}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -138,7 +141,7 @@ function KitchenModuleContent() {
                       </p>
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-2 mt-auto">
                       {restaurant.isActive ? (
                         <Link
                           href={`/kitchen/${restaurant.id}`}

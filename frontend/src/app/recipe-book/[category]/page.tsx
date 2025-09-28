@@ -84,14 +84,14 @@ export default function CategoryRecipesPage() {
               const slug = code.toLowerCase();
               
               return (
-                <Card key={item.id} className="transition-all hover:shadow-lg ring-1 ring-border">
-                  <CardHeader>
+                <Card key={item.id} className="transition-all hover:shadow-lg ring-1 ring-border h-full flex flex-col">
+                  <CardHeader className="flex-shrink-0">
                     <CardTitle className="text-lg">{code} - {title}</CardTitle>
                     <div className="text-sm text-muted-foreground">
                       {item.steamTable ? 'Kitchen + Recipe Book' : 'Recipe Book Only'}
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-1 flex flex-col justify-end">
                     <Link 
                       href={`/recipe-book/${category}/${slug}`}
                       className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3"

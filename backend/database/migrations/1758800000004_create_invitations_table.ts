@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.increments('id')
       table.uuid('code').notNullable().unique()
       table
-        .enum('role', ['admin', 'ops_lead', 'black_shirt', 'associate'], {
+        .enum('role', ['admin', 'ops_lead', 'black_shirt', 'associate', 'tablet'], {
           useNative: false,
           enumName: 'invite_role_enum',
           existingType: false,

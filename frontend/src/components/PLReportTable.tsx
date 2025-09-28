@@ -8,6 +8,12 @@ interface PLReportData {
   company: string;
   period: string;
   translationCurrency: string;
+  year: number;
+  fileName: string;
+  fileSize: number;
+  uploadStatus: string;
+  errorMessage?: string;
+  uploadedBy?: number;
   netSales: number;
   grossSales: number;
   costOfGoodsSold: number;
@@ -56,7 +62,8 @@ export function PLReportTable({ report, lineItems = [] }: PLReportTableProps) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: report.translationCurrency || 'USD',
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 20,
     }).format(amount);
   };
 
@@ -65,7 +72,7 @@ export function PLReportTable({ report, lineItems = [] }: PLReportTableProps) {
   };
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-US').format(value);
+    return value.toString();
   };
 
   // Use real line items data from props, or fallback to empty array
@@ -85,6 +92,14 @@ export function PLReportTable({ report, lineItems = [] }: PLReportTableProps) {
     return 'text-foreground';
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -92,6 +107,10 @@ export function PLReportTable({ report, lineItems = [] }: PLReportTableProps) {
         <p className="text-sm text-muted-foreground">
           {report.storeName} - {report.company}
         </p>
+        <div className="mt-2 text-xs text-muted-foreground space-y-1">
+          <div>File: {report.fileName || 'N/A'} ({report.fileSize ? formatFileSize(report.fileSize) : 'N/A'})</div>
+          <div>Year: {report.year || 'N/A'} | Status: {report.uploadStatus || 'Unknown'}</div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

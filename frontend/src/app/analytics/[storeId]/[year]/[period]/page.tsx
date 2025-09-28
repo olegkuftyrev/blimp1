@@ -5,18 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, FileSpreadsheet, Upload, CheckCircle, XCircle, AlertCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, CheckCircle, FileSpreadsheet } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/ui/dropzone';
-import { UploadIcon } from 'lucide-react';
 import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
+import { usePLReports, usePLLineItems } from '@/hooks/useSWRPL';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
-import { PLReportDisplay } from '@/components/PLReportDisplay';
-import { PLReportTable } from '@/components/PLReportTable';
+import { PLReportDataTable } from '@/components/PLReportDataTable';
+import { PLReportDetailedTable } from '@/components/PLReportDetailedTable';
 
 interface PeriodReportPageProps {
   params: Promise<{
@@ -37,16 +32,8 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     period: string;
   } | null>(null);
   
-  // All state hooks must be declared before any conditional returns
   const [fileItems, setFileItems] = useState<FileUploadItem[]>([]);
-  const [plReport, setPlReport] = useState<any>(null);
-  const [plLineItems, setPlLineItems] = useState<any[]>([]);
-  const [loadingReport, setLoadingReport] = useState(true);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [showUploadForm, setShowUploadForm] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   
-  // All useEffect hooks must be declared before any conditional returns
   useEffect(() => {
     params.then(setResolvedParams);
   }, [params]);
@@ -57,124 +44,20 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     }
   }, [user, router]);
 
-  // Load P&L report data
-  useEffect(() => {
-    if (!resolvedParams) return;
-    
-    const loadPLReport = async () => {
-      try {
-        setLoadingReport(true);
-        
-        const storeId = parseInt(resolvedParams.storeId);
-        const period = resolvedParams.period;
-        
-        console.log('Loading P&L report for storeId:', storeId, 'period:', period);
-        
-        // Try to load real data from API first
-        try {
-          const response = await fetch(`/api/pl-reports?restaurantId=${storeId}&period=${period}`);
-          console.log('P&L reports API response status:', response.status);
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log('P&L reports API data:', data);
-            
-            if (data.length > 0) {
-              const report = data[0];
-              console.log('Found P&L report:', report);
-              setPlReport(report);
-              
-              // Load line items
-              const lineItemsResponse = await fetch(`/api/pl-reports/${report.id}/line-items`);
-              if (lineItemsResponse.ok) {
-                const lineItems = await lineItemsResponse.json();
-                console.log('Loaded line items:', lineItems);
-                setPlLineItems(lineItems);
-              }
-              return;
-            }
-          }
-        } catch (apiError) {
-          console.log('API not available, using mock data:', apiError);
-        }
-        
-        // Fallback to mock data if API fails
-        const mockReport = {
-          id: 1,
-          storeName: 'Store',
-          company: 'Panda Express',
-          period: period,
-          translationCurrency: 'USD',
-          netSales: 219749.20,
-          grossSales: 225909.32,
-          costOfGoodsSold: 61099.79,
-          totalLabor: 62908.63,
-          controllables: 23458.14,
-          controllableProfit: 64488.34,
-          advertising: 1740.95,
-          fixedCosts: 36549.54,
-          netProfit: 26198.85
-        };
-        
-        const mockLineItems = [
-          {
-            id: 1,
-            ledgerAccount: 'Food Sales',
-            actuals: 209583.18,
-            plan: 215332.85,
-            vfp: -5749.67,
-            priorYear: 186300.98,
-            actualYtd: 209583.18,
-            planYtd: 215332.85,
-            vfpYtd: -5749.67,
-            priorYearYtd: 186300.98
-          },
-          {
-            id: 2,
-            ledgerAccount: 'Drink Sales',
-            actuals: 17228.58,
-            plan: 15760.61,
-            vfp: 1467.97,
-            priorYear: 13635.61,
-            actualYtd: 17228.58,
-            planYtd: 15760.61,
-            vfpYtd: 1467.97,
-            priorYearYtd: 13635.61
-          },
-          {
-            id: 3,
-            ledgerAccount: 'Retail Sales',
-            actuals: 477.52,
-            plan: 99.41,
-            vfp: 378.11,
-            priorYear: 86,
-            actualYtd: 477.52,
-            planYtd: 99.41,
-            vfpYtd: 378.11,
-            priorYearYtd: 86
-          }
-        ];
-        
-        setPlReport(mockReport);
-        setPlLineItems(mockLineItems);
-        
-      } catch (error) {
-        console.error('Failed to load P&L report:', error);
-      } finally {
-        setLoadingReport(false);
-      }
-    };
-
-    loadPLReport();
-  }, [resolvedParams]);
-
-  // Show upload form if no report data is available
-  useEffect(() => {
-    if (!loadingReport && !plReport) {
-      setShowUploadForm(true);
-    }
-  }, [loadingReport, plReport]);
+  // Use SWR hooks for data fetching
+  const { reports, loading: reportsLoading, error: reportsError } = usePLReports(
+    resolvedParams ? parseInt(resolvedParams.storeId) : undefined,
+    resolvedParams?.period || undefined
+  );
   
+  const plReport = reports?.length > 0 ? reports[0] : null;
+  
+  const { lineItems, loading: lineItemsLoading, error: lineItemsError } = usePLLineItems(
+    plReport?.id || undefined
+  );
+  
+  const plLineItems = plReport?.lineItems || lineItems || [];
+
   // Get store info for display
   const currentStore = restaurants?.find((r: any) => r.id === (resolvedParams ? parseInt(resolvedParams.storeId) : 0));
   
@@ -187,14 +70,14 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     success: uploadSuccess,
     setFiles,
     uploadPLFile,
-    reset,
     removeFile,
+    reset
   } = usePLFileUploadWithAnalytics(
-    resolvedParams ? parseInt(resolvedParams.storeId) : 0, 
-    resolvedParams ? parseInt(resolvedParams.year) : 0, 
-    resolvedParams ? resolvedParams.period : ''
+    resolvedParams ? parseInt(resolvedParams.storeId) : 0,
+    resolvedParams ? parseInt(resolvedParams.year) : 0,
+    resolvedParams?.period || ''
   );
-  
+
   if (!resolvedParams) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -260,14 +143,8 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   const handleUpload = async () => {
     if (fileItems.length === 0) return;
     
-    console.log('Upload button clicked, file:', fileItems[0].file);
-    
     try {
       await uploadPLFile(fileItems[0].file);
-      console.log('Upload successful, hiding form...');
-      setShowUploadForm(false);
-      // Reload P&L report data after successful upload
-      // The useEffect will automatically reload the data
     } catch (error) {
       console.error('Upload failed:', error);
     }
@@ -302,203 +179,72 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
             </p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">{currentStore.location}</Badge>
-          <Badge variant="secondary">{currentStore.status}</Badge>
-        </div>
       </div>
 
-      {/* File Upload Success Message */}
       <div className="space-y-6">
-        {/* Error Message */}
-        {deleteError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {deleteError}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {plReport && !showUploadForm ? ( // Only show success message if report exists and form is hidden
+        {/* File Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Upload P&L Report
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <EnhancedFileUpload
+                files={fileItems}
+                onFilesChange={handleFilesChange}
+                onUpload={handleUpload}
+                onRemove={handleRemoveFile}
+                onClear={handleClear}
+                isUploading={isUploading}
+                maxFiles={1}
+                maxSize={10 * 1024 * 1024} // 10MB
+                acceptedTypes={['.xlsx', '.xls']}
+                disabled={isUploading}
+              />
+              
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p className="font-medium">File Requirements:</p>
+                <p>• Excel file must contain P&L data with proper structure</p>
+                <p>• Required columns: Actuals, Plan, Prior Year</p>
+                <p>• File format: .xlsx or .xls</p>
+                <p>• Maximum file size: 10MB</p>
+                <p>• File will be processed automatically after upload</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Table */}
+        {plReport && plLineItems.length > 0 ? (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <CardTitle>File has been uploaded!</CardTitle>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      console.log('Delete button clicked, plReport:', plReport);
-                      setDeleteError(null); // Clear any previous errors
-                      
-                      if (plReport?.id) {
-                        console.log('Attempting to delete report with ID:', plReport.id);
-                        try {
-                          // Delete the report from backend
-                          const response = await fetch(`/api/pl-reports/${plReport.id}`, {
-                            method: 'DELETE',
-                            headers: {
-                              'Authorization': `Bearer ${typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : ''}`,
-                            },
-                          });
-                          
-                          console.log('Delete response status:', response.status);
-                          
-                          if (response.ok) {
-                            console.log('P&L report deleted successfully');
-                            // Only reset the UI state if deletion was successful
-                            console.log('Resetting report data...');
-                            setPlReport(null);
-                            setPlLineItems([]);
-                            setLoadingReport(false);
-                            setShowUploadForm(true);
-                            setDeleteError(null);
-                          } else {
-                            const errorData = await response.json();
-                            const errorMessage = errorData.message || errorData.error || 'Failed to delete P&L report';
-                            console.error('Failed to delete P&L report:', response.status, errorMessage);
-                            setDeleteError(errorMessage);
-                            // Don't reset UI state on error - keep showing the report
-                          }
-                        } catch (error) {
-                          console.error('Error deleting P&L report:', error);
-                          setDeleteError('Network error occurred while deleting the report');
-                          // Don't reset UI state on error - keep showing the report
-                        }
-                      } else {
-                        console.log('No plReport.id found, cannot delete');
-                        setDeleteError('No report ID found - cannot delete');
-                      }
-                    }}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete File
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Reset the report data to show upload form again
-                      setPlReport(null);
-                      setPlLineItems([]);
-                      setLoadingReport(false);
-                      setShowUploadForm(true);
-                    }}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload New File
-                  </Button>
-                </div>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                P&L Data ({plLineItems.length} rows)
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Your P&L report has been processed and is ready for review.
-              </p>
+              <PLReportDataTable report={plReport} lineItems={plLineItems} />
             </CardContent>
           </Card>
-        ) : null}
-
-        {/* Show Upload Form or P&L Report Display */}
-        {showUploadForm ? (
-          /* Excel Upload Section */
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-primary" />
-                  <CardTitle>Upload P&L Excel File</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  Upload your Excel file (.xlsx, .xls) to generate the P&L report for {period} {year}.
-                </p>
-                
-                <EnhancedFileUpload
-                  files={fileItems}
-                  onFilesChange={handleFilesChange}
-                  onUpload={handleUpload}
-                  onRemove={handleRemoveFile}
-                  onClear={handleClear}
-                  isUploading={isUploading}
-                  maxFiles={1}
-                  maxSize={10 * 1024 * 1024} // 10MB
-                  acceptedTypes={['.xlsx', '.xls']}
-                  disabled={isUploading}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Instructions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">File Requirements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>• Excel file must contain P&L data with proper structure</p>
-                  <p>• Required columns: Actuals, Plan, Prior Year</p>
-                  <p>• File format: .xlsx or .xls</p>
-                  <p>• Maximum file size: 10MB</p>
-                  <p>• File will be processed automatically after upload</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : loadingReport ? (
+        ) : reportsLoading ? (
           <Card>
             <CardContent className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <span className="ml-2 text-muted-foreground">Loading P&L report...</span>
             </CardContent>
           </Card>
-        ) : plReport ? (
-          <div className="space-y-4">
-            {/* View Mode Toggle */}
-            <div className="flex justify-end">
-              <div className="flex bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'table'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Table View
-                </button>
-                <button
-                  onClick={() => setViewMode('cards')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'cards'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Card View
-                </button>
-              </div>
-            </div>
-
-            {/* Report Display */}
-            {viewMode === 'table' ? (
-              <PLReportTable report={plReport} lineItems={plLineItems} />
-            ) : (
-              <PLReportDisplay report={plReport} />
-            )}
-          </div>
         ) : (
           <Card>
             <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">No P&L report data available.</p>
+              <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No P&L Report Found</h3>
+              <p className="text-sm text-muted-foreground">
+                Upload an Excel file to view the P&L report for {currentStore.name} for period {period} {year}.
+              </p>
             </CardContent>
           </Card>
         )}

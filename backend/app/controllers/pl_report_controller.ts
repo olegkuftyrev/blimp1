@@ -161,7 +161,8 @@ export default class PlReportController {
         .orderBy('created_at', 'desc')
 
       if (period) {
-        query = query.where('period', period)
+        // Search for period that contains the requested period (e.g., "P01" matches "FY 2025 - P01")
+        query = query.where('period', 'like', `%${period}%`)
       }
 
       const reports = await query

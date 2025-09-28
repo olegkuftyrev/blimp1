@@ -23,6 +23,25 @@ export default class PlReport extends BaseModel {
   @column()
   declare translationCurrency: string
 
+  // New fields for better tracking
+  @column()
+  declare year: number
+
+  @column()
+  declare fileName: string
+
+  @column()
+  declare fileSize: number
+
+  @column()
+  declare uploadStatus: string
+
+  @column()
+  declare errorMessage: string
+
+  @column()
+  declare uploadedBy: number
+
   // Summary Financial Data (Current Period)
   @column()
   declare netSales: number
@@ -54,7 +73,7 @@ export default class PlReport extends BaseModel {
   @column()
   declare cashflow: number
 
-  // Plan vs Actual Summary
+  // Plan vs Actual Summary - Net Sales
   @column()
   declare netSalesPlan: number
 
@@ -65,6 +84,41 @@ export default class PlReport extends BaseModel {
   declare netSalesPriorYear: number
 
   @column()
+  declare netSalesActualYtd: number
+
+  @column()
+  declare netSalesPlanYtd: number
+
+  @column()
+  declare netSalesVfpYtd: number
+
+  @column()
+  declare netSalesPriorYearYtd: number
+
+  // Plan vs Actual Summary - Gross Sales
+  @column()
+  declare grossSalesPlan: number
+
+  @column()
+  declare grossSalesVfp: number
+
+  @column()
+  declare grossSalesPriorYear: number
+
+  @column()
+  declare grossSalesActualYtd: number
+
+  @column()
+  declare grossSalesPlanYtd: number
+
+  @column()
+  declare grossSalesVfpYtd: number
+
+  @column()
+  declare grossSalesPriorYearYtd: number
+
+  // Plan vs Actual Summary - Cost of Goods Sold
+  @column()
   declare costOfGoodsSoldPlan: number
 
   @column()
@@ -74,6 +128,19 @@ export default class PlReport extends BaseModel {
   declare costOfGoodsSoldPriorYear: number
 
   @column()
+  declare costOfGoodsSoldActualYtd: number
+
+  @column()
+  declare costOfGoodsSoldPlanYtd: number
+
+  @column()
+  declare costOfGoodsSoldVfpYtd: number
+
+  @column()
+  declare costOfGoodsSoldPriorYearYtd: number
+
+  // Plan vs Actual Summary - Total Labor
+  @column()
   declare totalLaborPlan: number
 
   @column()
@@ -81,6 +148,150 @@ export default class PlReport extends BaseModel {
 
   @column()
   declare totalLaborPriorYear: number
+
+  @column()
+  declare totalLaborActualYtd: number
+
+  @column()
+  declare totalLaborPlanYtd: number
+
+  @column()
+  declare totalLaborVfpYtd: number
+
+  @column()
+  declare totalLaborPriorYearYtd: number
+
+  // Plan vs Actual Summary - Controllables
+  @column()
+  declare controllablesPlan: number
+
+  @column()
+  declare controllablesVfp: number
+
+  @column()
+  declare controllablesPriorYear: number
+
+  @column()
+  declare controllablesActualYtd: number
+
+  @column()
+  declare controllablesPlanYtd: number
+
+  @column()
+  declare controllablesVfpYtd: number
+
+  @column()
+  declare controllablesPriorYearYtd: number
+
+  // Plan vs Actual Summary - Controllable Profit
+  @column()
+  declare controllableProfitPlan: number
+
+  @column()
+  declare controllableProfitVfp: number
+
+  @column()
+  declare controllableProfitPriorYear: number
+
+  @column()
+  declare controllableProfitActualYtd: number
+
+  @column()
+  declare controllableProfitPlanYtd: number
+
+  @column()
+  declare controllableProfitVfpYtd: number
+
+  @column()
+  declare controllableProfitPriorYearYtd: number
+
+  // Plan vs Actual Summary - Advertising
+  @column()
+  declare advertisingPlan: number
+
+  @column()
+  declare advertisingVfp: number
+
+  @column()
+  declare advertisingPriorYear: number
+
+  @column()
+  declare advertisingActualYtd: number
+
+  @column()
+  declare advertisingPlanYtd: number
+
+  @column()
+  declare advertisingVfpYtd: number
+
+  @column()
+  declare advertisingPriorYearYtd: number
+
+  // Plan vs Actual Summary - Fixed Costs
+  @column()
+  declare fixedCostsPlan: number
+
+  @column()
+  declare fixedCostsVfp: number
+
+  @column()
+  declare fixedCostsPriorYear: number
+
+  @column()
+  declare fixedCostsActualYtd: number
+
+  @column()
+  declare fixedCostsPlanYtd: number
+
+  @column()
+  declare fixedCostsVfpYtd: number
+
+  @column()
+  declare fixedCostsPriorYearYtd: number
+
+  // Plan vs Actual Summary - Restaurant Contribution
+  @column()
+  declare restaurantContributionPlan: number
+
+  @column()
+  declare restaurantContributionVfp: number
+
+  @column()
+  declare restaurantContributionPriorYear: number
+
+  @column()
+  declare restaurantContributionActualYtd: number
+
+  @column()
+  declare restaurantContributionPlanYtd: number
+
+  @column()
+  declare restaurantContributionVfpYtd: number
+
+  @column()
+  declare restaurantContributionPriorYearYtd: number
+
+  // Plan vs Actual Summary - Cashflow
+  @column()
+  declare cashflowPlan: number
+
+  @column()
+  declare cashflowVfp: number
+
+  @column()
+  declare cashflowPriorYear: number
+
+  @column()
+  declare cashflowActualYtd: number
+
+  @column()
+  declare cashflowPlanYtd: number
+
+  @column()
+  declare cashflowVfpYtd: number
+
+  @column()
+  declare cashflowPriorYearYtd: number
 
   @column()
   declare totalTransactions: number

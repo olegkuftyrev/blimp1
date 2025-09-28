@@ -114,3 +114,9 @@ export function useWebSocket() {
   }
   return context
 }
+
+// Hook specifically for connection status
+export function useWebSocketStatus() {
+  const { isConnected } = useWebSocket()
+  return isConnected
+}

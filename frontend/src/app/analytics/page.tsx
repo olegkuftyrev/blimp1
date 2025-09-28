@@ -103,8 +103,8 @@ export default function AnalyticsPage() {
           
           return (
             <Link key={restaurant.id} href={`/analytics/${restaurant.id}`}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col">
+                <CardHeader className="pb-3 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-primary" />
@@ -115,9 +115,9 @@ export default function AnalyticsPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CardContent className="pt-0 flex-1 flex flex-col">
+                  <div className="space-y-3 flex-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground min-h-[2.5rem]">
                       <MapPin className="h-4 w-4" />
                       <span className="truncate">{restaurant.address}</span>
                     </div>

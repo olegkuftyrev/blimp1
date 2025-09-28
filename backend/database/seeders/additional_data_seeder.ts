@@ -34,15 +34,27 @@ export default class extends BaseSeeder {
       console.log('🏗️ Creating additional restaurants...')
       const additionalRestaurants = [
         {
-          name: 'Panda Express PX4512',
-          address: '321 Commerce Boulevard, Business District',
-          phone: '(555) 456-7890',
+          name: 'PX3698',
+          address: '521 3rd St NW, Great Falls, MT 59404',
+          phone: '(406) 296-2889',
           isActive: true
         },
         {
-          name: 'Panda Express PX5634',
-          address: '654 Market Street, Shopping Center',
-          phone: '(555) 567-8901',
+          name: 'PX2475',
+          address: '119 Bellevue Way NE, Bellevue, WA 98004',
+          phone: '(425) 454-8289',
+          isActive: true
+        },
+        {
+          name: 'PX1911',
+          address: '3938 Factoria Square Mall SE Suite B-1, Bellevue, WA 98006',
+          phone: '(425) 747-6890',
+          isActive: true
+        },
+        {
+          name: 'PX2874',
+          address: '1020 57th St S, Great Falls, MT 59405',
+          phone: '(406) 453-0283',
           isActive: true
         }
       ]
@@ -64,85 +76,24 @@ export default class extends BaseSeeder {
       const allRestaurants = await Restaurant.all()
       console.log(`📊 Total restaurants available: ${allRestaurants.length}`)
 
-      // Create 10 users with different roles
+      // Create 2 users with different roles
       console.log('👥 Creating additional users...')
       const users = [
-        {
-          fullName: 'Sarah Johnson',
-          email: 'sarah.johnson@example.com',
-          password: 'password123',
-          role: 'black_shirt' as const,
-          jobTitle: 'SM/GM/TL' as const
-        },
-        {
-          fullName: 'Mike Chen',
-          email: 'mike.chen@example.com',
-          password: 'password123',
-          role: 'black_shirt' as const,
-          jobTitle: 'AM' as const
-        },
-        {
-          fullName: 'Emma Rodriguez',
-          email: 'emma.rodriguez@example.com',
-          password: 'password123',
-          role: 'associate' as const,
-          jobTitle: 'Hourly Associate' as const
-        },
-        {
-          fullName: 'David Kim',
-          email: 'david.kim@example.com',
-          password: 'password123',
-          role: 'associate' as const,
-          jobTitle: 'Hourly Associate' as const
-        },
-        {
-          fullName: 'Lisa Thompson',
-          email: 'lisa.thompson@example.com',
-          password: 'password123',
-          role: 'black_shirt' as const,
-          jobTitle: 'Chef' as const
-        },
-        {
-          fullName: 'James Wilson',
-          email: 'james.wilson@example.com',
-          password: 'password123',
-          role: 'associate' as const,
-          jobTitle: 'Hourly Associate' as const
-        },
-        {
-          fullName: 'Maria Garcia',
-          email: 'maria.garcia@example.com',
-          password: 'password123',
-          role: 'black_shirt' as const,
-          jobTitle: 'SM/GM/TL' as const
-        },
-        {
-          fullName: 'Alex Brown',
-          email: 'alex.brown@example.com',
-          password: 'password123',
-          role: 'associate' as const,
-          jobTitle: 'Hourly Associate' as const
-        },
-        {
-          fullName: 'Jennifer Lee',
-          email: 'jennifer.lee@example.com',
-          password: 'password123',
-          role: 'black_shirt' as const,
-          jobTitle: 'AM' as const
-        },
-        {
-          fullName: 'Robert Davis',
-          email: 'robert.davis@example.com',
-          password: 'password123',
-          role: 'associate' as const,
-          jobTitle: 'Hourly Associate' as const
-        },
         {
           fullName: 'Tylene Parker',
           email: 'tylene.parker@pandarg.com',
           password: 'tylene2874',
           role: 'black_shirt' as const,
           jobTitle: 'SM/GM/TL' as const
+     
+        },
+        {
+          fullName: 'Katelyn Reese',
+          email: 'katelyn.reese@pandarg.com',
+          password: 'Iworkforpanda123',
+          role: 'black_shirt' as const,
+          jobTitle: 'SM/GM/TL' as const
+     
         }
       ]
 

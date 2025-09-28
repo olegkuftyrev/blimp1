@@ -4,10 +4,9 @@ export default class extends BaseSchema {
   protected tableName = 'idp_development_plans'
 
   async up() {
-    // Remove the unique constraint that prevents multiple measurements per competency
-    this.schema.alterTable(this.tableName, (table) => {
-      table.dropUnique(['assessment_id', 'competency_id'])
-    })
+    // Skip this migration - constraint doesn't exist in the table definition
+    // The constraint was never added in the first place
+    console.log('Skipping constraint removal - constraint does not exist')
   }
 
   async down() {
