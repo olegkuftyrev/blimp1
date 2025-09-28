@@ -73,11 +73,14 @@ export function usePLReports(restaurantId?: number, period?: string) {
     mutate
   } = useSWR<any>(
     () => {
-      if (typeof window === 'undefined' || !restaurantId || !period) {
+      if (typeof window === 'undefined' || !restaurantId) {
         return null;
       }
       const hasToken = window.localStorage.getItem('auth_token');
-      const url = `pl-reports?restaurantId=${restaurantId}&period=${period}`;
+      let url = `pl-reports?restaurantId=${restaurantId}`;
+      if (period) {
+        url += `&period=${period}`;
+      }
       return hasToken ? url : null;
     },
     fetcher,

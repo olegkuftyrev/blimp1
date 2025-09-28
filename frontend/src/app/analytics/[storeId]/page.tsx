@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
+import useSWR from 'swr';
+import { apiFetch } from '@/lib/api';
 
 interface StorePageProps {
   params: Promise<{
@@ -40,6 +42,13 @@ export default function StoreYearPage({ params }: StorePageProps) {
   const router = useRouter();
   const { restaurants, loading, error } = useSWRRestaurants();
   const [selectedYear, setSelectedYear] = useState(2025); // Default to current year
+  
+  // Get storeId early so we can use it in hooks
+  const resolvedParams = use(params);
+  const storeId = resolvedParams ? parseInt(resolvedParams.storeId) : 0;
+  
+  console.log('StoreYearPage render:', { resolvedParams, storeId });
+  
 
   useEffect(() => {
     if (user && user.role === 'associate') {
@@ -89,8 +98,6 @@ export default function StoreYearPage({ params }: StorePageProps) {
     );
   }
 
-  const resolvedParams = use(params);
-  const storeId = parseInt(resolvedParams.storeId);
   const currentStore = restaurants.find(r => r.id === storeId);
 
   if (!currentStore) {
@@ -110,10 +117,57 @@ export default function StoreYearPage({ params }: StorePageProps) {
   const currentYear = 2025;
   const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-  // Mock function to check if period has data (will be replaced with real API)
-  const hasDataForPeriod = (periodId: string, year: number) => {
-    // No data available for any periods yet
-    return false;
+  // Component for individual period card with its own data check
+  const PeriodCard = ({ period, year, storeId }: { period: any, year: number, storeId: number }) => {
+    const { data, error, isLoading } = useSWR(
+      storeId && period.id && year ? `pl-reports?restaurantId=${storeId}&period=${period.id}` : null,
+      apiFetch,
+      {
+        revalidateOnFocus: false,
+        dedupingInterval: 300000, // 5 minutes
+      }
+    );
+    
+    const hasData = data?.data && data.data.length > 0;
+    const isCurrent = period.id === CURRENT_PERIOD && year === currentYear;
+    
+    return (
+      <Link href={`/analytics/${storeId}/${year}/${period.id}`}>
+        <Card className={`hover:shadow-lg transition-shadow cursor-pointer ${
+          isCurrent ? 'ring-2 ring-primary' : ''
+        }`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">{period.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                {isLoading ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-primary"></div>
+                ) : hasData ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-600" />
+                )}
+                {isCurrent && (
+                  <Badge variant="default" className="text-xs">Current</Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                {period.start}/{year === 2025 && period.id === 'P01' ? '24' : year} - {period.end}/{year}
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge variant={hasData ? "default" : "destructive"} className="text-xs">
+                  {hasData ? "Ready!" : "Upload Required"}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
   };
 
   return (
@@ -179,46 +233,14 @@ export default function StoreYearPage({ params }: StorePageProps) {
             <div key={quarter} className="mb-6">
               <h3 className="text-lg font-medium text-foreground mb-3">{quarter}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {quarterPeriods.map((period) => {
-                  const hasData = hasDataForPeriod(period.id, selectedYear);
-                  const isCurrent = period.id === CURRENT_PERIOD && selectedYear === currentYear;
-                  
-                  return (
-                    <Link key={period.id} href={`/analytics/${storeId}/${selectedYear}/${period.id}`}>
-                      <Card className={`hover:shadow-lg transition-shadow cursor-pointer ${
-                        isCurrent ? 'ring-2 ring-primary' : ''
-                      }`}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">{period.name}</CardTitle>
-                            <div className="flex items-center gap-2">
-                              {hasData ? (
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                              ) : (
-                                <XCircle className="h-5 w-5 text-red-600" />
-                              )}
-                              {isCurrent && (
-                                <Badge variant="default" className="text-xs">Current</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="space-y-2">
-                            <div className="text-sm text-muted-foreground">
-                              {period.start}/{selectedYear === 2025 && period.id === 'P01' ? '24' : selectedYear} - {period.end}/{selectedYear}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Badge variant={hasData ? "default" : "destructive"} className="text-xs">
-                                {hasData ? "Data Available" : "Upload Required"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
+                {quarterPeriods.map((period) => (
+                  <PeriodCard 
+                    key={period.id} 
+                    period={period} 
+                    year={selectedYear} 
+                    storeId={storeId} 
+                  />
+                ))}
               </div>
             </div>
           );
