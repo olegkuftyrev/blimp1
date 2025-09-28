@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Upload, CheckCircle, FileSpreadsheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, Upload, CheckCircle, FileSpreadsheet, Trash2 } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
+import { usePLReports, usePLLineItems, useDeletePLReport } from '@/hooks/useSWRPL';
 import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
-import { usePLReports, usePLLineItems } from '@/hooks/useSWRPL';
+import { mutate } from 'swr';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
 import { PLReportDataTable } from '@/components/PLReportDataTable';
 import { PLReportDetailedTable } from '@/components/PLReportDetailedTable';
@@ -33,6 +36,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   } | null>(null);
   
   const [fileItems, setFileItems] = useState<FileUploadItem[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   useEffect(() => {
     params.then(setResolvedParams);
@@ -77,6 +81,39 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     resolvedParams ? parseInt(resolvedParams.year) : 0,
     resolvedParams?.period || ''
   );
+
+  // Delete report hook
+  const { deleteReport, isDeleting, deleteError } = useDeletePLReport();
+
+  // Handle delete report
+  const handleDeleteReport = async () => {
+    if (!plReport?.id) return;
+    
+    try {
+      await deleteReport({ 
+        reportId: plReport.id,
+        mutate: async () => {
+          // Invalidate all P&L related caches to ensure UI updates
+          await mutate(
+            (key) => typeof key === 'string' && key.includes('pl-reports'),
+            undefined,
+            { revalidate: true }
+          );
+          
+          // Also invalidate the specific period cache
+          await mutate(`pl-reports?restaurantId=${storeId}&period=${period}`);
+          
+          return Promise.resolve();
+        }
+      });
+      
+      // Close dialog and navigate back to the store page after successful deletion
+      setShowDeleteDialog(false);
+      router.push(`/analytics/${storeId}`);
+    } catch (error) {
+      console.error('Failed to delete report:', error);
+    }
+  };
 
   if (!resolvedParams) {
     return (
@@ -141,10 +178,31 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   };
 
   const handleUpload = async () => {
-    if (fileItems.length === 0) return;
+    if (fileItems.length === 0 || !resolvedParams) return;
     
     try {
       await uploadPLFile(fileItems[0].file);
+      
+      // Mutate all P&L related SWR caches to refresh the UI
+      console.log('🔄 Mutating SWR caches after successful upload...');
+      
+      // Invalidate all P&L reports caches
+      await mutate(
+        (key) => typeof key === 'string' && key.includes('pl-reports'),
+        undefined,
+        { revalidate: true }
+      );
+      
+      // Specifically invalidate the current period cache
+      await mutate(`pl-reports?restaurantId=${resolvedParams.storeId}&period=${resolvedParams.period}`);
+      
+      // Also invalidate line items cache
+      if (plReport?.id) {
+        await mutate(`pl-reports/${plReport.id}/line-items`);
+      }
+      
+      console.log('✅ SWR caches mutated successfully');
+      
     } catch (error) {
       console.error('Upload failed:', error);
     }
@@ -168,54 +226,108 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Link href="/analytics" className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{currentStore.name}</h1>
-            <p className="text-muted-foreground">
-              P&L Report - {period} {year}
-            </p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Link href="/analytics" className="text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold">{currentStore.name}</h1>
+              <p className="text-muted-foreground">
+                P&L Report - {period} {year}
+              </p>
+            </div>
           </div>
+          
+          {/* Delete Report Button */}
+          {plReport && (
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete P&L Report</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete this P&L report for {currentStore.name} - {period} {year}?
+                    This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowDeleteDialog(false)}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleDeleteReport}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete Report'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Upload P&L Report
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <EnhancedFileUpload
-                files={fileItems}
-                onFilesChange={handleFilesChange}
-                onUpload={handleUpload}
-                onRemove={handleRemoveFile}
-                onClear={handleClear}
-                isUploading={isUploading}
-                maxFiles={1}
-                maxSize={10 * 1024 * 1024} // 10MB
-                acceptedTypes={['.xlsx', '.xls']}
-                disabled={isUploading}
-              />
-              
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p className="font-medium">File Requirements:</p>
-                <p>• Excel file must contain P&L data with proper structure</p>
-                <p>• Required columns: Actuals, Plan, Prior Year</p>
-                <p>• File format: .xlsx or .xls</p>
-                <p>• Maximum file size: 10MB</p>
-                <p>• File will be processed automatically after upload</p>
+        {/* File Upload - Only show when no report exists */}
+        {!plReport && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Upload P&L Report
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <EnhancedFileUpload
+                  files={fileItems}
+                  onFilesChange={handleFilesChange}
+                  onUpload={handleUpload}
+                  onRemove={handleRemoveFile}
+                  onClear={handleClear}
+                  isUploading={isUploading}
+                  maxFiles={1}
+                  maxSize={10 * 1024 * 1024} // 10MB
+                  acceptedTypes={['.xlsx', '.xls']}
+                  disabled={isUploading}
+                />
+                
+                {uploadError && (
+                  <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+                    Upload failed: {uploadError}
+                  </div>
+                )}
+                
+                {uploadSuccess && (
+                  <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Report uploaded successfully! The page will refresh automatically.
+                  </div>
+                )}
+                
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p className="font-medium">File Requirements:</p>
+                  <p>• Excel file must contain P&L data with proper structure</p>
+                  <p>• Required columns: Actuals, Plan, Prior Year</p>
+                  <p>• File format: .xlsx or .xls</p>
+                  <p>• Maximum file size: 10MB</p>
+                  <p>• File will be processed automatically after upload</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sales Table */}
         {plReport && plLineItems.length > 0 ? (

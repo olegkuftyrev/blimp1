@@ -181,10 +181,11 @@ export function useUploadPLFile() {
     error: uploadError
   } = useSWRMutation(
     'pl-reports/upload',
-    async (url: string, { arg }: { arg: { file: File; restaurantId: number; year: number; period: string } }) => {
+    async (url: string, { arg }: { arg: { file: File; restaurantId: number; period: string } }) => {
       const formData = new FormData();
       formData.append('plFile', arg.file);
       formData.append('restaurantId', arg.restaurantId.toString());
+      formData.append('period', arg.period);
       
       return apiFetch<{ message: string; data: PLReport }>(url, {
         method: 'POST',
@@ -194,6 +195,12 @@ export function useUploadPLFile() {
     {
       onSuccess: (data) => {
         console.log('✅ P&L file uploaded successfully:', data.message);
+        // Invalidate all P&L related caches to refresh the UI
+        mutate(
+          (key) => typeof key === 'string' && key.includes('pl-reports'),
+          undefined,
+          { revalidate: true }
+        );
       },
       onError: (error) => {
         console.error('❌ Failed to upload P&L file:', error.message);
