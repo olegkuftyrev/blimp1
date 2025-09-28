@@ -17,19 +17,19 @@ interface StorePageProps {
 
 // Financial calendar periods (4-4-4 structure)
 const PERIODS = [
-  { id: 'P01', name: 'P01', quarter: 'Q1', start: '12/30', end: '1/26' },
-  { id: 'P02', name: 'P02', quarter: 'Q1', start: '1/27', end: '2/23' },
-  { id: 'P03', name: 'P03', quarter: 'Q1', start: '2/24', end: '3/23' },
-  { id: 'P04', name: 'P04', quarter: 'Q2', start: '3/24', end: '4/20' },
-  { id: 'P05', name: 'P05', quarter: 'Q2', start: '4/21', end: '5/18' },
-  { id: 'P06', name: 'P06', quarter: 'Q2', start: '5/19', end: '6/15' },
-  { id: 'P07', name: 'P07', quarter: 'Q3', start: '6/16', end: '7/13' },
-  { id: 'P08', name: 'P08', quarter: 'Q3', start: '7/14', end: '8/10' },
-  { id: 'P09', name: 'P09', quarter: 'Q3', start: '8/11', end: '9/7' },
-  { id: 'P10', name: 'P10', quarter: 'Q4', start: '9/8', end: '10/5' },
-  { id: 'P11', name: 'P11', quarter: 'Q4', start: '10/6', end: '11/2' },
-  { id: 'P12', name: 'P12', quarter: 'Q4', start: '11/3', end: '11/30' },
-  { id: 'P13', name: 'P13', quarter: 'Q4', start: '12/1', end: '12/28' },
+  { id: 'P01', name: 'P01', quarter: 'Q1', start: '12/30', end: '1/25' },
+  { id: 'P02', name: 'P02', quarter: 'Q1', start: '1/26', end: '2/22' },
+  { id: 'P03', name: 'P03', quarter: 'Q1', start: '2/23', end: '3/22' },
+  { id: 'P04', name: 'P04', quarter: 'Q2', start: '3/23', end: '4/19' },
+  { id: 'P05', name: 'P05', quarter: 'Q2', start: '4/20', end: '5/17' },
+  { id: 'P06', name: 'P06', quarter: 'Q2', start: '5/18', end: '6/14' },
+  { id: 'P07', name: 'P07', quarter: 'Q3', start: '6/15', end: '7/12' },
+  { id: 'P08', name: 'P08', quarter: 'Q3', start: '7/13', end: '8/9' },
+  { id: 'P09', name: 'P09', quarter: 'Q3', start: '8/10', end: '9/6' },
+  { id: 'P10', name: 'P10', quarter: 'Q4', start: '9/7', end: '10/4' },
+  { id: 'P11', name: 'P11', quarter: 'Q4', start: '10/5', end: '11/1' },
+  { id: 'P12', name: 'P12', quarter: 'Q4', start: '11/2', end: '11/29' },
+  { id: 'P13', name: 'P13', quarter: 'Q4', start: '11/30', end: '12/27' },
 ];
 
 // Current period is P10 (September 21, 2025)
@@ -168,7 +168,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <Calendar className="h-5 w-5" />
-          Financial Periods - {selectedYear} (4-4-4 Calendar)
+          Financial Periods - {selectedYear} 
         </h2>
         
         {/* Group by quarters */}

@@ -217,37 +217,300 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
           </CardContent>
         </Card>
 
-        {/* Data Table */}
+        {/* Sales Table */}
         {plReport && plLineItems.length > 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                P&L Data ({plLineItems.length} rows)
-              </CardTitle>
+              <CardTitle>Sales</CardTitle>
             </CardHeader>
             <CardContent>
-              <PLReportDataTable report={plReport} lineItems={plLineItems} />
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Food Sales' || 
+                  item.ledgerAccount === 'Drink Sales' || 
+                  item.ledgerAccount === 'Retail Sales' || 
+                  item.ledgerAccount === 'Gross Sales' ||
+                  item.ledgerAccount === 'Promotions' ||
+                  item.ledgerAccount === 'Employee Meals' ||
+                  item.ledgerAccount === '20% Emp Discount' ||
+                  item.ledgerAccount === 'Coupons/Promotions' ||
+                  item.ledgerAccount === 'Net Sales'
+                )} 
+              />
             </CardContent>
           </Card>
-        ) : reportsLoading ? (
+        ) : null}
+
+        {/* Cost Of Sales Table */}
+        {plReport && plLineItems.length > 0 ? (
           <Card>
-            <CardContent className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="ml-2 text-muted-foreground">Loading P&L report...</span>
+            <CardHeader>
+              <CardTitle>Cost Of Sales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Grocery' || 
+                  item.ledgerAccount === 'Meat' || 
+                  item.ledgerAccount === 'Produce' || 
+                  item.ledgerAccount === 'Sea Food' ||
+                  item.ledgerAccount === 'DRinks' ||
+                  item.ledgerAccount === 'Paper Goods' ||
+                  item.ledgerAccount === 'Other' ||
+                  item.ledgerAccount === 'Cost of Goods Sold'
+                )} 
+              />
             </CardContent>
           </Card>
-        ) : (
+        ) : null}
+
+        {/* Labor Table */}
+        {plReport && plLineItems.length > 0 ? (
           <Card>
-            <CardContent className="text-center py-8">
-              <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No P&L Report Found</h3>
-              <p className="text-sm text-muted-foreground">
-                Upload an Excel file to view the P&L report for {currentStore.name} for period {period} {year}.
-              </p>
+            <CardHeader>
+              <CardTitle>Labor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Labor' || 
+                  item.ledgerAccount === 'Front' || 
+                  item.ledgerAccount === 'Back' || 
+                  item.ledgerAccount === 'Overtime' ||
+                  item.ledgerAccount === 'Training Wages' ||
+                  item.ledgerAccount === 'Emergency Store Closure Pay' ||
+                  item.ledgerAccount === 'Direct Labor' ||
+                  item.ledgerAccount === 'GM Salaries' ||
+                  item.ledgerAccount === 'GM Overtime' ||
+                  item.ledgerAccount === 'Other MGMT Salaries' ||
+                  item.ledgerAccount === 'Other MGMT Overtime' ||
+                  item.ledgerAccount === 'Guaranteed Hourly' ||
+                  item.ledgerAccount === 'Bereavement Pay' ||
+                  item.ledgerAccount === 'Guaranteed Overtime' ||
+                  item.ledgerAccount === 'Management Labor' ||
+                  item.ledgerAccount === 'Payroll Taxes' ||
+                  item.ledgerAccount === 'Meal break Premium' ||
+                  item.ledgerAccount === 'Rest Break Premium' ||
+                  item.ledgerAccount === 'Scheduling Premium Pay' ||
+                  item.ledgerAccount === 'Workers Comp' ||
+                  item.ledgerAccount === 'Benefits' ||
+                  item.ledgerAccount === 'Bonus' ||
+                  item.ledgerAccount === 'Vacation' ||
+                  item.ledgerAccount === 'Taxes and Benefits' ||
+                  item.ledgerAccount === 'Total Labor'
+                )} 
+              />
             </CardContent>
           </Card>
-        )}
+        ) : null}
+
+        {/* Controllables Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Controllables</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Controllables' || 
+                  item.ledgerAccount === 'Third Party Delivery Fee' || 
+                  item.ledgerAccount === 'Credit Card Fees' || 
+                  item.ledgerAccount === 'Broadband' ||
+                  item.ledgerAccount === 'Electricity' ||
+                  item.ledgerAccount === 'Gas' ||
+                  item.ledgerAccount === 'Telephone' ||
+                  item.ledgerAccount === 'Waste Disposal' ||
+                  item.ledgerAccount === 'Water' ||
+                  item.ledgerAccount === 'Computer Software Expense' ||
+                  item.ledgerAccount === 'Office and Computer Supplies' ||
+                  item.ledgerAccount === 'Education and Training Other' ||
+                  item.ledgerAccount === 'Recruitment' ||
+                  item.ledgerAccount === 'Professional Services' ||
+                  item.ledgerAccount === 'Travel Expenses' ||
+                  item.ledgerAccount === 'Bank Fees' ||
+                  item.ledgerAccount === 'Dues and Subscriptions' ||
+                  item.ledgerAccount === 'Moving and Relocation Expenses' ||
+                  item.ledgerAccount === 'Other Expenses' ||
+                  item.ledgerAccount === 'Postage and Courier Service' ||
+                  item.ledgerAccount === 'Repairs' ||
+                  item.ledgerAccount === 'Maintenance' ||
+                  item.ledgerAccount === 'Restaurant Expenses' ||
+                  item.ledgerAccount === 'Restaurant Supplies' ||
+                  item.ledgerAccount === 'Total Controllables'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Controllable Profit Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Controllable Profit</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Profit Before Adv' || 
+                  item.ledgerAccount === 'Advertising' || 
+                  item.ledgerAccount === 'Corporate Advertising' || 
+                  item.ledgerAccount === 'Media' ||
+                  item.ledgerAccount === 'Local Store Marketing' ||
+                  item.ledgerAccount === 'Grand Opening' ||
+                  item.ledgerAccount === 'Lease Marketing' ||
+                  item.ledgerAccount === 'Advertising' ||
+                  item.ledgerAccount === 'Controllable Profit'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Fixed Costs Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Fixed Costs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Fixed Costs' || 
+                  item.ledgerAccount === 'Rent - MIN' || 
+                  item.ledgerAccount === 'Rent - Storage' || 
+                  item.ledgerAccount === 'Rent - Percent' ||
+                  item.ledgerAccount === 'Rent - Other' ||
+                  item.ledgerAccount === 'Rent - Deferred Preopening' ||
+                  item.ledgerAccount === 'Insurance' ||
+                  item.ledgerAccount === 'Taxes' ||
+                  item.ledgerAccount === 'License and Fees' ||
+                  item.ledgerAccount === 'Amortization' ||
+                  item.ledgerAccount === 'Depreciation' ||
+                  item.ledgerAccount === 'Total Fixed Cost'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* RC&Cash Flow Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>RC&Cash Flow</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Restaurant Contribution' ||
+                  item.ledgerAccount === 'Cashflow'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Sales Data Statistics Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales Data Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Total Transactions' || 
+                  item.ledgerAccount === 'Check Avg - Net' || 
+                  item.ledgerAccount === 'Fundraising Events Sales' || 
+                  item.ledgerAccount === 'Virtual Fundraising Sales' ||
+                  item.ledgerAccount === 'Catering Sales' ||
+                  item.ledgerAccount === 'Panda Digital Sales' ||
+                  item.ledgerAccount === '3rd Party Digital Sales' ||
+                  item.ledgerAccount === 'Reward Redemptions' ||
+                  item.ledgerAccount === 'Daypart & Sales Channel %' ||
+                  item.ledgerAccount === 'Breakfast %' ||
+                  item.ledgerAccount === 'Lunch %' ||
+                  item.ledgerAccount === 'Afternoon %' ||
+                  item.ledgerAccount === 'Evening %' ||
+                  item.ledgerAccount === 'Dinner %' ||
+                  item.ledgerAccount === 'Dine In %' ||
+                  item.ledgerAccount === 'Take Out %' ||
+                  item.ledgerAccount === 'Drive Thru %' ||
+                  item.ledgerAccount === '3rd Party Digital %' ||
+                  item.ledgerAccount === 'Panda Digital %' ||
+                  item.ledgerAccount === 'In Store Catering %'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Labor Statistics Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Labor Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'Direct Labor Hours Total' || 
+                  item.ledgerAccount === 'Average Hourly Wage' || 
+                  item.ledgerAccount === 'Direct Labor Hours' || 
+                  item.ledgerAccount === 'Overtime Hours' ||
+                  item.ledgerAccount === 'Training Hours' ||
+                  item.ledgerAccount === 'Guaranteed Hours' ||
+                  item.ledgerAccount === 'Management Hours' ||
+                  item.ledgerAccount === 'Direct Hours Productivity' ||
+                  item.ledgerAccount === 'Total Hours Productivity' ||
+                  item.ledgerAccount === 'Direct Hours Transaction Productivity' ||
+                  item.ledgerAccount === 'Total Hours Transaction Productivity' ||
+                  item.ledgerAccount === 'Management Headcount' ||
+                  item.ledgerAccount === 'Assistant Manager Headcount' ||
+                  item.ledgerAccount === 'Chef Headcount'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* PSA Table */}
+        {plReport && plLineItems.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>PSA</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PLReportDataTable 
+                report={plReport} 
+                lineItems={plLineItems.filter(item => 
+                  item.ledgerAccount === 'PSA - Per Store Average' || 
+                  item.ledgerAccount === 'Store Period' || 
+                  item.ledgerAccount === 'PSA - Transactions' || 
+                  item.ledgerAccount === 'PSA - Net Sales' ||
+                  item.ledgerAccount === 'PSA - Total Labor' ||
+                  item.ledgerAccount === 'PSA - Controllables' ||
+                  item.ledgerAccount === 'PSA - Control Profit' ||
+                  item.ledgerAccount === 'PSA - Fixed Costs' ||
+                  item.ledgerAccount === 'PSA - Rests Contribution' ||
+                  item.ledgerAccount === 'PSA - Cash Flow'
+                )} 
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
       </div>
     </div>
   );
