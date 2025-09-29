@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { InlineThemeToggle } from '@/components/ui/theme-toggle';
+import { getItemsBySection, type IconName } from '@/data/navigationItems';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -45,6 +46,7 @@ const ImprovedNavigation = () => {
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
+  const isActiveOrStartsWith = (path: string) => pathname === path || pathname.startsWith(path);
   const isBohActive = () => pathname.startsWith('/boh');
   const isManagementActive = () => pathname.startsWith('/kitchen') || pathname.startsWith('/staff') || pathname.startsWith('/pay-structure');
   const isProfitLossActive = () => pathname.startsWith('/analytics') || pathname.startsWith('/area-pl');
@@ -73,10 +75,19 @@ const ImprovedNavigation = () => {
       if (triggers.length === 0) return;
 
       const firstTrigger = triggers[0] as HTMLElement;
-      
-      document.documentElement.style.setProperty(
+      const root = firstTrigger.closest('.blimp-nav-root, .blimp-profile-nav-root') as HTMLElement | null;
+      if (!root) return;
+      const viewport = root.querySelector('.blimp-nav-viewport') as HTMLElement | null;
+      const viewportWidth = viewport?.offsetWidth && viewport.offsetWidth > 0 ? viewport.offsetWidth : 350; // fallback
+      const containerWidth = root.clientWidth || (document.documentElement.clientWidth || window.innerWidth);
+
+      const padding = 8; // small safety padding
+      const maxLeft = Math.max(0, containerWidth - viewportWidth - padding);
+      const clampedLeft = Math.min(firstTrigger.offsetLeft, maxLeft);
+
+      root.style.setProperty(
         "--menu-left-position",
-        `${firstTrigger.offsetLeft}px`
+        `${clampedLeft}px`
       );
     });
   };
@@ -119,6 +130,28 @@ const ImprovedNavigation = () => {
   });
   ListItem.displayName = "ListItem";
 
+  const renderDescription = (desc: string, comingSoon?: boolean) =>
+    comingSoon ? `${desc} (Coming Soon)` : desc;
+
+  const iconMap: Record<IconName, React.ReactNode> = {
+    home: <Home className="h-4 w-4" />,
+    settings: <Settings className="h-4 w-4" />,
+    chefHat: <ChefHat className="h-4 w-4" />,
+    users: <Users className="h-4 w-4" />,
+    banknote: <Banknote className="h-4 w-4" />,
+    barChart3: <BarChart3 className="h-4 w-4" />,
+    dollarSign: <DollarSign className="h-4 w-4" />,
+    bookOpen: <BookOpen className="h-4 w-4" />,
+    calculator: <Calculator className="h-4 w-4" />,
+    clipboardList: <ClipboardList className="h-4 w-4" />,
+    shield: <Shield className="h-4 w-4" />,
+    calendar: <Calendar className="h-4 w-4" />,
+    truck: <Truck className="h-4 w-4" />,
+    messageSquare: <MessageSquare className="h-4 w-4" />,
+    trendingUp: <TrendingUp className="h-4 w-4" />,
+    user: <User className="h-4 w-4" />,
+  };
+
   // Don't render navigation if user is not authenticated
   if (!user) {
     return null;
@@ -139,7 +172,7 @@ const ImprovedNavigation = () => {
           
           {/* Desktop Menu - Centered */}
           <div className="hidden md:block">
-            <NavigationMenu className="relative" onValueChange={onNavChange}>
+            <NavigationMenu className="relative blimp-nav-root" onValueChange={onNavChange}>
               <NavigationMenuList className="space-x-2">
                 {/* Dashboard */}
                 <NavigationMenuItem>
@@ -158,176 +191,153 @@ const ImprovedNavigation = () => {
                 </NavigationMenuItem>
 
                 {/* Management */}
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger 
-                    className={cn(
-                      "submenu-trigger flex items-center gap-2",
-                      isManagementActive() && "bg-accent text-accent-foreground"
-                    )}
-                  >
-                    <Settings className="h-4 w-4" />
-                    Management
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-2 p-4">
-                      <ListItem 
-                        href="/kitchen" 
-                        title="Kitchen Management"
-                        icon={<ChefHat className="h-4 w-4" />}
-                        className={cn(pathname.startsWith('/kitchen') && "bg-accent text-accent-foreground")}
+                {(() => {
+                  const managementItems = getItemsBySection('management', user?.role).filter((i) => !i.comingSoon)
+                  if (managementItems.length === 0) return null
+                  return (
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className={cn(
+                          "submenu-trigger flex items-center gap-2",
+                          isManagementActive() && "bg-accent text-accent-foreground"
+                        )}
                       >
-                        Order tracking, timers, and kitchen operations
-                      </ListItem>
-                      <ListItem 
-                        href="/staff" 
-                        title="Staff Management"
-                        icon={<Users className="h-4 w-4" />}
-                        className={cn(isActive('/staff') && "bg-accent text-accent-foreground")}
-                      >
-                        User creation, role assignment, and restaurant access
-                      </ListItem>
-                      {user && ['admin', 'ops_lead'].includes(user.role) && (
-                        <ListItem 
-                          href="/pay-structure" 
-                          title="Pay Structure"
-                          icon={<Banknote className="h-4 w-4" />}
-                          className={cn(isActive('/pay-structure') && "bg-accent text-accent-foreground")}
-                        >
-                          Manage hourly pay rates across all regions and roles
-                        </ListItem>
-                      )}
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                        <Settings className="h-4 w-4" />
+                        Management
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[400px] gap-2 p-4">
+                          {managementItems.map((item) => (
+                            <ListItem
+                              key={item.id}
+                              href={item.href}
+                              title={item.title}
+                              icon={iconMap[item.icon]}
+                              className={cn(
+                                item.comingSoon && 'opacity-50',
+                                isActiveOrStartsWith(item.href) && 'bg-accent text-accent-foreground'
+                              )}
+                            >
+                              {renderDescription(item.description, item.comingSoon)}
+                            </ListItem>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  )
+                })()}
 
 
                 {/* Profit & Loss */}
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger 
-                    className={cn(
-                      "submenu-trigger flex items-center gap-2",
-                      isProfitLossActive() && "bg-accent text-accent-foreground"
-                    )}
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    P&L
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[350px] gap-2 p-4">
-                      {user && user.role !== 'associate' && (
-                        <ListItem 
-                          href="/analytics" 
-                          title="Analytics & Reports"
-                          icon={<BarChart3 className="h-4 w-4" />}
-                          className={cn(isActive('/analytics') && "bg-accent text-accent-foreground")}
-                        >
-                          Sales reports, performance metrics
-                        </ListItem>
-                      )}
-                      {user && ['admin', 'ops_lead'].includes(user.role) && (
-                        <ListItem 
-                          href="/area-pl" 
-                          title="Area P&L"
-                          icon={<DollarSign className="h-4 w-4" />}
-                          className={cn(isActive('/area-pl') && "bg-accent text-accent-foreground")}
-                        >
-                          Comprehensive profit and loss analysis for your area
-                        </ListItem>
-                      )}
-                      
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                {(() => {
+                  const pAndLItems = getItemsBySection('p_and_l', user?.role).filter((i) => !i.comingSoon)
+                  if (pAndLItems.length === 0) return null
+                  return (
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className={cn(
+                          "submenu-trigger flex items-center gap-2",
+                          isProfitLossActive() && "bg-accent text-accent-foreground"
+                        )}
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        P&L
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[350px] gap-2 p-4">
+                          {pAndLItems.map((item) => (
+                            <ListItem
+                              key={item.id}
+                              href={item.href}
+                              title={item.title}
+                              icon={iconMap[item.icon]}
+                              className={cn(
+                                item.comingSoon && 'opacity-50',
+                                isActiveOrStartsWith(item.href) && 'bg-accent text-accent-foreground'
+                              )}
+                            >
+                              {renderDescription(item.description, item.comingSoon)}
+                            </ListItem>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  )
+                })()}
 
                 {/* Learning */}
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger 
-                    className={cn(
-                      "submenu-trigger flex items-center gap-2",
-                      isLearningActive() && "bg-accent text-accent-foreground"
-                    )}
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    Learning
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-2 p-4">
-                      <ListItem 
-                        href="/idp" 
-                        title="Individual Development Plan"
-                        icon={<BookOpen className="h-4 w-4" />}
-                        className={cn(isActive('/idp') && "bg-accent text-accent-foreground")}
+                {(() => {
+                  const learningItems = getItemsBySection('learning', user?.role).filter((i) => !i.comingSoon)
+                  if (learningItems.length === 0) return null
+                  return (
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className={cn(
+                          "submenu-trigger flex items-center gap-2",
+                          isLearningActive() && "bg-accent text-accent-foreground"
+                        )}
                       >
-                        Personal and professional development planning
-                      </ListItem>
-                      <ListItem 
-                        href="/pl-practice-tests" 
-                        title="P&L Practice Tests"
-                        icon={<Calculator className="h-4 w-4" />}
-                        className={cn(isActive('/pl-practice-tests') && "bg-accent text-accent-foreground")}
-                      >
-                        Test your knowledge of Profit & Loss calculations and financial metrics
-                      </ListItem>
-                      <ListItem 
-                        href="/roles-performance" 
-                        title="Roles Performance"
-                        icon={<ClipboardList className="h-4 w-4" />}
-                        className={cn(isActive('/roles-performance') && "bg-accent text-accent-foreground")}
-                      >
-                        Performance tracking, role assessment, and team analytics
-                      </ListItem>
-                      <ListItem 
-                        href="/compliance" 
-                        title="Grow Camp"
-                        icon={<Shield className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/compliance') && "bg-accent text-accent-foreground")}
-                      >
-                        Training programs, skill development (Coming Soon)
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                        <BookOpen className="h-4 w-4" />
+                        Learning
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[400px] gap-2 p-4">
+                          {learningItems.map((item) => (
+                            <ListItem
+                              key={item.id}
+                              href={item.href}
+                              title={item.title}
+                              icon={iconMap[item.icon]}
+                              className={cn(
+                                item.comingSoon && 'opacity-50',
+                                isActiveOrStartsWith(item.href) && 'bg-accent text-accent-foreground'
+                              )}
+                            >
+                              {renderDescription(item.description, item.comingSoon)}
+                            </ListItem>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  )
+                })()}
 
                 {/* Others */}
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger 
-                    className={cn(
-                      "submenu-trigger flex items-center gap-2",
-                      isOthersActive() && "bg-accent text-accent-foreground"
-                    )}
-                  >
-                    <Calendar className="h-4 w-4" />
-                    More
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[350px] gap-2 p-4">
-                      <ListItem 
-                        href="/delivery" 
-                        title="1k Usage"
-                        icon={<Truck className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/delivery') && "bg-accent text-accent-foreground")}
+                {(() => {
+                  const moreItems = getItemsBySection('more', user?.role).filter((i) => !i.comingSoon)
+                  if (moreItems.length === 0) return null
+                  return (
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className={cn(
+                          "submenu-trigger flex items-center gap-2",
+                          isOthersActive() && "bg-accent text-accent-foreground"
+                        )}
                       >
-                        Usage analytics, metrics tracking (Coming Soon)
-                      </ListItem>
-                      <ListItem 
-                        href="/customer" 
-                        title="SMG Analytics"
-                        icon={<MessageSquare className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/customer') && "bg-accent text-accent-foreground")}
-                      >
-                        Service management analytics (Coming Soon)
-                      </ListItem>
-                      <ListItem 
-                        href="/scheduling" 
-                        title="Blimp Store"
-                        icon={<Calendar className="h-4 w-4" />}
-                        className={cn("opacity-50", isActive('/scheduling') && "bg-accent text-accent-foreground")}
-                      >
-                        Store management, inventory (Coming Soon)
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                        <Calendar className="h-4 w-4" />
+                        More
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[350px] gap-2 p-4">
+                          {moreItems.map((item) => (
+                            <ListItem
+                              key={item.id}
+                              href={item.href}
+                              title={item.title}
+                              icon={iconMap[item.icon]}
+                              className={cn(
+                                item.comingSoon && 'opacity-50',
+                                isActiveOrStartsWith(item.href) && 'bg-accent text-accent-foreground'
+                              )}
+                            >
+                              {renderDescription(item.description, item.comingSoon)}
+                            </ListItem>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  )
+                })()}
 
 
               </NavigationMenuList>
@@ -338,7 +348,7 @@ const ImprovedNavigation = () => {
           <div className="flex-1 flex justify-end items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
               {/* Profile with dropdown */}
-              <NavigationMenu onValueChange={onNavChange}>
+              <NavigationMenu className="blimp-profile-nav-root" onValueChange={onNavChange}>
                 <NavigationMenuList>
                   <NavigationMenuItem>
                     <NavigationMenuTrigger 
@@ -353,40 +363,22 @@ const ImprovedNavigation = () => {
                       </span>
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <ul className="grid w-[280px] gap-2 p-4">
-                        <ListItem 
-                          href="/profile?tab=my-profile" 
-                          title="My Profile"
-                          icon={<User className="h-4 w-4" />}
-                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
+                    <ul className="grid w-[280px] gap-2 p-4">
+                      {getItemsBySection('profile', user?.role).filter((i) => !i.comingSoon).map((item) => (
+                        <ListItem
+                          key={item.id}
+                          href={item.href}
+                          title={item.title}
+                          icon={iconMap[item.icon]}
+                          className={cn(
+                            item.comingSoon && 'opacity-50',
+                            isActive('/profile') && 'bg-accent text-accent-foreground'
+                          )}
                         >
-                          View and edit your personal information
+                          {renderDescription(item.description, item.comingSoon)}
                         </ListItem>
-                        <ListItem 
-                          href="/profile?tab=idp" 
-                          title="Individual Development Plan"
-                          icon={<BookOpen className="h-4 w-4" />}
-                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
-                        >
-                          Track your professional development goals
-                        </ListItem>
-                        <ListItem 
-                          href="/profile?tab=performance" 
-                          title="My Performance"
-                          icon={<TrendingUp className="h-4 w-4" />}
-                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
-                        >
-                          View your competency mastery and performance metrics
-                        </ListItem>
-                        <ListItem 
-                          href="/profile?tab=team" 
-                          title="Team Management"
-                          icon={<Users className="h-4 w-4" />}
-                          className={cn(isActive('/profile') && "bg-accent text-accent-foreground")}
-                        >
-                          Manage your team and staff members
-                        </ListItem>
-                        <li>
+                      ))}
+                      <li>
                           <div className="border-t my-2"></div>
                           <div className="px-1">
                             <InlineThemeToggle />
@@ -447,266 +439,178 @@ const ImprovedNavigation = () => {
             </Link>
 
             {/* Management Section */}
-            <div className="space-y-1">
-              <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Management
-              </div>
-              <div className="pl-6 space-y-1">
-                <Link
-                  href="/kitchen"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                    pathname.startsWith('/kitchen')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <ChefHat className="h-4 w-4" />
-                  Kitchen Management
-                </Link>
-                <Link
-                  href="/staff"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive('/staff')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <Users className="h-4 w-4" />
-                  Staff Management
-                </Link>
-                {user && ['admin', 'ops_lead'].includes(user.role) && (
-                  <Link
-                    href="/pay-structure"
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                      isActive('/pay-structure')
-                        ? "bg-accent text-accent-foreground"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    onClick={closeMobileMenu}
-                  >
-                    <Banknote className="h-4 w-4" />
-                    Pay Structure
-                  </Link>
-                )}
-              </div>
-            </div>
+            {(() => {
+              const managementItems = getItemsBySection('management', user?.role).filter((i) => !i.comingSoon)
+              if (managementItems.length === 0) return null
+              return (
+                <div className="space-y-1">
+                  <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Management
+                  </div>
+                  <div className="pl-6 space-y-1">
+                    {managementItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActiveOrStartsWith(item.href)
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          item.comingSoon && 'opacity-50'
+                        )}
+                        onClick={closeMobileMenu}
+                      >
+                        {iconMap[item.icon]}
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
 
             {/* Profit & Loss */}
-            <div className="space-y-1">
-              <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Profit & Loss
-              </div>
-              <div className="pl-6 space-y-1">
-                {user && (
-                  <Link
-                    href="/analytics"
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                      isActive('/analytics')
-                        ? "bg-accent text-accent-foreground"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    onClick={closeMobileMenu}
-                  >
+            {(() => {
+              const pAndLItems = getItemsBySection('p_and_l', user?.role).filter((i) => !i.comingSoon)
+              if (pAndLItems.length === 0) return null
+              return (
+                <div className="space-y-1">
+                  <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
-                    Analytics & Reports
-                  </Link>
-                )}
-                {user && ['admin', 'ops_lead'].includes(user.role) && (
-                  <Link
-                    href="/area-pl"
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                      isActive('/area-pl')
-                        ? "bg-accent text-accent-foreground"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    onClick={closeMobileMenu}
-                  >
-                    <DollarSign className="h-4 w-4" />
-                    Area P&L
-                  </Link>
-                )}
-                
-              </div>
-            </div>
+                    Profit & Loss
+                  </div>
+                  <div className="pl-6 space-y-1">
+                    {pAndLItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActiveOrStartsWith(item.href)
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          item.comingSoon && 'opacity-50'
+                        )}
+                        onClick={closeMobileMenu}
+                      >
+                        {iconMap[item.icon]}
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Learning */}
-            <div className="space-y-1">
-              <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                Continuous Learning
-              </div>
-              <div className="pl-6 space-y-1">
-                <Link
-                  href="/idp"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive('/idp')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Individual Development Plan
-                </Link>
-                <Link
-                  href="/pl-practice-tests"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive('/pl-practice-tests')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <Calculator className="h-4 w-4" />
-                  P&L Practice Tests
-                </Link>
-                <Link
-                  href="/roles-performance"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive('/roles-performance')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  Roles Performance
-                </Link>
-                <Link
-                  href="/compliance"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/compliance')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <Shield className="h-4 w-4" />
-                  Grow Camp
-                </Link>
-              </div>
-            </div>
+            {(() => {
+              const learningItems = getItemsBySection('learning', user?.role).filter((i) => !i.comingSoon)
+              if (learningItems.length === 0) return null
+              return (
+                <div className="space-y-1">
+                  <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Continuous Learning
+                  </div>
+                  <div className="pl-6 space-y-1">
+                    {learningItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActiveOrStartsWith(item.href)
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          item.comingSoon && 'opacity-50'
+                        )}
+                        onClick={closeMobileMenu}
+                      >
+                        {iconMap[item.icon]}
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Others */}
-            <div className="space-y-1">
-              <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                More
-              </div>
-              <div className="pl-6 space-y-1">
-                <Link
-                  href="/delivery"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/delivery')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <Truck className="h-4 w-4" />
-                  1k Usage
-                </Link>
-                <Link
-                  href="/customer"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/customer')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  SMG Analytics
-                </Link>
-                <Link
-                  href="/scheduling"
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors opacity-50",
-                    isActive('/scheduling')
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={closeMobileMenu}
-                >
-                  <Calendar className="h-4 w-4" />
-                  Blimp Store
-                </Link>
-              </div>
-            </div>
+            {(() => {
+              const moreItems = getItemsBySection('more', user?.role).filter((i) => !i.comingSoon)
+              if (moreItems.length === 0) return null
+              return (
+                <div className="space-y-1">
+                  <div className="px-3 py-2 text-base font-medium text-muted-foreground flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    More
+                  </div>
+                  <div className="pl-6 space-y-1">
+                    {moreItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActiveOrStartsWith(item.href)
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          item.comingSoon && 'opacity-50'
+                        )}
+                        onClick={closeMobileMenu}
+                      >
+                        {iconMap[item.icon]}
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Profile */}
             <div className="border-t pt-2 mt-4 space-y-1">
-              <Link
-                href="/profile?tab=my-profile"
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium transition-colors",
-                  isActive('/profile')
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-                onClick={closeMobileMenu}
-              >
-                <User className="h-4 w-4" />
-                {isLoading ? 'Loading...' : getUserDisplayName()}
-              </Link>
-              
-              <Link
-                href="/profile?tab=idp"
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                  isActive('/profile')
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-                onClick={closeMobileMenu}
-              >
-                <BookOpen className="h-4 w-4" />
-                Individual Development Plan
-              </Link>
-              
-              <Link
-                href="/profile?tab=performance"
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                  isActive('/profile')
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-                onClick={closeMobileMenu}
-              >
-                <TrendingUp className="h-4 w-4" />
-                My Performance
-              </Link>
-              
-              <Link
-                href="/profile?tab=team"
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                  isActive('/profile')
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-                onClick={closeMobileMenu}
-              >
-                <Users className="h-4 w-4" />
-                Team Management
-              </Link>
+              {(() => {
+                const profileItems = getItemsBySection('profile', user?.role);
+                const myProfile = profileItems.find((i) => i.id === 'profile-my-profile');
+                return (
+                  <Link
+                    href={myProfile?.href || '/profile?tab=my-profile'}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium transition-colors",
+                      isActive('/profile')
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    onClick={closeMobileMenu}
+                  >
+                    <User className="h-4 w-4" />
+                    {isLoading ? 'Loading...' : getUserDisplayName()}
+                  </Link>
+                );
+              })()}
+              {getItemsBySection('profile', user?.role)
+                .filter((i) => i.id !== 'profile-my-profile')
+                .map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                      isActive('/profile')
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                      item.comingSoon && 'opacity-50'
+                    )}
+                    onClick={closeMobileMenu}
+                  >
+                    {iconMap[item.icon]}
+                    {item.title}
+                  </Link>
+                ))}
               
               {/* Theme Toggle */}
               <div className="px-1">

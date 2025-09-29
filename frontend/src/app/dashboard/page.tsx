@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ChefHat, 
-  Users, 
-  BarChart3, 
-  Settings, 
+import {
+  ChefHat,
+  Users,
+  BarChart3,
+  Settings,
   Calendar,
   DollarSign,
   Truck,
@@ -15,243 +15,102 @@ import {
   MessageSquare,
   Shield,
   Banknote,
-  BookOpen
+  BookOpen,
+  Home,
+  Calculator,
+  TrendingUp,
+  User as UserIcon,
 } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContextSWR';
+import { getItemsBySection, isItemVisibleForRole, type UserRole, type IconName } from '@/data/navigationItems';
 
-interface ModuleCard {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  href: string;
-  color: string;
-  badge?: string;
-  isActive: boolean;
-}
-
-const modules: ModuleCard[] = [
-  {
-    id: 'kitchen',
-    title: 'Kitchen Management',
-    description: 'Order tracking, timers, and kitchen operations',
-    icon: ChefHat,
-    href: '/kitchen',
-    color: 'bg-orange-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'staff',
-    title: 'Staff Management',
-    description: 'User creation, role assignment, and restaurant access',
-    icon: Users,
-    href: '/staff',
-    color: 'bg-blue-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'pay-structure',
-    title: 'Pay Structure',
-    description: 'Manage hourly pay rates across all regions and roles',
-    icon: Banknote,
-    href: '/pay-structure',
-    color: 'bg-cyan-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'analytics',
-    title: 'Analytics & Reports',
-    description: 'Sales reports, performance metrics, and insights',
-    icon: BarChart3,
-    href: '/analytics',
-    color: 'bg-green-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'roles-performance',
-    title: 'Roles Performance',
-    description: 'Performance tracking, role assessment, and team analytics',
-    icon: ClipboardList,
-    href: '/roles-performance',
-    color: 'bg-purple-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'area-pl',
-    title: 'Area P&L',
-    description: 'Comprehensive profit and loss analysis for your area',
-    icon: DollarSign,
-    href: '/area-pl',
-    color: 'bg-emerald-600',
-    badge: 'Coming Soon',
-    isActive: false
-  },
-  {
-    id: 'pl-practice-tests',
-    title: 'P&L Practice Tests',
-    description: 'Test your knowledge of Profit & Loss calculations and financial metrics',
-    icon: BookOpen,
-    href: '/pl-practice-tests',
-    color: 'bg-emerald-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'recipe-book',
-    title: 'Recipe Book',
-    description: 'Browse and manage your recipes in one place',
-    icon: BookOpen,
-    href: '/recipe-book',
-    color: 'bg-rose-500',
-    badge: 'Coming Soon',
-    isActive: false
-  },
-  {
-    id: 'idp',
-    title: 'Individual Development Plant',
-    description: 'Personal and professional development planning and tracking',
-    icon: BookOpen,
-    href: '/idp',
-    color: 'bg-teal-500',
-    badge: 'Active',
-    isActive: true
-  },
-  {
-    id: 'delivery',
-    title: '1k Usage',
-    description: 'Usage analytics, metrics tracking, and performance insights',
-    icon: Truck,
-    href: '/delivery',
-    color: 'bg-yellow-500',
-    badge: 'Coming Soon',
-    isActive: false
-  },
-  {
-    id: 'customer',
-    title: 'SMG Analytics',
-    description: 'Service management analytics, customer insights, and feedback analysis',
-    icon: MessageSquare,
-    href: '/customer',
-    color: 'bg-pink-500',
-    badge: 'Coming Soon',
-    isActive: false
-  },
-  {
-    id: 'compliance',
-    title: 'Grow Camp',
-    description: 'Training programs, skill development, and growth initiatives',
-    icon: Shield,
-    href: '/compliance',
-    color: 'bg-red-500',
-    badge: 'Coming Soon',
-    isActive: false
-  },
-  {
-    id: 'scheduling',
-    title: 'Blimp Store',
-    description: 'Store management, inventory, and product catalog',
-    icon: Calendar,
-    href: '/scheduling',
-    color: 'bg-indigo-500',
-    badge: 'Coming Soon',
-    isActive: false
-  }
-];
+// Map IconName to lucide-react components
+const iconMap: Record<IconName, React.ComponentType<any>> = {
+  home: Home,
+  settings: Settings,
+  chefHat: ChefHat,
+  users: Users,
+  banknote: Banknote,
+  barChart3: BarChart3,
+  dollarSign: DollarSign,
+  bookOpen: BookOpen,
+  calculator: Calculator,
+  clipboardList: ClipboardList,
+  shield: Shield,
+  calendar: Calendar,
+  truck: Truck,
+  messageSquare: MessageSquare,
+  trendingUp: TrendingUp,
+  user: UserIcon,
+};
 
 function DashboardContent() {
   const { user } = useAuth();
-  
-  // Filter modules based on user role and organize by categories
-  const getCategorizedModules = () => {
-    if (!user) return { management: modules.slice(0, 3), helpers: [], others: [] };
-    
-    let filteredModules = modules;
-    
-    // Apply role-based access control for specific modules
-    filteredModules = filteredModules.map(module => {
-      if (module.id === 'kitchen') {
-        const isAuthorized = ['admin', 'ops_lead', 'black_shirt'].includes(user.role);
-        return {
-          ...module,
-          badge: isAuthorized ? 'Active' : 'Restricted',
-          description: isAuthorized ? 'Order tracking, timers, and kitchen operations' : 'Restricted Access - Black Shirt and above',
-          isActive: isAuthorized
-        };
-      }
-      if (module.id === 'pay-structure') {
-        const isAuthorized = ['admin', 'ops_lead'].includes(user.role);
-        return {
-          ...module,
-          badge: isAuthorized ? 'Active' : 'Restricted',
-          description: isAuthorized ? 'Manage hourly pay rates across all regions and roles' : 'Unlocked for ACO and above',
-          isActive: isAuthorized
-        };
-      }
-      if (module.id === 'area-pl') {
-        return {
-          ...module,
-          badge: 'Coming Soon',
-          description: 'Comprehensive profit and loss analysis for your area',
-          isActive: false
-        };
-      }
-      if (module.id === 'staff') {
-        const isAuthorized = ['admin', 'ops_lead', 'black_shirt'].includes(user.role);
-        return {
-          ...module,
-          badge: isAuthorized ? 'Active' : 'Unlocked for Store Manager and above',
-          description: isAuthorized ? 'User creation, role assignment, and restaurant access' : 'Unlocked for Store Manager and above',
-          isActive: true // Always active now since all users can access staff management
-        };
-      }
-      if (module.id === 'analytics') {
-        return {
-          ...module,
-          badge: 'Active',
-          description: 'Sales reports, performance metrics, and insights',
-          isActive: true
-        };
-      }
-      return module;
-    });
-    
-    // Organize modules into categories
-    const managementModules = filteredModules.slice(0, 3); // First 3 modules
-    const profitLossModules = filteredModules.filter(m => ['analytics', 'area-pl', 'finance'].includes(m.id));
-    const helpersModules = filteredModules.filter(m => ['idp', 'inventory', 'compliance', 'roles-performance', 'pl-practice-tests', 'recipe-book'].includes(m.id));
-    // Sort helpers modules to put IDP first, Roles Performance third, Grow Camp last
-    helpersModules.sort((a, b) => {
-      const order: Record<string, number> = {
-        'idp': 0,
-        'pl-practice-tests': 1,
-        'roles-performance': 2,
-        'recipe-book': 3,
-        'compliance': 999 // Grow Camp should be last
-      };
-      const aOrder = order[a.id] ?? 5;
-      const bOrder = order[b.id] ?? 5;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return 0;
-    });
-    const othersModules = filteredModules.filter(m => 
-      !managementModules.includes(m) && !helpersModules.includes(m) && !profitLossModules.includes(m)
-    );
-    
-    return {
-      management: managementModules,
-      profitLoss: profitLossModules,
-      helpers: helpersModules,
-      others: othersModules
-    };
+
+  const role = (user?.role as UserRole | undefined) ?? undefined;
+
+  // Safe Tailwind class mapping for background colors referenced in navigationItems
+  const colorBgClass: Record<string, string> = {
+    'blue-600': 'bg-blue-600',
+    'emerald-600': 'bg-emerald-600',
+    'teal-600': 'bg-teal-600',
+    'cyan-600': 'bg-cyan-600',
+    'sky-600': 'bg-sky-600',
+    'indigo-600': 'bg-indigo-600',
+    'violet-600': 'bg-violet-600',
+    'purple-600': 'bg-purple-600',
+    'fuchsia-600': 'bg-fuchsia-600',
+    'pink-600': 'bg-pink-600',
+    'rose-600': 'bg-rose-600',
+    'red-600': 'bg-red-600',
+    'orange-600': 'bg-orange-600',
+    'amber-600': 'bg-amber-600',
+    'lime-600': 'bg-lime-600',
+    'green-600': 'bg-green-600',
+    'slate-600': 'bg-slate-600',
   };
-  
-  const categorizedModules = getCategorizedModules();
+
+  // Role hierarchy helpers
+  const roleRank: Record<UserRole, number> = {
+    associate: 0,
+    tablet: 1,
+    black_shirt: 2,
+    ops_lead: 3,
+    admin: 4,
+  };
+  const formatRole = (r: UserRole) => {
+    switch (r) {
+      case 'ops_lead':
+        return 'ACO';
+      case 'black_shirt':
+        return 'Store Manager';
+      case 'admin':
+        return 'Admin';
+      case 'associate':
+        return 'Associate';
+      case 'tablet':
+        return 'Tablet';
+      default:
+        return r;
+    }
+  };
+  const getLowestAllowedRole = (allowed?: UserRole[]) => {
+    if (!allowed || allowed.length === 0) return undefined;
+    const sorted = [...allowed].sort((a, b) => roleRank[a] - roleRank[b]);
+    return sorted[0];
+  };
+
+  // Show all items regardless of permissions; mark restricted visually
+  const managementItems = getItemsBySection('management');
+  const profitLossItems = getItemsBySection('p_and_l');
+  const learningItems = getItemsBySection('learning');
+  const moreItems = getItemsBySection('more');
+
+  const allVisible = [...managementItems, ...profitLossItems, ...learningItems, ...moreItems];
+  const activeCount = allVisible.filter((i) => !i.comingSoon && isItemVisibleForRole(i, role ?? null)).length;
+  const totalCount = allVisible.length;
+
   const isKitchenAuthorized = user ? ['admin', 'ops_lead', 'black_shirt'].includes(user.role) : false;
   
   return (
@@ -339,11 +198,9 @@ function DashboardContent() {
               <Settings className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {[...categorizedModules.management, ...(categorizedModules.profitLoss || []), ...categorizedModules.helpers, ...categorizedModules.others].filter(m => m.isActive).length}
-              </div>
+              <div className="text-2xl font-bold">{activeCount}</div>
               <p className="text-xs text-muted-foreground">
-                of {[...categorizedModules.management, ...(categorizedModules.profitLoss || []), ...categorizedModules.helpers, ...categorizedModules.others].length} total modules
+                of {totalCount} total modules
               </p>
             </CardContent>
           </Card>
@@ -392,13 +249,17 @@ function DashboardContent() {
         <div className="mb-8">
           <h2 className="text-2xl font-semibold text-foreground mb-4">Management Modules</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categorizedModules.management.map((module) => {
-              const IconComponent = module.icon;
+            {managementItems.map((item) => {
+              const IconComponent = iconMap[item.icon];
+              const isAllowed = isItemVisibleForRole(item, role ?? null);
+              const isActive = !item.comingSoon && isAllowed;
+              const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
+              const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
               return (
                 <Card 
-                  key={module.id} 
+                  key={item.id} 
                   className={`transition-all hover:shadow-lg ${
-                    module.isActive 
+                    isActive 
                       ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
                       : 'opacity-75 hover:opacity-100'
                   }`}
@@ -406,40 +267,31 @@ function DashboardContent() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${module.color}`}>
+                        <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
                           <IconComponent className="h-6 w-6 text-white" />
                         </div>
-                        <CardTitle className="text-lg">{module.title}</CardTitle>
+                        <CardTitle className="text-lg">{item.title}</CardTitle>
                       </div>
-                      {module.badge && (
-                        <Badge 
-                          variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
-                          className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
-                        >
-                          {module.badge}
-                        </Badge>
-                      )}
+                      <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
+                        {badgeLabel}
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground mb-4">{module.description}</p>
-                    {module.isActive ? (
+                    <p className="text-muted-foreground mb-4">{item.description}</p>
+                    {isAllowed && !item.comingSoon ? (
                       <Link
-                        href={module.href}
+                        href={item.href}
                         className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
                       >
                         Open Module
                       </Link>
                     ) : (
-                      // Hide button for restricted modules, show "Coming Soon" for others
-                      !['pay-structure', 'area-pl'].includes(module.id) && (
-                        <button
-                          disabled
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
-                        >
-                          Coming Soon
-                        </button>
-                      )
+                      <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
+                        {!isAllowed
+                          ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
+                          : 'Coming Soon'}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -449,17 +301,21 @@ function DashboardContent() {
         </div>
 
         {/* Profit & Loss */}
-        {(categorizedModules.profitLoss && categorizedModules.profitLoss.length > 0) && (
+        {(profitLossItems && profitLossItems.length > 0) && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">Profit & Loss</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categorizedModules.profitLoss?.map((module) => {
-                const IconComponent = module.icon;
+              {profitLossItems?.map((item) => {
+                const IconComponent = iconMap[item.icon];
+                const isAllowed = isItemVisibleForRole(item, role ?? null);
+                const isActive = !item.comingSoon && isAllowed;
+                const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
+                const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
                 return (
                   <Card 
-                    key={module.id} 
+                    key={item.id} 
                     className={`transition-all hover:shadow-lg ${
-                      module.isActive 
+                      isActive 
                         ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
                         : 'opacity-75 hover:opacity-100'
                     }`}
@@ -467,37 +323,31 @@ function DashboardContent() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${module.color}`}>
+                          <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
                             <IconComponent className="h-6 w-6 text-white" />
                           </div>
-                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
                         </div>
-                        {module.badge && (
-                          <Badge 
-                            variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
-                            className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
-                          >
-                            {module.badge}
-                          </Badge>
-                        )}
+                        <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
+                          {badgeLabel}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">{module.description}</p>
-                      {module.isActive ? (
+                      <p className="text-muted-foreground mb-4">{item.description}</p>
+                      {isAllowed && !item.comingSoon ? (
                         <Link
-                          href={module.href}
+                          href={item.href}
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
                         >
                           Open Module
                         </Link>
                       ) : (
-                        <button
-                          disabled
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
-                        >
-                          Coming Soon
-                        </button>
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
+                          {!isAllowed
+                            ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
+                            : 'Coming Soon'}
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -508,17 +358,21 @@ function DashboardContent() {
         )}
 
         {/* Continuous Learning */}
-        {categorizedModules.helpers.length > 0 && (
+        {learningItems.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">Continuous Learning</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categorizedModules.helpers.map((module) => {
-                const IconComponent = module.icon;
+              {learningItems.map((item) => {
+                const IconComponent = iconMap[item.icon];
+                const isAllowed = isItemVisibleForRole(item, role ?? null);
+                const isActive = !item.comingSoon && isAllowed;
+                const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
+                const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
                 return (
                   <Card 
-                    key={module.id} 
+                    key={item.id} 
                     className={`transition-all hover:shadow-lg ${
-                      module.isActive 
+                      isActive 
                         ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
                         : 'opacity-75 hover:opacity-100'
                     }`}
@@ -526,33 +380,30 @@ function DashboardContent() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${module.color}`}>
+                          <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
                             <IconComponent className="h-6 w-6 text-white" />
                           </div>
-                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
                         </div>
-                        {module.badge && (
-                          <Badge 
-                            variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
-                            className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
-                          >
-                            {module.badge}
-                          </Badge>
-                        )}
+                        <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
+                          {badgeLabel}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">{module.description}</p>
-                      {module.isActive ? (
+                      <p className="text-muted-foreground mb-4">{item.description}</p>
+                      {isAllowed && !item.comingSoon ? (
                         <Link
-                          href={module.href}
+                          href={item.href}
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
                         >
                           Access Module
                         </Link>
                       ) : (
-                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-50">
-                          Restricted Access
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
+                          {!isAllowed
+                            ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
+                            : 'Coming Soon'}
                         </div>
                       )}
                     </CardContent>
@@ -563,18 +414,22 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Others */}
-        {categorizedModules.others.length > 0 && (
+        {/* More */}
+        {moreItems.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-foreground mb-4">Others</h2>
+            <h2 className="text-2xl font-semibold text-foreground mb-4">More</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categorizedModules.others.map((module) => {
-                const IconComponent = module.icon;
+              {moreItems.map((item) => {
+                const IconComponent = iconMap[item.icon];
+                const isAllowed = isItemVisibleForRole(item, role ?? null);
+                const isActive = !item.comingSoon && isAllowed;
+                const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
+                const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
                 return (
                   <Card 
-                    key={module.id} 
+                    key={item.id} 
                     className={`transition-all hover:shadow-lg ${
-                      module.isActive 
+                      isActive 
                         ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
                         : 'opacity-75 hover:opacity-100'
                     }`}
@@ -582,33 +437,30 @@ function DashboardContent() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${module.color}`}>
+                          <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
                             <IconComponent className="h-6 w-6 text-white" />
                           </div>
-                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
                         </div>
-                        {module.badge && (
-                          <Badge 
-                            variant={module.badge === 'Restricted' ? "destructive" : (module.isActive ? "default" : "secondary")}
-                            className={module.badge === 'Restricted' ? "bg-red-500" : (module.isActive ? "bg-green-500" : "")}
-                          >
-                            {module.badge}
-                          </Badge>
-                        )}
+                        <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
+                          {badgeLabel}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">{module.description}</p>
-                      {module.isActive ? (
+                      <p className="text-muted-foreground mb-4">{item.description}</p>
+                      {isAllowed && !item.comingSoon ? (
                         <Link
-                          href={module.href}
+                          href={item.href}
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
                         >
                           Access Module
                         </Link>
                       ) : (
-                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-50">
-                          Restricted Access
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
+                          {!isAllowed
+                            ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
+                            : 'Coming Soon'}
                         </div>
                       )}
                     </CardContent>
