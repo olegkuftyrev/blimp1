@@ -21,6 +21,10 @@ import { SectionCards } from '@/components/SectionCards';
 import { ChartAreaInteractive } from '@/components/ChartAreaInteractive';
 import { DataTable } from '@/components/DataTable';
 import { ChartBarStacked } from '@/components/ChartBarStacked';
+import { TrendingUp } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from "recharts";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { CardFooter } from "@/components/ui/card";
 
 interface PeriodReportPageProps {
   params: Promise<{
@@ -63,6 +67,87 @@ const mockPayments = [
     email: "carmella@hotmail.com",
   },
 ];
+
+// ChartBarMultiple component - Cost of Sales data
+const chartConfig = {
+  actual: { label: "Actual", color: "#2563eb" }, // синий
+  priorYear: { label: "Prior Year", color: "#0ea5e9" }, // голубой
+} satisfies ChartConfig;
+
+function ChartBarMultiple({ plLineItems }: { plLineItems: PLLineItem[] }) {
+  // Фильтруем данные Cost of Sales из реальных данных
+  const costOfSalesItems = plLineItems.filter((item: PLLineItem) => 
+    item.ledgerAccount === 'Grocery' || 
+    item.ledgerAccount === 'Meat' || 
+    item.ledgerAccount === 'Produce' || 
+    item.ledgerAccount === 'Sea Food' ||
+    item.ledgerAccount === 'DRinks' ||
+    item.ledgerAccount === 'Paper Goods' ||
+    item.ledgerAccount === 'Other'
+  );
+
+  // Преобразуем данные для графика
+  const chartData = costOfSalesItems.map(item => ({
+    category: item.ledgerAccount,
+    actual: parseFloat(item.actuals?.toString() || '0'),
+    priorYear: parseFloat(item.priorYear?.toString() || '0')
+  }));
+
+  // Вычисляем общие суммы для footer
+  const totalActual = chartData.reduce((sum, item) => sum + item.actual, 0);
+  const totalPriorYear = chartData.reduce((sum, item) => sum + item.priorYear, 0);
+
+  // Находим элемент "Cost of Goods Sold" для получения процентов
+  const cogsItem = plLineItems.find(item => item.ledgerAccount === 'Cost of Goods Sold');
+  const cogsActualPercentage = cogsItem ? parseFloat(cogsItem.actualsPercentage?.toString() || '0') * 100 : 0;
+  const cogsPriorYearPercentage = cogsItem ? parseFloat(cogsItem.priorYearPercentage?.toString() || '0') * 100 : 0;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Cost of Sales Comparison</CardTitle>
+        <CardDescription>Actual vs Prior Year</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig} className="h-[250px]">
+          <BarChart
+            accessibilityLayer
+            data={chartData}
+            margin={{
+              right: 16,
+            }}
+          >
+            <CartesianGrid vertical={false} />
+            <XAxis 
+              dataKey="category" 
+              tickLine={false} 
+              tickMargin={10} 
+              axisLine={false}
+              tickFormatter={(v) => String(v).slice(0, 8)} 
+            />
+            <YAxis />
+            <ChartTooltip 
+              cursor={false} 
+              content={<ChartTooltipContent indicator="dashed" />} 
+            />
+            <Bar dataKey="priorYear" fill="var(--color-priorYear)" radius={4} />
+            <Bar dataKey="actual" fill="var(--color-actual)" radius={4} />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+      <CardFooter className="flex-col items-start gap-2 text-sm">
+        <div className="flex gap-2 leading-none font-medium">
+           COGS% actual {cogsActualPercentage.toFixed(1)}% vs COGS% prior year {cogsPriorYearPercentage.toFixed(1)}%
+        </div>
+        <div className="text-muted-foreground leading-none">
+        COGS$ actual ${totalActual.toLocaleString()} vs COGS prior year ${totalPriorYear.toLocaleString()}
+        </div>
+      </CardFooter>
+    </Card>
+  );
+}
+
+
+
 
 export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   const { user } = useAuth();
@@ -283,8 +368,8 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
           </div>
         </div>
           
-          {/* Delete Report Button */}
-          {plReport && (
+          {/* Delete Report Button - Only show for non-associate users */}
+          {plReport && user?.role !== 'associate' && (
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
               <DialogTrigger asChild>
                 <Button variant="destructive" size="sm">
@@ -345,6 +430,36 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
         </div>
       )}
 
+      {/* Chart Bar Multiple */}
+      {plReport && plLineItems.length > 0 && (
+        <div className="mb-8">
+          <ChartBarMultiple plLineItems={plLineItems} />
+        </div>
+      )}
+
+          {/* Cost Of Sales Table */}
+          {plReport && plLineItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cost Of Sales</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PLReportDataTable 
+              report={plReport} 
+              lineItems={plLineItems.filter((item: PLLineItem) => 
+                item.ledgerAccount === 'Grocery' || 
+                item.ledgerAccount === 'Meat' || 
+                item.ledgerAccount === 'Produce' || 
+                item.ledgerAccount === 'Sea Food' ||
+                item.ledgerAccount === 'DRinks' ||
+                item.ledgerAccount === 'Paper Goods' ||
+                item.ledgerAccount === 'Other' ||
+                item.ledgerAccount === 'Cost of Goods Sold'
+              )} 
+            />
+          </CardContent>
+        </Card>
+      )}
 
 
       {/* Testing Table - Mock Data for Calculations */}
@@ -610,30 +725,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
         </Card>
       )}
 
-      {/* Cost Of Sales Table */}
-      {plReport && plLineItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Cost Of Sales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PLReportDataTable 
-              report={plReport} 
-              lineItems={plLineItems.filter((item: PLLineItem) => 
-                item.ledgerAccount === 'Grocery' || 
-                item.ledgerAccount === 'Meat' || 
-                item.ledgerAccount === 'Produce' || 
-                item.ledgerAccount === 'Sea Food' ||
-                item.ledgerAccount === 'DRinks' ||
-                item.ledgerAccount === 'Paper Goods' ||
-                item.ledgerAccount === 'Other' ||
-                item.ledgerAccount === 'Cost of Goods Sold'
-              )} 
-            />
-          </CardContent>
-        </Card>
-      )}
-
+  
       {/* Labor Table */}
       {plReport && plLineItems.length > 0 && (
         <Card>

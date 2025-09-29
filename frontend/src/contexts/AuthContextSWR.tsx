@@ -10,6 +10,7 @@ interface AuthUser {
   email: string;
   fullName: string;
   role: 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet';
+  job_title?: string;
 }
 
 interface AuthContextType {

@@ -13,6 +13,7 @@ import useSWR, { mutate } from 'swr';
 import { apiFetch } from '@/lib/api';
 import { PLCalculations } from '@/hooks/useSWRPL';
 import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
+import { useDeletePLReport } from '@/hooks/useSWRPL';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
 
 interface StorePageProps {
@@ -41,14 +42,47 @@ const PERIODS = [
 // Current period is P10 (September 21, 2025)
 const CURRENT_PERIOD = 'P10';
 
+// Function to check if a period is available for upload
+const isPeriodAvailable = (periodId: string, year: number): boolean => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  
+  // If it's a future year, period is not available
+  if (year > currentYear) {
+    return false;
+  }
+  
+  // If it's a past year, period is available
+  if (year < currentYear) {
+    return true;
+  }
+  
+  // For current year, check if period has started
+  const period = PERIODS.find(p => p.id === periodId);
+  if (!period) return false;
+  
+  // Parse period start date (format: MM/DD)
+  const [month, day] = period.start.split('/').map(Number);
+  const periodStartDate = new Date(currentYear, month - 1, day);
+  
+  // Special case for P01 which starts in previous year
+  if (periodId === 'P01') {
+    const p01StartDate = new Date(currentYear - 1, 11, 30); // December 30 of previous year
+    return currentDate >= p01StartDate;
+  }
+  
+  return currentDate >= periodStartDate;
+};
+
 export default function StoreYearPage({ params }: StorePageProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { restaurants, loading, error } = useSWRRestaurants();
   const [selectedYear, setSelectedYear] = useState(2025); // Default to current year
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<{period: any, year: number} | null>(null);
-  const [fileItems, setFileItems] = useState<FileUploadItem[]>([]);
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPeriod, setPendingPeriod] = useState<{period: any, year: number} | null>(null);
+  const [uploadingPeriods, setUploadingPeriods] = useState<Set<string>>(new Set());
   
   // Get storeId early so we can use it in hooks
   const resolvedParams = use(params);
@@ -56,32 +90,35 @@ export default function StoreYearPage({ params }: StorePageProps) {
   
   console.log('StoreYearPage render:', { resolvedParams, storeId });
 
-  // File upload hook
-  const {
-    isUploading,
-    error: uploadError,
-    success: uploadSuccess,
-    setFiles,
-    uploadPLFile,
-    removeFile,
-    reset
-  } = usePLFileUploadWithAnalytics(
-    storeId,
-    selectedPeriod?.year || 0,
-    selectedPeriod?.period?.id || ''
-  );
 
-  // File upload handlers
-  const handleFilesChange = (files: FileUploadItem[]) => {
-    setFileItems(files);
-    setFiles(files.map(f => f.file));
-  };
+  // Delete report hook
+  const { deleteReport, isDeleting } = useDeletePLReport();
 
-  const handleUpload = async () => {
-    if (fileItems.length === 0 || !selectedPeriod) return;
+  // Function to handle upload for a specific period
+  const handlePeriodUpload = async (file: File, period: any, year: number) => {
+    const periodKey = `${period.id}-${year}`;
     
     try {
-      await uploadPLFile(fileItems[0].file);
+      // Mark period as uploading
+      setUploadingPeriods(prev => new Set(prev).add(periodKey));
+      
+      // Use direct API call instead of hook
+      const formData = new FormData();
+      formData.append('plFile', file);
+      formData.append('restaurantId', storeId.toString());
+      formData.append('period', period.id);
+      
+      const response = await fetch('/api/pl-reports/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
       
       // Mutate all P&L related SWR caches to refresh the UI
       console.log('🔄 Mutating SWR caches after successful upload...');
@@ -94,36 +131,76 @@ export default function StoreYearPage({ params }: StorePageProps) {
       );
       
       // Specifically invalidate the current period cache
-      await mutate(`pl-reports?restaurantId=${storeId}&period=${selectedPeriod.period.id}`);
+      await mutate(`pl-reports?restaurantId=${storeId}&period=${period.id}`);
       
       console.log('✅ SWR caches mutated successfully');
       
-      setUploadModalOpen(false);
-      setFileItems([]);
-      reset();
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      console.log('Error message:', error.message);
+      
+      // Handle specific error cases
+      if (error.message?.includes('409') || error.message?.includes('Conflict')) {
+        console.log('Detected 409 conflict, showing dialog');
+        // Report already exists - show confirmation dialog
+        setPendingFile(file);
+        setPendingPeriod({ period, year });
+        setConflictDialogOpen(true);
+      } else {
+        console.log('Not a 409 conflict, error will be shown in UI');
+      }
+    } finally {
+      // Remove period from uploading state
+      setUploadingPeriods(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(periodKey);
+        return newSet;
+      });
+    }
+  };
+
+
+  const handleOverwriteConfirm = async () => {
+    if (!pendingFile || !pendingPeriod) return;
+    
+    try {
+      // First get the existing report using SWR
+      const existingReportData = await apiFetch(`pl-reports?restaurantId=${storeId}&period=${pendingPeriod.period.id}`) as {data: any[]};
+      
+      if (existingReportData.data && existingReportData.data.length > 0) {
+        const reportId = existingReportData.data[0].id;
+        
+        // Delete the existing report using the SWR hook
+        await deleteReport({ 
+          reportId: reportId,
+          mutate: async () => {
+            // Invalidate all P&L related caches
+            await mutate(
+              (key) => typeof key === 'string' && key.includes('pl-reports'),
+              undefined,
+              { revalidate: true }
+            );
+            return Promise.resolve();
+          }
+        });
+      }
+      
+      // Now upload the new file
+      await handlePeriodUpload(pendingFile, pendingPeriod.period, pendingPeriod.year);
+      
+      setConflictDialogOpen(false);
+      setPendingFile(null);
+      setPendingPeriod(null);
       
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error('Overwrite failed:', error);
     }
   };
 
-  const handleRemoveFile = (fileId: string) => {
-    const index = fileItems.findIndex(f => f.id === fileId);
-    if (index !== -1) {
-      const newFiles = fileItems.filter((_, i) => i !== index);
-      setFileItems(newFiles);
-      removeFile(index);
-    }
-  };
-
-  const handleClear = () => {
-    setFileItems([]);
-    reset();
-  };
-
-  const handleUploadClick = (period: any, year: number) => {
-    setSelectedPeriod({ period, year });
-    setUploadModalOpen(true);
+  const handleOverwriteCancel = () => {
+    setConflictDialogOpen(false);
+    setPendingFile(null);
+    setPendingPeriod(null);
   };
 
   useEffect(() => {
@@ -195,6 +272,8 @@ export default function StoreYearPage({ params }: StorePageProps) {
 
   // Component for individual period card with its own data check
   const PeriodCard = ({ period, year, storeId }: { period: any, year: number, storeId: number }) => {
+    // Check if user is hourly associate (no upload permissions)
+    const isHourlyAssociate = user?.role === 'associate' || user?.['job_title'] === 'Hourly Associate';
     const { data: reportData, error: reportError, isLoading: reportLoading } = useSWR<{data: any[]}>(
       storeId && period.id && year ? `pl-reports?restaurantId=${storeId}&period=${period.id}` : null,
       apiFetch,
@@ -219,6 +298,8 @@ export default function StoreYearPage({ params }: StorePageProps) {
     const calculations = lineItemsData?.calculations;
     const isLoading = reportLoading || (hasData && lineItemsLoading);
     const isCurrent = period.id === CURRENT_PERIOD && year === currentYear;
+    const isAvailable = isPeriodAvailable(period.id, year);
+    const isUploading = uploadingPeriods.has(`${period.id}-${year}`);
     
     // Calculate metrics for styling
     const sssValue = calculations?.sss || 0;
@@ -325,27 +406,93 @@ export default function StoreYearPage({ params }: StorePageProps) {
     }
 
     return (
-      <Card className={`hover:shadow-lg cursor-pointer bg-gray-900/50 border-gray-700 border-dashed text-gray-500 transition-all duration-300 ${isCurrent ? 'ring-2 ring-primary' : ''}`}>
+      <Card className={`transition-all duration-300 ${isCurrent ? 'ring-2 ring-primary' : ''} ${
+        isHourlyAssociate && isAvailable
+          ? 'bg-gray-800/30 border-gray-600 border-dashed text-gray-600 cursor-not-allowed opacity-60'
+          : isAvailable 
+            ? 'hover:shadow-lg cursor-pointer bg-gray-900/50 border-gray-700 border-dashed text-gray-500' 
+            : 'bg-gray-800/30 border-gray-600 border-dashed text-gray-600 cursor-not-allowed opacity-60'
+      }`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg text-gray-500">
+            <CardTitle className={`text-lg ${isHourlyAssociate && isAvailable ? 'text-gray-600' : isAvailable ? 'text-gray-500' : 'text-gray-600'}`}>
               {period.name}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
+              <XCircle className={`h-5 w-5 ${isHourlyAssociate && isAvailable ? 'text-gray-500' : isAvailable ? 'text-red-600' : 'text-gray-500'}`} />
               {isCurrent && (
                 <Badge variant="default" className="text-xs">Current</Badge>
+              )}
+              {isHourlyAssociate && isAvailable && (
+                <Badge variant="destructive" className="text-xs">Restricted</Badge>
+              )}
+              {!isAvailable && (
+                <Badge variant="secondary" className="text-xs">Not Started</Badge>
               )}
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-0 flex items-center justify-center h-full">
-          <div 
-            className="px-6 py-4 rounded-lg bg-blue-600 hover:bg-blue-700 border border-blue-500 transition-colors cursor-pointer"
-            onClick={() => handleUploadClick(period, year)}
-          >
-            <span className="text-lg font-medium text-white">Click to upload</span>
-          </div>
+        <CardContent className="pt-0">
+          {isAvailable ? (
+            <div className="py-2">
+              {isHourlyAssociate ? (
+                <div className="px-6 py-4 rounded-lg bg-gray-600 border border-gray-500 text-center">
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-300">Upload Restricted</p>
+                      <p className="text-xs text-gray-500">Hourly associates cannot upload files</p>
+                    </div>
+                  </div>
+                </div>
+              ) : isUploading ? (
+                <div className="flex items-center justify-center py-3">
+                  <div className="flex items-center gap-2 text-blue-400">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></div>
+                    <span className="text-sm">Uploading...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 transition-colors relative">
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-300">Upload files</p>
+                      <p className="text-xs text-gray-500">Drag and drop or click to select files</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handlePeriodUpload(file, period, year);
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={isUploading}
+                    />
+                    <p className="text-xs text-gray-500">.xlsx, .xls • Max 10 MB • 1 file max</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="px-6 py-4 rounded-lg bg-gray-600 border border-gray-500 text-center">
+              <span className="text-lg font-medium text-gray-400">Period not started</span>
+              <p className="text-sm text-gray-500 mt-1">
+                Upload will be available when period begins
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -466,19 +613,19 @@ export default function StoreYearPage({ params }: StorePageProps) {
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-400">SSS:</span>
-                  <span className="text-green-400 font-medium">
+                  <span className={`font-medium ${avgSSS >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {periodsWithData > 0 ? `${avgSSS.toFixed(1)}%` : 'No data'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-400">Labor:</span>
-                  <span className="text-blue-400 font-medium">
+                  <span className={`font-medium ${avgLabor <= 30 ? 'text-green-400' : 'text-red-400'}`}>
                     {periodsWithData > 0 ? `${avgLabor.toFixed(1)}%` : 'No data'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-400">COGS:</span>
-                  <span className="text-purple-400 font-medium">
+                  <span className={`font-medium ${avgCOGS <= 30 ? 'text-green-400' : 'text-red-400'}`}>
                     {periodsWithData > 0 ? `${avgCOGS.toFixed(1)}%` : 'No data'}
                   </span>
                 </div>
@@ -507,62 +654,42 @@ export default function StoreYearPage({ params }: StorePageProps) {
         })}
       </div>
 
-      {/* Upload Modal */}
-      <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
-        <DialogContent className="max-w-2xl">
+
+      {/* Conflict Dialog */}
+      <Dialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              Upload P&L Report - {selectedPeriod?.period?.name} {selectedPeriod?.year}
-            </DialogTitle>
+            <DialogTitle>Report Already Exists</DialogTitle>
             <DialogDescription>
-              Upload your P&L report for {selectedPeriod?.period?.start}/{selectedPeriod?.year} - {selectedPeriod?.period?.end}/{selectedPeriod?.year}
+              A P&L report for {pendingPeriod?.period?.name} {pendingPeriod?.year} already exists for this restaurant. 
+              Do you want to replace it with the new file?
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <EnhancedFileUpload
-              files={fileItems}
-              onFilesChange={handleFilesChange}
-              onUpload={handleUpload}
-              onRemove={handleRemoveFile}
-              onClear={handleClear}
-              isUploading={isUploading}
-              maxFiles={1}
-              maxSize={10 * 1024 * 1024} // 10MB
-              acceptedTypes={['.xlsx', '.xls']}
-              disabled={isUploading}
-            />
-            
-            {uploadError && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
-                Upload failed: {uploadError}
-              </div>
-            )}
-            
-            {uploadSuccess && (
-              <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Report uploaded successfully! The page will refresh automatically.
-              </div>
-            )}
-            
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p className="font-medium">File Requirements:</p>
-              <p>• Excel file must contain P&L data with proper structure</p>
-              <p>• Required columns: Actuals, Plan, Prior Year</p>
-              <p>• File format: .xlsx or .xls</p>
-              <p>• Maximum file size: 10MB</p>
-              <p>• File will be processed automatically after upload</p>
-            </div>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p className="font-medium">This action will:</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>Delete the existing report</li>
+              <li>Upload and process the new file</li>
+              <li>Replace all existing data</li>
+            </ul>
+            <p className="text-destructive font-medium">This action cannot be undone.</p>
           </div>
           
           <DialogFooter>
             <button
-              onClick={() => setUploadModalOpen(false)}
+              onClick={handleOverwriteCancel}
               className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
-              disabled={isUploading}
+              disabled={isDeleting}
             >
               Cancel
+            </button>
+            <button
+              onClick={handleOverwriteConfirm}
+              className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Replacing...' : 'Replace Report'}
             </button>
           </DialogFooter>
         </DialogContent>

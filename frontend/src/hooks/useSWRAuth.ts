@@ -8,6 +8,7 @@ interface AuthUser {
   email: string;
   fullName: string;
   role: string;
+  job_title?: string;
 }
 
 interface LoginCredentials {
