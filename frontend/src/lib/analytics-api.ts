@@ -184,4 +184,42 @@ export const AnalyticsAPI = {
     const yearParam = year ? `?year=${year}` : '';
     return apiFetch(`analytics/${storeId}/summary${yearParam}`);
   },
+
+  // ===== Area P&L (GET only) =====
+  getAreaPlSummary: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/summary?${query}`);
+  },
+  getAreaPlBreakdown: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/breakdown?${query}`);
+  },
+  getAreaPlTrends: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/trends?${query}`);
+  },
+  getAreaPlVariance: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/variance?${query}`);
+  },
+  getAreaPlLeaderboard: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/leaderboard?${query}`);
+  },
+  getAreaPlLineItems: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/line-items?${query}`);
+  },
+  getAreaPlPeriods: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/periods?${query}`);
+  },
+  getAreaPlKpis: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/kpis?${query}`);
+  },
+  getAreaPlCompare: async (params: Record<string, any>) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiFetch(`area-pl/compare?${query}`);
+  },
 };

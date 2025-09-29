@@ -238,18 +238,27 @@ router
   .use(middleware.auth())
 
 // =============================================================================
-// AREA P&L ROUTES (Protected - ACO and above only)
+// AREA P&L ROUTES (Protected - admin and ops_lead via policy)
 // =============================================================================
 
 router
   .group(() => {
+    // Backward-compatible index (placeholder)
     router.get('/', '#controllers/area_pl_controller.index')
-    router.get('/detailed-report', '#controllers/area_pl_controller.getDetailedReport')
-    router.post('/export', '#controllers/area_pl_controller.exportData')
+
+    // Area P&L analytics endpoints (GET only)
+    router.get('/summary', '#controllers/area_pl_controller.summary')
+    router.get('/breakdown', '#controllers/area_pl_controller.breakdown')
+    router.get('/trends', '#controllers/area_pl_controller.trends')
+    router.get('/variance', '#controllers/area_pl_controller.variance')
+    router.get('/leaderboard', '#controllers/area_pl_controller.leaderboard')
+    router.get('/line-items', '#controllers/area_pl_controller.lineItems')
+    router.get('/periods', '#controllers/area_pl_controller.periods')
+    router.get('/kpis', '#controllers/area_pl_controller.kpis')
+    router.get('/compare', '#controllers/area_pl_controller.compare')
   })
   .prefix('/area-pl')
   .use(middleware.auth())
-  .use(middleware.role(['admin']))
 
 // =============================================================================
 // DEBUG ROUTES (Protected)

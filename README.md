@@ -17,7 +17,7 @@ A tablet-based food calling and kitchen management system designed to streamline
 
 ## 📝 Development Notes
 
-### Current Status (Last Updated: Sep 23, 2025)
+### Current Status (Last Updated: Sep 29, 2025)
 - ✅ **Backend**: AdonisJS 6.19.0 project created and working
 - ✅ **Database**: Postgres configured, migrations executed successfully (Postgres only)
 - ✅ **Models**: MenuItem and Order models created with relationships
@@ -183,17 +183,16 @@ frontend/
 - ✅ Add timer start/complete functionality
 - ✅ Implement order status management
 
-**Этап 9: Convert to Chakra UI** ✅ COMPLETED
-- ✅ Setup Chakra UI MCP server configuration
-- ✅ Install Chakra UI packages (Switched to Tailwind CSS)
-- ✅ Convert existing interfaces to Chakra components (Using Tailwind CSS)
-- ✅ Implement responsive tablet-optimized design
+**Этап 9: UI with Tailwind CSS + shadcn/ui** ✅ COMPLETED
+- ✅ Tailwind CSS configured and applied across the app
+- ✅ Components built using shadcn/ui (`https://ui.shadcn.com/docs`)
+- ✅ Responsive, tablet-optimized design
 
 ### Frontend Development
 6. **Create Next.js frontend** - Basic structure with TypeScript and native HTML `✅ COMPLETED`
 7. **Create table section interfaces** - 3 manager tablets with native HTML `✅ COMPLETED`
 8. **Create kitchen interface** - Cook tablet with native HTML `✅ COMPLETED`
-9. **Convert to Chakra UI** - Redesign all interfaces with Chakra UI `✅ COMPLETED` (Switched to Tailwind CSS)
+9. **UI with Tailwind + shadcn/ui** - Redesigned interfaces with shadcn/ui `✅ COMPLETED`
 
 ### Integration & Logic
 10. **Implement polling** - 5-second synchronization `✅ COMPLETED`
@@ -267,6 +266,8 @@ The system consists of **4 tablets total**:
 Before you begin, ensure you have the following installed:
 - Node.js (v18 or higher) - required for Next.js 15.5.2
 - npm
+
+Note: Use npm exclusively for all commands (Yarn is not used).
 
 ## 🗄️ Database Configuration
 
