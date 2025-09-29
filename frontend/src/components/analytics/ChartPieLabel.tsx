@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Pie, PieChart } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { PLLineItem } from '@/hooks/useSWRPL';
 
 const pieChartConfig = {
   amount: {
@@ -29,56 +28,41 @@ const pieChartConfig = {
 } satisfies ChartConfig;
 
 interface ChartPieLabelProps {
-  plLineItems: PLLineItem[];
+  pieChartData: {
+    data: Array<{
+      category: string;
+      amount: number;
+      percentage: number;
+      fill: string;
+    }>;
+    netSales: number;
+  };
 }
 
-export function ChartPieLabel({ plLineItems }: ChartPieLabelProps) {
-  // Получаем Net Sales
-  const netSalesItem = plLineItems.find(item => item.ledgerAccount === 'Net Sales');
-  const netSales = netSalesItem ? parseFloat(netSalesItem.actuals?.toString() || '0') : 0;
+export function ChartPieLabel({ pieChartData }: ChartPieLabelProps) {
+  const { data: chartData, netSales } = pieChartData;
 
-  // Получаем Labor %
-  const laborItem = plLineItems.find(item => item.ledgerAccount === 'Total Labor');
-  const laborPercentage = laborItem ? parseFloat(laborItem.actualsPercentage?.toString() || '0') * 100 : 0;
+  // Debug logging
+  console.log('ChartPieLabel - pieChartData:', pieChartData);
+  console.log('ChartPieLabel - chartData:', chartData);
+  console.log('ChartPieLabel - netSales:', netSales);
 
-  // Получаем COGS %
-  const cogsItem = plLineItems.find(item => item.ledgerAccount === 'Cost of Goods Sold');
-  const cogsPercentage = cogsItem ? parseFloat(cogsItem.actualsPercentage?.toString() || '0') * 100 : 0;
-
-  // Получаем CP % (Controllable Profit)
-  const cpItem = plLineItems.find(item => item.ledgerAccount === 'Controllable Profit');
-  const cpPercentage = cpItem ? parseFloat(cpItem.actualsPercentage?.toString() || '0') * 100 : 0;
-
-  // Вычисляем Other (остаток)
-  const otherPercentage = Math.max(0, 100 - laborPercentage - cogsPercentage - cpPercentage);
-
-  // Создаем данные для pie chart
-  const pieChartData = [
-    { 
-      category: "Labor %", 
-      amount: (netSales * laborPercentage / 100), 
-      percentage: laborPercentage,
-      fill: "var(--color-labor)" 
-    },
-    { 
-      category: "COGS %", 
-      amount: (netSales * cogsPercentage / 100), 
-      percentage: cogsPercentage,
-      fill: "var(--color-cogs)" 
-    },
-    { 
-      category: "CP %", 
-      amount: (netSales * cpPercentage / 100), 
-      percentage: cpPercentage,
-      fill: "var(--color-cp)" 
-    },
-    { 
-      category: "Other", 
-      amount: (netSales * otherPercentage / 100), 
-      percentage: otherPercentage,
-      fill: "var(--color-other)" 
-    },
-  ].filter(item => item.percentage > 0); // Убираем элементы с 0%
+  // Check if we have valid data
+  if (!chartData || chartData.length === 0) {
+    return (
+      <Card className="flex flex-col">
+        <CardHeader className="items-center pb-0">
+          <CardTitle>Net Sales Breakdown</CardTitle>
+          <CardDescription>Actual percentages from Net Sales</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 pb-0">
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+            No data available
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex flex-col">
@@ -100,7 +84,7 @@ export function ChartPieLabel({ plLineItems }: ChartPieLabelProps) {
               ]}
             />
             <Pie 
-              data={pieChartData} 
+              data={chartData} 
               dataKey="amount" 
               label={(entry) => `${entry.category} ${entry.percentage.toFixed(1)}%`}
               nameKey="category" 

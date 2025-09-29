@@ -219,6 +219,14 @@ export default class PlReportController {
       // Calculate metrics from line items
       const calculations = this.calculateMetrics(lineItems)
 
+      console.log('Backend lineItems response:', {
+        lineItemsCount: lineItems.length,
+        calculationsKeys: Object.keys(calculations),
+        chartsExists: !!calculations.charts,
+        pieChartExists: !!calculations.charts?.pieChart,
+        pieChartData: calculations.charts?.pieChart
+      })
+
       return response.ok({
         data: lineItems,
         calculations: calculations
@@ -247,6 +255,12 @@ export default class PlReportController {
     const parseValue = (value: any): number => {
       if (value === null || value === undefined) return 0
       return parseFloat(value.toString()) || 0
+    }
+
+    // Helper function to get percentage value
+    const getPercentage = (item: PlReportLineItem | undefined): number => {
+      if (!item || !item.actualsPercentage) return 0
+      return parseValue(item.actualsPercentage) * 100
     }
 
     // SSS (Same Store Sales) = (Actual Net Sales - Prior Year Net Sales) / Prior Year Net Sales × 100%
@@ -341,6 +355,138 @@ export default class PlReportController {
         amChefBonus: difference * 0.10
       }
     }
+
+    // === NEW CALCULATIONS FOR CLIENT-SIDE OPTIMIZATION ===
+
+    // Key Metrics for Dashboard
+    const netSales = parseValue(netSalesItem?.actuals)
+    const priorNetSales = parseValue(netSalesItem?.priorYear)
+    const totalTransactions = parseValue(findItem('Total Transactions')?.actuals)
+    const priorTransactions = parseValue(findItem('Total Transactions')?.priorYear)
+    const checkAverage = parseValue(findItem('Check Avg - Net')?.actuals)
+    const priorCheckAverage = parseValue(findItem('Check Avg - Net')?.priorYear)
+    const thirdPartyDigitalSales = parseValue(findItem('3rd Party Digital Sales')?.actuals)
+    const pandaDigitalSales = parseValue(findItem('Panda Digital Sales')?.actuals)
+
+    // Calculate changes and percentages
+    const netSalesChange = netSales - priorNetSales
+    const netSalesChangePercent = priorNetSales !== 0 ? (netSalesChange / priorNetSales) * 100 : 0
+    const transactionsChange = totalTransactions - priorTransactions
+    const transactionsChangePercent = priorTransactions !== 0 ? (transactionsChange / priorTransactions) * 100 : 0
+    const oloPercentage = netSales !== 0 ? ((thirdPartyDigitalSales + pandaDigitalSales) / netSales) * 100 : 0
+
+    // Dashboard metrics
+    metrics.dashboard = {
+      netSales,
+      priorNetSales,
+      netSalesChange,
+      netSalesChangePercent,
+      sssPercentage: metrics.sss || 0,
+      cogsPercentage: metrics.cogsPercentage || 0,
+      laborPercentage: metrics.laborPercentage || 0,
+      controllableProfitPercentage: getPercentage(findItem('Controllable Profit')),
+      totalTransactions,
+      priorTransactions,
+      transactionsChange,
+      transactionsChangePercent,
+      sstPercentage: metrics.sst || 0,
+      checkAverage,
+      priorCheckAverage,
+      thirdPartyDigitalSales,
+      pandaDigitalSales,
+      oloPercentage
+    }
+
+    // Key Metrics Cards calculations
+    const cogsPercentage = getPercentage(findItem('Cost of Goods Sold'))
+    const laborPercentage = getPercentage(findItem('Total Labor'))
+    const primeCost = cogsPercentage + laborPercentage
+    const controllableProfit = parseValue(findItem('Controllable Profit')?.actuals)
+
+    metrics.keyMetrics = {
+      cogsPercentage,
+      laborPercentage,
+      primeCost,
+      controllableProfit,
+      cogsColor: cogsPercentage < 30 ? 'green' : 'red',
+      laborColor: laborPercentage < 30 ? 'green' : 'red',
+      primeCostColor: primeCost > 60 ? 'red' : 'green'
+    }
+
+    // Chart data calculations
+    // Cost of Sales chart data
+    const costOfSalesAccounts = ['Grocery', 'Meat', 'Produce', 'Sea Food', 'DRinks', 'Paper Goods', 'Other']
+    const costOfSalesData = costOfSalesAccounts.map(account => {
+      const item = findItem(account)
+      return {
+        category: account,
+        actual: parseValue(item?.actuals),
+        priorYear: parseValue(item?.priorYear)
+      }
+    }).filter(item => item.actual > 0 || item.priorYear > 0)
+
+    const totalActual = costOfSalesData.reduce((sum, item) => sum + item.actual, 0)
+    const totalPriorYear = costOfSalesData.reduce((sum, item) => sum + item.priorYear, 0)
+
+    metrics.charts = {
+      costOfSales: {
+        data: costOfSalesData,
+        totalActual,
+        totalPriorYear,
+        cogsActualPercentage: getPercentage(findItem('Cost of Goods Sold')),
+        cogsPriorYearPercentage: findItem('Cost of Goods Sold') ? parseValue(findItem('Cost of Goods Sold')?.priorYearPercentage) * 100 : 0
+      }
+    }
+
+    // Pie chart data for Net Sales breakdown
+    const laborPercentageForPie = getPercentage(findItem('Total Labor'))
+    const cogsPercentageForPie = getPercentage(findItem('Cost of Goods Sold'))
+    const cpPercentageForPie = getPercentage(findItem('Controllable Profit'))
+    const otherPercentageForPie = Math.max(0, 100 - laborPercentageForPie - cogsPercentageForPie - cpPercentageForPie)
+
+    console.log('Backend pie chart calculations:', {
+      netSales,
+      laborPercentageForPie,
+      cogsPercentageForPie,
+      cpPercentageForPie,
+      otherPercentageForPie
+    })
+
+    const pieChartData = [
+      { 
+        category: "Labor %", 
+        amount: (netSales * laborPercentageForPie / 100), 
+        percentage: laborPercentageForPie,
+        fill: "var(--color-labor)" 
+      },
+      { 
+        category: "COGS %", 
+        amount: (netSales * cogsPercentageForPie / 100), 
+        percentage: cogsPercentageForPie,
+        fill: "var(--color-cogs)" 
+      },
+      { 
+        category: "CP %", 
+        amount: (netSales * cpPercentageForPie / 100), 
+        percentage: cpPercentageForPie,
+        fill: "var(--color-cp)" 
+      },
+      { 
+        category: "Other", 
+        amount: (netSales * otherPercentageForPie / 100), 
+        percentage: otherPercentageForPie,
+        fill: "var(--color-other)" 
+      },
+    ].filter(item => item.percentage > 0)
+
+    console.log('Backend pie chart data:', pieChartData)
+
+    metrics.charts.pieChart = {
+      data: pieChartData,
+      netSales
+    }
+
+    console.log('Backend final metrics.charts.pieChart:', metrics.charts.pieChart)
 
     return metrics
   }

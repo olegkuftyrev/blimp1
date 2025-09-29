@@ -505,7 +505,7 @@ const ImprovedNavigation = () => {
                 Profit & Loss
               </div>
               <div className="pl-6 space-y-1">
-                {user && user.role !== 'associate' && (
+                {user && (
                   <Link
                     href="/analytics"
                     className={cn(

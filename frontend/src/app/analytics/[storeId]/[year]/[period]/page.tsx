@@ -44,11 +44,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
     params.then(setResolvedParams);
   }, [params]);
   
-  useEffect(() => {
-    if (user && user.role === 'associate') {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
+  // Removed role restriction - associates can now access analytics
 
   // Use SWR hooks for data fetching
   const { reports, loading: reportsLoading, error: reportsError } = usePLReports(
@@ -170,23 +166,23 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
       />
 
       {/* Dashboard with Key Metrics */}
-      {plReport && plLineItems.length > 0 && calculations && (
+      {plReport && plLineItems.length > 0 && calculations?.dashboard && (
         <div className="mb-8">
           <PLDashboard 
             data={{
-              netSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Net Sales')?.actuals?.toString() || '0'),
-              priorNetSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Net Sales')?.priorYear?.toString() || '0'),
-              sssPercentage: calculations.sss || 0,
-              cogsPercentage: calculations.cogsPercentage || 0,
-              laborPercentage: calculations.laborPercentage || 0,
-              controllableProfitPercentage: (parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Controllable Profit')?.actualsPercentage?.toString() || '0')) * 100,
-              totalTransactions: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Transactions')?.actuals?.toString() || '0'),
-              priorTransactions: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Transactions')?.priorYear?.toString() || '0'),
-              sstPercentage: calculations.sst || 0,
-              checkAverage: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Check Avg - Net')?.actuals?.toString() || '0'),
-              priorCheckAverage: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Check Avg - Net')?.priorYear?.toString() || '0'),
-              thirdPartyDigitalSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === '3rd Party Digital Sales')?.actuals?.toString() || '0'),
-              pandaDigitalSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Panda Digital Sales')?.actuals?.toString() || '0'),
+              netSales: calculations.dashboard.netSales,
+              priorNetSales: calculations.dashboard.priorNetSales,
+              sssPercentage: calculations.dashboard.sssPercentage,
+              cogsPercentage: calculations.dashboard.cogsPercentage,
+              laborPercentage: calculations.dashboard.laborPercentage,
+              controllableProfitPercentage: calculations.dashboard.controllableProfitPercentage,
+              totalTransactions: calculations.dashboard.totalTransactions,
+              priorTransactions: calculations.dashboard.priorTransactions,
+              sstPercentage: calculations.dashboard.sstPercentage,
+              checkAverage: calculations.dashboard.checkAverage,
+              priorCheckAverage: calculations.dashboard.priorCheckAverage,
+              thirdPartyDigitalSales: calculations.dashboard.thirdPartyDigitalSales,
+              pandaDigitalSales: calculations.dashboard.pandaDigitalSales,
             }}
           />
         </div>
@@ -198,21 +194,45 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Pie Chart - первый столбец */}
             <div>
-              <ChartPieLabel plLineItems={plLineItems} />
+              {calculations?.charts?.pieChart ? (
+                (() => {
+                  console.log('Main page - calculations:', calculations);
+                  console.log('Main page - calculations.charts:', calculations.charts);
+                  console.log('Main page - calculations.charts.pieChart:', calculations.charts.pieChart);
+                  return <ChartPieLabel pieChartData={calculations.charts.pieChart} />;
+                })()
+              ) : (
+                <div className="bg-card rounded-lg shadow p-6">
+                  <div className="text-center text-muted-foreground">
+                    <p>Loading chart data...</p>
+                    <p className="text-sm mt-2">calculations: {calculations ? 'exists' : 'null'}</p>
+                    <p className="text-sm">charts: {calculations?.charts ? 'exists' : 'null'}</p>
+                    <p className="text-sm">pieChart: {calculations?.charts?.pieChart ? 'exists' : 'null'}</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Второй столбец с карточками */}
             <div>
-              <KeyMetricsCards plLineItems={plLineItems} />
+              {calculations?.keyMetrics ? (
+                <KeyMetricsCards keyMetrics={calculations.keyMetrics} />
+              ) : (
+                <div className="bg-card rounded-lg shadow p-6">
+                  <div className="text-center text-muted-foreground">
+                    <p>Loading key metrics...</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {/* Chart Bar Multiple */}
-      {plReport && plLineItems.length > 0 && (
+      {plReport && plLineItems.length > 0 && calculations?.charts?.costOfSales && (
         <div className="mb-8">
-          <ChartBarMultiple plLineItems={plLineItems} />
+          <ChartBarMultiple costOfSalesData={calculations.charts.costOfSales} />
         </div>
       )}
 

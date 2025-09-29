@@ -8,20 +8,52 @@ export default class RestaurantsController {
   /**
    * Display a list of restaurants
    */
-  async index({ request, response }: HttpContext) {
+  async index({ request, response, auth }: HttpContext) {
     try {
       const qs = request.qs()
       const includeInactive = qs.includeInactive === '1' || qs.includeInactive === 'true'
 
+      const user = auth.user
+
+      // Admins see all restaurants
+      if (user && user.role === 'admin') {
+        if (includeInactive) {
+          const [active, inactive] = await Promise.all([
+            Restaurant.query().where('isActive', true),
+            Restaurant.query().where('isActive', false),
+          ])
+          return response.ok({ data: { active, inactive } })
+        }
+
+        const restaurants = await Restaurant.query().where('isActive', true)
+        return response.ok({ data: restaurants })
+      }
+
+      // Non-admins: scope to restaurants assigned to the authenticated user
+      const userId = user?.id
+
+      if (!userId) {
+        return response.unauthorized({ error: 'Authentication required' })
+      }
+
+      const userRestaurantRecords = await UserRestaurant.query()
+        .where('user_id', userId)
+        .select('restaurant_id')
+
+      const userRestaurantIds = userRestaurantRecords.map((ur) => ur.restaurantId)
+
       if (includeInactive) {
         const [active, inactive] = await Promise.all([
-          Restaurant.query().where('isActive', true),
-          Restaurant.query().where('isActive', false),
+          Restaurant.query().whereIn('id', userRestaurantIds).andWhere('isActive', true),
+          Restaurant.query().whereIn('id', userRestaurantIds).andWhere('isActive', false),
         ])
         return response.ok({ data: { active, inactive } })
       }
 
-      const restaurants = await Restaurant.query().where('isActive', true)
+      const restaurants = userRestaurantIds.length > 0
+        ? await Restaurant.query().whereIn('id', userRestaurantIds).andWhere('isActive', true)
+        : []
+
       return response.ok({ data: restaurants })
     } catch (error) {
       return response.badRequest({ error: 'Failed to fetch restaurants' })

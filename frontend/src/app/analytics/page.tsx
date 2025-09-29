@@ -16,6 +16,13 @@ export default function AnalyticsPage() {
   const { restaurants, loading, error } = useSWRRestaurants();
   const { teamMembers, loading: teamLoading } = useSWRTeamMembers();
 
+  // If user has access to exactly one restaurant, auto-redirect to its analytics
+  useEffect(() => {
+    if (!loading && restaurants && restaurants.length === 1) {
+      router.replace(`/analytics/${restaurants[0].id}`);
+    }
+  }, [loading, restaurants, router]);
+
   // Function to get team members for a specific restaurant
   const getTeamMembersForRestaurant = (restaurantId: number) => {
     if (!teamMembers) return { blackShirts: [], opsLeads: [] };
@@ -38,11 +45,7 @@ export default function AnalyticsPage() {
     return jobTitle;
   };
 
-  useEffect(() => {
-    if (user && user.role === 'associate') {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
+  // Removed role restriction - associates can now access analytics
 
   if (!user) {
     return (
@@ -54,15 +57,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (user.role === 'associate') {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-card rounded-lg shadow p-6">
-          <p className="text-muted-foreground">Access denied. You don't have permission to view this page.</p>
-        </div>
-      </div>
-    );
-  }
+  // Associates now have access to analytics
 
   if (loading) {
     return (

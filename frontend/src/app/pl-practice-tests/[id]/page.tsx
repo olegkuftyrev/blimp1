@@ -60,8 +60,10 @@ export default function PLTestSetPage({ params }: PageProps) {
     setSubmittingAnswers(prev => new Set(prev).add(questionIndex))
     
     try {
-      await submitAnswer(question.id, answer, testSet.id)
+      await submitAnswer({ testSetId: testSet.id, questionId: question.id, answer })
       setAnsweredQuestions(prev => new Set(prev).add(questionIndex))
+      // Refresh the test set data to get updated answers
+      mutateTestSet()
     } catch (error) {
       console.error('Failed to submit answer:', error)
     } finally {
@@ -85,7 +87,7 @@ export default function PLTestSetPage({ params }: PageProps) {
       onConfirm: async () => {
         setIsResetting(true)
         try {
-          await resetTestSet(testSetId)
+          await resetTestSet({ testSetId })
           // Reset local state
           setAnsweredQuestions(new Set())
           setSubmittingAnswers(new Set())
@@ -114,7 +116,7 @@ export default function PLTestSetPage({ params }: PageProps) {
       onConfirm: async () => {
         setIsFillingRandom(true)
         try {
-          const result = await fillRandomAnswers(testSetId)
+          const result = await fillRandomAnswers({ testSetId })
           // Update local state to show all questions as answered
           const allQuestionIndices = new Set(testSet.questions.map((_, index) => index))
           setAnsweredQuestions(allQuestionIndices)
@@ -150,7 +152,7 @@ export default function PLTestSetPage({ params }: PageProps) {
       onConfirm: async () => {
         setIsFillingCorrect(true)
         try {
-          const result = await fillCorrectAnswers(testSetId)
+          const result = await fillCorrectAnswers({ testSetId })
           // Update local state to show all questions as answered
           const allQuestionIndices = new Set(testSet.questions.map((_, index) => index))
           setAnsweredQuestions(allQuestionIndices)

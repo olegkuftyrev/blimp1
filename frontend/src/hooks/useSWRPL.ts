@@ -303,7 +303,7 @@ export function usePLTestSets() {
   } = useSWR<any>(
     () => {
       if (typeof window === 'undefined') return null;
-      return window.localStorage.getItem('auth_token') ? 'pl-test-sets' : null;
+      return window.localStorage.getItem('auth_token') ? 'pl-questions/test-sets' : null;
     },
     fetcher,
     {
@@ -345,7 +345,7 @@ export function usePLTestSet(testSetId?: number) {
   } = useSWR<any>(
     () => {
       if (typeof window === 'undefined' || !testSetId) return null;
-      return window.localStorage.getItem('auth_token') ? `pl-test-sets/${testSetId}` : null;
+      return window.localStorage.getItem('auth_token') ? `pl-questions/test-sets/${testSetId}` : null;
     },
     fetcher,
     {
@@ -388,7 +388,7 @@ export function usePLStats() {
   } = useSWR<any>(
     () => {
       if (typeof window === 'undefined') return null;
-      return window.localStorage.getItem('auth_token') ? 'pl-stats' : null;
+      return window.localStorage.getItem('auth_token') ? 'pl-questions/stats' : null;
     },
     fetcher,
     {
@@ -430,7 +430,7 @@ export function usePLTestSetsForUser(userId?: number) {
   } = useSWR<any>(
     () => {
       if (typeof window === 'undefined' || !userId) return null;
-      return window.localStorage.getItem('auth_token') ? `pl-test-sets/user/${userId}` : null;
+      return window.localStorage.getItem('auth_token') ? `pl-questions/users/${userId}/test-sets` : null;
     },
     fetcher,
     {
@@ -473,7 +473,7 @@ export function usePLStatsForUser(userId?: number) {
   } = useSWR<any>(
     () => {
       if (typeof window === 'undefined' || !userId) return null;
-      return window.localStorage.getItem('auth_token') ? `pl-stats/user/${userId}` : null;
+      return window.localStorage.getItem('auth_token') ? `pl-questions/users/${userId}/stats` : null;
     },
     fetcher,
     {
@@ -513,7 +513,7 @@ export function useCreatePLTestSet() {
     isMutating: isCreating,
     error: createError
   } = useSWRMutation(
-    'pl-test-sets/create',
+    'pl-questions/test-sets',
     async (url: string) => {
       return apiFetch<{ message: string; data: PLTestSet }>(url, {
         method: 'POST',
@@ -543,11 +543,11 @@ export function useSubmitPLAnswer() {
     isMutating: isSubmitting,
     error: submitError
   } = useSWRMutation(
-    'pl-test-sets/submit-answer',
+    'pl-questions/submit-answer',
     async (url: string, { arg }: { arg: { testSetId: number; questionId: number; answer: string } }) => {
-      return apiFetch<{ message: string; data: any }>(url, {
+      return apiFetch<{ message: string; data: any }>(`pl-questions/${arg.questionId}/answer`, {
         method: 'POST',
-        body: JSON.stringify(arg),
+        body: JSON.stringify({ testSetId: arg.testSetId, userAnswer: arg.answer }),
       });
     },
     {
@@ -574,11 +574,10 @@ export function useResetPLTestSet() {
     isMutating: isResetting,
     error: resetError
   } = useSWRMutation(
-    'pl-test-sets/reset',
+    'pl-questions/test-sets/reset',
     async (url: string, { arg }: { arg: { testSetId: number } }) => {
-      return apiFetch<{ message: string; data: PLTestSet }>(url, {
+      return apiFetch<{ message: string; data: PLTestSet }>(`pl-questions/test-sets/${arg.testSetId}/reset`, {
         method: 'POST',
-        body: JSON.stringify(arg),
       });
     },
     {
@@ -605,11 +604,10 @@ export function useFillRandomAnswers() {
     isMutating: isFilling,
     error: fillError
   } = useSWRMutation(
-    'pl-test-sets/fill-random',
+    'pl-questions/test-sets/fill-random',
     async (url: string, { arg }: { arg: { testSetId: number } }) => {
-      return apiFetch<{ message: string; data: any }>(url, {
+      return apiFetch<{ message: string; data: any }>(`pl-questions/test-sets/${arg.testSetId}/fill-random`, {
         method: 'POST',
-        body: JSON.stringify(arg),
       });
     },
     {
@@ -636,11 +634,10 @@ export function useFillCorrectAnswers() {
     isMutating: isFilling,
     error: fillError
   } = useSWRMutation(
-    'pl-test-sets/fill-correct',
+    'pl-questions/test-sets/fill-correct',
     async (url: string, { arg }: { arg: { testSetId: number } }) => {
-      return apiFetch<{ message: string; data: any }>(url, {
+      return apiFetch<{ message: string; data: any }>(`pl-questions/test-sets/${arg.testSetId}/fill-correct`, {
         method: 'POST',
-        body: JSON.stringify(arg),
       });
     },
     {
@@ -667,9 +664,9 @@ export function useDeleteAllTestSets() {
     isMutating: isDeleting,
     error: deleteError
   } = useSWRMutation(
-    'pl-test-sets/delete-all',
+    'pl-questions/test-sets/delete-all',
     async (url: string) => {
-      return apiFetch<{ message: string }>(url, {
+      return apiFetch<{ message: string }>('pl-questions/test-sets', {
         method: 'DELETE',
       });
     },

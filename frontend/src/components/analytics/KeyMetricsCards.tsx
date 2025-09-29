@@ -1,13 +1,21 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PLLineItem } from '@/hooks/useSWRPL';
 
 interface KeyMetricsCardsProps {
-  plLineItems: PLLineItem[];
+  keyMetrics: {
+    cogsPercentage: number;
+    laborPercentage: number;
+    primeCost: number;
+    controllableProfit: number;
+    cogsColor: 'green' | 'red';
+    laborColor: 'green' | 'red';
+    primeCostColor: 'green' | 'red';
+  };
 }
 
-export function KeyMetricsCards({ plLineItems }: KeyMetricsCardsProps) {
+export function KeyMetricsCards({ keyMetrics }: KeyMetricsCardsProps) {
+  const { cogsPercentage, laborPercentage, primeCost, controllableProfit, cogsColor, laborColor, primeCostColor } = keyMetrics;
   return (
     <div className="space-y-6">
       {/* Prime Cost Card */}
@@ -20,32 +28,21 @@ export function KeyMetricsCards({ plLineItems }: KeyMetricsCardsProps) {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">COGS%</span>
-              <span className={`text-lg font-bold ${
-                (plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold') ? parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold')?.actualsPercentage?.toString() || '0') * 100 : 0) < 30 
-                ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold') ? (parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold')?.actualsPercentage?.toString() || '0') * 100).toFixed(1) : '0.0'}%
+              <span className={`text-lg font-bold ${cogsColor === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                {cogsPercentage.toFixed(1)}%
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Labor%</span>
-              <span className={`text-lg font-bold ${
-                (plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor') ? parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor')?.actualsPercentage?.toString() || '0') * 100 : 0) < 30 
-                ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor') ? (parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor')?.actualsPercentage?.toString() || '0') * 100).toFixed(1) : '0.0'}%
+              <span className={`text-lg font-bold ${laborColor === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                {laborPercentage.toFixed(1)}%
               </span>
             </div>
             <div className="border-t pt-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Prime Cost</span>
-                <span className={`text-xl font-bold ${
-                  ((plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold') ? parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold')?.actualsPercentage?.toString() || '0') * 100 : 0) + 
-                   (plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor') ? parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor')?.actualsPercentage?.toString() || '0') * 100 : 0)) > 60 
-                  ? 'text-red-600' : 'text-green-600'
-                }`}>
-                  {((plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold') ? parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Cost of Goods Sold')?.actualsPercentage?.toString() || '0') * 100 : 0) + 
-                    (plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor') ? parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Labor')?.actualsPercentage?.toString() || '0') * 100 : 0)).toFixed(1)}%
+                <span className={`text-xl font-bold ${primeCostColor === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                  {primeCost.toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -60,7 +57,7 @@ export function KeyMetricsCards({ plLineItems }: KeyMetricsCardsProps) {
         </CardHeader>
         <CardContent className="pt-0">
           <div className="text-2xl font-bold">
-            ${parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Controllable Profit')?.actuals?.toString() || '0').toLocaleString()}
+            ${controllableProfit.toLocaleString()}
           </div>
         </CardContent>
       </Card>

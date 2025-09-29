@@ -3,7 +3,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { PLLineItem } from '@/hooks/useSWRPL';
 
 const chartConfig = {
   actual: { label: "Actual", color: "#2563eb" }, // синий
@@ -11,36 +10,21 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 interface ChartBarMultipleProps {
-  plLineItems: PLLineItem[];
+  costOfSalesData: {
+    data: Array<{
+      category: string;
+      actual: number;
+      priorYear: number;
+    }>;
+    totalActual: number;
+    totalPriorYear: number;
+    cogsActualPercentage: number;
+    cogsPriorYearPercentage: number;
+  };
 }
 
-export function ChartBarMultiple({ plLineItems }: ChartBarMultipleProps) {
-  // Фильтруем данные Cost of Sales из реальных данных
-  const costOfSalesItems = plLineItems.filter((item: PLLineItem) => 
-    item.ledgerAccount === 'Grocery' || 
-    item.ledgerAccount === 'Meat' || 
-    item.ledgerAccount === 'Produce' || 
-    item.ledgerAccount === 'Sea Food' ||
-    item.ledgerAccount === 'DRinks' ||
-    item.ledgerAccount === 'Paper Goods' ||
-    item.ledgerAccount === 'Other'
-  );
-
-  // Преобразуем данные для графика
-  const chartData = costOfSalesItems.map(item => ({
-    category: item.ledgerAccount,
-    actual: parseFloat(item.actuals?.toString() || '0'),
-    priorYear: parseFloat(item.priorYear?.toString() || '0')
-  }));
-
-  // Вычисляем общие суммы для footer
-  const totalActual = chartData.reduce((sum, item) => sum + item.actual, 0);
-  const totalPriorYear = chartData.reduce((sum, item) => sum + item.priorYear, 0);
-
-  // Находим элемент "Cost of Goods Sold" для получения процентов
-  const cogsItem = plLineItems.find(item => item.ledgerAccount === 'Cost of Goods Sold');
-  const cogsActualPercentage = cogsItem ? parseFloat(cogsItem.actualsPercentage?.toString() || '0') * 100 : 0;
-  const cogsPriorYearPercentage = cogsItem ? parseFloat(cogsItem.priorYearPercentage?.toString() || '0') * 100 : 0;
+export function ChartBarMultiple({ costOfSalesData }: ChartBarMultipleProps) {
+  const { data: chartData, totalActual, totalPriorYear, cogsActualPercentage, cogsPriorYearPercentage } = costOfSalesData;
 
   return (
     <Card>

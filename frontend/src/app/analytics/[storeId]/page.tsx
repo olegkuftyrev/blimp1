@@ -203,11 +203,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
     setPendingPeriod(null);
   };
 
-  useEffect(() => {
-    if (user && user.role === 'associate') {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
+  // Removed role restriction - associates can now access analytics
 
   if (!user) {
     return (
@@ -219,15 +215,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
     );
   }
 
-  if (user.role === 'associate') {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-card rounded-lg shadow p-6">
-          <p className="text-gray-500">Access denied. You don't have permission to view this page.</p>
-        </div>
-      </div>
-    );
-  }
+  // Associates now have access to analytics
 
   if (loading) {
     return (
@@ -317,10 +305,10 @@ export default function StoreYearPage({ params }: StorePageProps) {
     if (hasData) {
       return (
         <Link href={`/analytics/${storeId}/${year}/${period.id}`}>
-          <Card className={`hover:shadow-lg cursor-pointer transition-all duration-300 relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white ${isCurrent ? 'ring-2 ring-primary' : ''}`}>
+          <Card className={`hover:shadow-lg cursor-pointer transition-all duration-300 relative overflow-hidden bg-card border-border ${isCurrent ? 'ring-2 ring-primary' : ''}`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg text-foreground">
                   {period.name}
                 </CardTitle>
                 <div className="flex items-center gap-2">
@@ -337,7 +325,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-muted-foreground">
                   {period.start}/{year === 2025 && period.id === 'P01' ? '24' : year} - {period.end}/{year}
                 </div>
                 {calculations && (
@@ -345,7 +333,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
                     {/* SSS% Card */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-300">SSS%</span>
+                        <span className="text-xs text-muted-foreground">SSS%</span>
                         <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${sssValue >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                           {sssValue >= 0 ? (
                             <TrendingUp className="h-3 w-3 text-green-400" />
@@ -357,7 +345,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 text-xs text-slate-400">
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                         {sssValue >= 0 ? (
                           <TrendingUp className="h-3 w-3 text-green-400" />
                         ) : (
@@ -370,14 +358,14 @@ export default function StoreYearPage({ params }: StorePageProps) {
                     {/* Labor% Card */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-300">Labor%</span>
+                        <span className="text-xs text-muted-foreground">Labor%</span>
                         <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${laborPercentage <= 30 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                           <span className={`text-xs font-medium ${laborPercentage <= 30 ? 'text-green-400' : 'text-red-400'}`}>
                             {laborPercentage.toFixed(1)}%
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 text-xs text-slate-400">
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                         <span>{laborPercentage <= 30 ? 'Labor costs optimized' : 'Labor costs high'}</span>
                       </div>
                     </div>
@@ -385,14 +373,14 @@ export default function StoreYearPage({ params }: StorePageProps) {
                     {/* COGS% Card */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-300">COGS%</span>
+                        <span className="text-xs text-muted-foreground">COGS%</span>
                         <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${cogsPercentage <= 30 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                           <span className={`text-xs font-medium ${cogsPercentage <= 30 ? 'text-green-400' : 'text-red-400'}`}>
                             {cogsPercentage.toFixed(1)}%
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 text-xs text-slate-400">
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                         <span>{cogsPercentage <= 30 ? 'Cost control effective' : 'Cost control needed'}</span>
                       </div>
                     </div>
@@ -408,18 +396,18 @@ export default function StoreYearPage({ params }: StorePageProps) {
     return (
       <Card className={`transition-all duration-300 ${isCurrent ? 'ring-2 ring-primary' : ''} ${
         isHourlyAssociate && isAvailable
-          ? 'bg-gray-800/30 border-gray-600 border-dashed text-gray-600 cursor-not-allowed opacity-60'
+          ? 'bg-muted/50 border-border border-dashed text-muted-foreground cursor-not-allowed opacity-60'
           : isAvailable 
-            ? 'hover:shadow-lg cursor-pointer bg-gray-900/50 border-gray-700 border-dashed text-gray-500' 
-            : 'bg-gray-800/30 border-gray-600 border-dashed text-gray-600 cursor-not-allowed opacity-60'
+            ? 'hover:shadow-lg cursor-pointer bg-card border-border border-dashed text-muted-foreground' 
+            : 'bg-muted/50 border-border border-dashed text-muted-foreground cursor-not-allowed opacity-60'
       }`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className={`text-lg ${isHourlyAssociate && isAvailable ? 'text-gray-600' : isAvailable ? 'text-gray-500' : 'text-gray-600'}`}>
+            <CardTitle className={`text-lg ${isHourlyAssociate && isAvailable ? 'text-muted-foreground' : isAvailable ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
               {period.name}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <XCircle className={`h-5 w-5 ${isHourlyAssociate && isAvailable ? 'text-gray-500' : isAvailable ? 'text-red-600' : 'text-gray-500'}`} />
+              <XCircle className={`h-5 w-5 ${isHourlyAssociate && isAvailable ? 'text-muted-foreground' : isAvailable ? 'text-red-600' : 'text-muted-foreground'}`} />
               {isCurrent && (
                 <Badge variant="default" className="text-xs">Current</Badge>
               )}
@@ -436,16 +424,16 @@ export default function StoreYearPage({ params }: StorePageProps) {
           {isAvailable ? (
             <div className="py-2">
               {isHourlyAssociate ? (
-                <div className="px-6 py-4 rounded-lg bg-gray-600 border border-gray-500 text-center">
+                <div className="px-6 py-4 rounded-lg bg-muted border border-border text-center">
                   <div className="flex flex-col items-center space-y-2">
-                    <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-8 h-8 bg-muted-foreground/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-300">Upload Restricted</p>
-                      <p className="text-xs text-gray-500">Hourly associates cannot upload files</p>
+                      <p className="text-sm font-medium text-foreground">Upload Restricted</p>
+                      <p className="text-xs text-muted-foreground">Hourly associates cannot upload files</p>
                     </div>
                   </div>
                 </div>
@@ -457,16 +445,16 @@ export default function StoreYearPage({ params }: StorePageProps) {
                   </div>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 transition-colors relative">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-foreground/40 transition-colors relative bg-card">
                   <div className="flex flex-col items-center space-y-2">
-                    <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-8 h-8 bg-muted-foreground/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-300">Upload files</p>
-                      <p className="text-xs text-gray-500">Drag and drop or click to select files</p>
+                      <p className="text-sm font-medium text-foreground">Upload files</p>
+                      <p className="text-xs text-muted-foreground">Drag and drop or click to select files</p>
                     </div>
                     <input
                       type="file"
@@ -480,15 +468,15 @@ export default function StoreYearPage({ params }: StorePageProps) {
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       disabled={isUploading}
                     />
-                    <p className="text-xs text-gray-500">.xlsx, .xls • Max 10 MB • 1 file max</p>
+                    <p className="text-xs text-muted-foreground">.xlsx, .xls • Max 10 MB • 1 file max</p>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="px-6 py-4 rounded-lg bg-gray-600 border border-gray-500 text-center">
-              <span className="text-lg font-medium text-gray-400">Period not started</span>
-              <p className="text-sm text-gray-500 mt-1">
+            <div className="px-6 py-4 rounded-lg bg-muted border border-border text-center">
+              <span className="text-lg font-medium text-muted-foreground">Period not started</span>
+              <p className="text-sm text-muted-foreground mt-1">
                 Upload will be available when period begins
               </p>
             </div>
@@ -511,17 +499,17 @@ export default function StoreYearPage({ params }: StorePageProps) {
             Back to Stores
           </Link>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           {currentStore.name}
         </h1>
-        <p className="text-gray-400">
+        <p className="text-muted-foreground">
           Select a year and financial period to view reports
         </p>
       </div>
 
       {/* Year Selection */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <Calendar className="h-5 w-5" />
           Select Year
         </h2>
@@ -533,8 +521,8 @@ export default function StoreYearPage({ params }: StorePageProps) {
               disabled={year !== currentYear}
               className={`px-4 py-2 rounded-lg border transition-colors ${
                 year === currentYear
-                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 cursor-pointer'
-                  : 'bg-gray-700 text-gray-300 border-gray-600 cursor-not-allowed opacity-50'
+                  ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90 cursor-pointer'
+                  : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-50'
               }`}
             >
               {year}
@@ -551,7 +539,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
 
       {/* Periods Selection */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <Calendar className="h-5 w-5" />
           Financial Periods - {selectedYear} 
         </h2>
@@ -636,7 +624,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
           return (
             <div key={quarter} className="mb-6">
               <div className="flex items-center gap-4 mb-3">
-                <h3 className="text-lg font-medium text-white">{quarter}</h3>
+                <h3 className="text-lg font-medium text-foreground">{quarter}</h3>
                 <QuarterAverages />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
