@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from "next/link";
 import { ArrowLeft, Users, Plus, Edit, Trash2, Building } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,6 +168,25 @@ function StaffManagementContent() {
       console.error('❌ Failed to check user role:', error);
     }
   };
+
+  // Compute visible users based on role and store access
+  const visibleUsers = useMemo(() => {
+    // Until users are loaded or no current user, just return all
+    if (!currentUser) return users;
+    if (currentUser.role === 'admin') return users;
+
+    const selfUser = users.find(
+      (u: User) => u.id === (currentUser as any).id || u.email === currentUser.email
+    );
+    const accessibleRestaurantIds = new Set(
+      (selfUser?.restaurants || []).map((r: Restaurant) => r.id)
+    );
+
+    // Non-admins see only associates that belong to any of their stores
+    return users.filter((u: User) =>
+      u.role === 'associate' && (u.restaurants || []).some((r) => accessibleRestaurantIds.has(r.id))
+    );
+  }, [users, currentUser]);
 
 
   const fetchRestaurants = async () => {
@@ -594,7 +613,7 @@ function StaffManagementContent() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{visibleUsers.length}</div>
               <p className="text-xs text-muted-foreground">
                 Active users
               </p>
@@ -608,7 +627,7 @@ function StaffManagementContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter((u: User) => u.role === 'associate').length}
+                {visibleUsers.filter((u: User) => u.role === 'associate').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Regular users
@@ -623,7 +642,7 @@ function StaffManagementContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter((u: User) => u.role === 'black_shirt').length}
+                {visibleUsers.filter((u: User) => u.role === 'black_shirt').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Restaurant managers
@@ -638,7 +657,7 @@ function StaffManagementContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter((u: User) => u.role === 'ops_lead').length}
+                {visibleUsers.filter((u: User) => u.role === 'ops_lead').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Operations leaders
@@ -666,7 +685,7 @@ function StaffManagementContent() {
                 <p className="text-muted-foreground mb-4">{usersError.message}</p>
                 <Button onClick={() => refetchUsers()}>Retry</Button>
               </div>
-            ) : users.length === 0 ? (
+            ) : visibleUsers.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No users found. Create your first user to get started.</p>
@@ -685,7 +704,7 @@ function StaffManagementContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user: User) => (
+                    {visibleUsers.map((user: User) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.fullName}</TableCell>
                         <TableCell>{user.email}</TableCell>

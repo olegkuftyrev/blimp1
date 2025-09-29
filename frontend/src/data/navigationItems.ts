@@ -112,6 +112,7 @@ export const navigationItems: NavigationItem[] = [
     icon: 'dollarSign',
     color: 'indigo-600',
     rolesAllowed: ['admin', 'ops_lead'],
+    comingSoon: true,
     order: 2,
   },
 
@@ -243,6 +244,7 @@ export const navigationItems: NavigationItem[] = [
     description: 'Manage your team and staff members',
     icon: 'users',
     color: 'slate-600',
+    rolesAllowed: ['admin', 'ops_lead', 'black_shirt'],
     order: 4,
   },
 ];
