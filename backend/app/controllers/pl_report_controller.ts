@@ -209,15 +209,19 @@ export default class PlReportController {
   }
 
   /**
-   * Get P&L report line items
+   * Get P&L report line items with calculations
    */
   async lineItems({ params, response }: HttpContext) {
     try {
       const plReport = await PlReport.findOrFail(params.id)
       const lineItems = await plReport.related('lineItems').query().orderBy('sortOrder', 'asc')
 
+      // Calculate metrics from line items
+      const calculations = this.calculateMetrics(lineItems)
+
       return response.ok({
-        data: lineItems
+        data: lineItems,
+        calculations: calculations
       })
     } catch (error) {
       return response.internalServerError({
@@ -227,28 +231,6 @@ export default class PlReportController {
     }
   }
 
-  /**
-   * Get calculated metrics for a P&L report
-   */
-  async calculations({ params, response }: HttpContext) {
-    try {
-      const report = await PlReport.findOrFail(params.id)
-      
-      // Get all line items for calculations
-      const lineItems = await PlReportLineItem.query()
-        .where('pl_report_id', report.id)
-
-      // Calculate all metrics
-      const calculations = this.calculateMetrics(lineItems)
-
-      return response.ok({
-        data: calculations
-      })
-    } catch (error) {
-      console.error('Calculations error:', error)
-      return response.internalServerError({ message: 'Failed to calculate metrics' })
-    }
-  }
 
   /**
    * Calculate all financial metrics from line items
@@ -291,9 +273,11 @@ export default class PlReportController {
     const cogsItem = findItem('Cost of Goods Sold')
     const laborItem = findItem('Total Labor')
     if (cogsItem && laborItem && cogsItem.actualsPercentage && laborItem.actualsPercentage) {
-      const cogsPercentage = parseValue(cogsItem.actualsPercentage)
-      const laborPercentage = parseValue(laborItem.actualsPercentage)
+      const cogsPercentage = parseValue(cogsItem.actualsPercentage) * 100
+      const laborPercentage = parseValue(laborItem.actualsPercentage) * 100
       metrics.primeCost = cogsPercentage + laborPercentage
+      metrics.cogsPercentage = cogsPercentage
+      metrics.laborPercentage = laborPercentage
     }
 
     // Rent Total = Rent - MIN + Storage + Percent + Other + Deferred

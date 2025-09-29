@@ -167,6 +167,7 @@ export function usePLLineItems(reportId?: number) {
 
   return {
     lineItems: data?.data || [],
+    calculations: data?.calculations || null,
     loading: isLoading,
     error,
     mutate
@@ -800,16 +801,4 @@ export interface PLCalculations {
     smBonus: number;
     amChefBonus: number;
   };
-}
-
-// P&L Calculations Hook
-export const usePLCalculations = (reportId: string | number | null) => {
-  return useSWR<{ data: PLCalculations }>(
-    reportId ? `pl-reports/${reportId}/calculations` : null,
-    apiFetch,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 300000, // 5 minutes
-    }
-  )
 }

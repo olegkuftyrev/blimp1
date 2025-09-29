@@ -4,18 +4,23 @@ import { useAuth } from '@/contexts/AuthContextSWR';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Upload, CheckCircle, FileSpreadsheet, Trash2 } from "lucide-react";
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { usePLReports, usePLLineItems, useDeletePLReport, usePLCalculations, PLLineItem } from '@/hooks/useSWRPL';
+import { usePLReports, usePLLineItems, useDeletePLReport, PLLineItem, PLCalculations } from '@/hooks/useSWRPL';
 import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
 import { mutate } from 'swr';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
 import { PLReportDataTable } from '@/components/PLReportDataTable';
 import { PLReportDetailedTable } from '@/components/PLReportDetailedTable';
+import { PLDashboard } from '@/components/PLDashboard';
+import { SectionCards } from '@/components/SectionCards';
+import { ChartAreaInteractive } from '@/components/ChartAreaInteractive';
+import { DataTable } from '@/components/DataTable';
+import { ChartBarStacked } from '@/components/ChartBarStacked';
 
 interface PeriodReportPageProps {
   params: Promise<{
@@ -24,6 +29,40 @@ interface PeriodReportPageProps {
     period: string;
   }>;
 }
+
+// Mock data for the dashboard table
+const mockPayments = [
+  {
+    id: "m5gr84i9",
+    amount: 316,
+    status: "success" as const,
+    email: "ken99@yahoo.com",
+  },
+  {
+    id: "3u1reuv4",
+    amount: 242,
+    status: "success" as const,
+    email: "Abe45@gmail.com",
+  },
+  {
+    id: "derv1ws0",
+    amount: 837,
+    status: "processing" as const,
+    email: "Monserrat44@gmail.com",
+  },
+  {
+    id: "5kma53ae",
+    amount: 874,
+    status: "success" as const,
+    email: "Silas22@gmail.com",
+  },
+  {
+    id: "bhqecj4p",
+    amount: 721,
+    status: "failed" as const,
+    email: "carmella@hotmail.com",
+  },
+];
 
 export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   const { user } = useAuth();
@@ -57,13 +96,13 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
   
   const plReport = reports?.length > 0 ? reports[0] : null;
   
-  const { lineItems, loading: lineItemsLoading, error: lineItemsError } = usePLLineItems(
+  const { lineItems, calculations, loading: lineItemsLoading, error: lineItemsError } = usePLLineItems(
     plReport?.id || undefined
   );
+  
 
-  const { data: calculationsData, error: calculationsError, isLoading: calculationsLoading } = usePLCalculations(
-    plReport?.id || null
-  );
+
+
   
   const plLineItems = plReport?.lineItems || lineItems || [];
 
@@ -242,7 +281,7 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               P&L Report - {period} {year}
             </p>
           </div>
-          </div>
+        </div>
           
           {/* Delete Report Button */}
           {plReport && (
@@ -283,6 +322,31 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
         </div>
       </div>
 
+      {/* Dashboard with Key Metrics */}
+      {plReport && plLineItems.length > 0 && calculations && (
+        <div className="mb-8">
+          <PLDashboard 
+            data={{
+              netSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Net Sales')?.actuals?.toString() || '0'),
+              priorNetSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Net Sales')?.priorYear?.toString() || '0'),
+              sssPercentage: calculations.sss || 0,
+              cogsPercentage: calculations.cogsPercentage || 0,
+              laborPercentage: calculations.laborPercentage || 0,
+              controllableProfitPercentage: (parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Controllable Profit')?.actualsPercentage?.toString() || '0')) * 100,
+              totalTransactions: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Transactions')?.actuals?.toString() || '0'),
+              priorTransactions: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Total Transactions')?.priorYear?.toString() || '0'),
+              sstPercentage: calculations.sst || 0,
+              checkAverage: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Check Avg - Net')?.actuals?.toString() || '0'),
+              priorCheckAverage: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Check Avg - Net')?.priorYear?.toString() || '0'),
+              thirdPartyDigitalSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === '3rd Party Digital Sales')?.actuals?.toString() || '0'),
+              pandaDigitalSales: parseFloat(plLineItems.find((item: PLLineItem) => item.ledgerAccount === 'Panda Digital Sales')?.actuals?.toString() || '0'),
+            }}
+          />
+        </div>
+      )}
+
+
+
       {/* Testing Table - Mock Data for Calculations */}
       <Card>
         <CardHeader>
@@ -300,11 +364,11 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">SSS (Same Store Sales)</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.sss !== undefined ? (
-                    <span className={calculationsData.data.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {calculationsData.data.sss.toFixed(2)}%
+                  ) : calculations?.sss !== undefined ? (
+                    <span className={calculations.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {calculations.sss.toFixed(2)}%
                     </span>
                   ) : (
                     <span className="text-gray-500">No calculation available</span>
@@ -314,11 +378,11 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">SST% (Same Store Transactions)</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.sst !== undefined ? (
-                    <span className={calculationsData.data.sst >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {calculationsData.data.sst.toFixed(2)}%
+                  ) : calculations?.sst !== undefined ? (
+                    <span className={calculations.sst >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {calculations.sst.toFixed(2)}%
                     </span>
                   ) : (
                     <span className="text-gray-500">No calculation available</span>
@@ -328,11 +392,11 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">Prime Cost</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.primeCost !== undefined ? (
+                  ) : calculations?.primeCost !== undefined ? (
                     <span className="text-blue-600">
-                      {calculationsData.data.primeCost.toFixed(2)}%
+                      {(calculations.primeCost * 100).toFixed(1)}%
                     </span>
                   ) : (
                     <span className="text-gray-500">No calculation available</span>
@@ -342,11 +406,11 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">Rent Total</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.rentTotal !== undefined ? (
+                  ) : calculations?.rentTotal !== undefined ? (
                     <span className="text-purple-600">
-                      ${calculationsData.data.rentTotal.toLocaleString()}
+                      ${calculations.rentTotal.toLocaleString()}
                     </span>
                   ) : (
                     <span className="text-gray-500">No calculation available</span>
@@ -356,11 +420,11 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">Overtime Hours</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.overtimeHours !== undefined ? (
+                  ) : calculations?.overtimeHours !== undefined ? (
                     <span className="text-orange-600">
-                      {calculationsData.data.overtimeHours.toFixed(2)} hours
+                      {calculations.overtimeHours.toFixed(2)} hours
                     </span>
                   ) : (
                     <span className="text-gray-500">No calculation available</span>
@@ -370,11 +434,11 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">Flow Thru</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.flowThru !== undefined ? (
-                    <span className={calculationsData.data.flowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {calculationsData.data.flowThru.toFixed(2)}
+                  ) : calculations?.flowThru !== undefined ? (
+                    <span className={calculations.flowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {calculations.flowThru.toFixed(2)}
                     </span>
                   ) : (
                     <span className="text-gray-500">No calculation available</span>
@@ -384,17 +448,17 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">Adjusted Controllable Profit</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.adjustedControllableProfitThisYear !== undefined && calculationsData?.data?.adjustedControllableProfitLastYear !== undefined ? (
+                  ) : calculations?.adjustedControllableProfitThisYear !== undefined && calculations?.adjustedControllableProfitLastYear !== undefined ? (
                     <div className="space-y-1">
                       <div className="text-sm">
                         <span className="font-medium">This Year:</span> 
-                        <span className="ml-2 text-green-600">${calculationsData.data.adjustedControllableProfitThisYear.toLocaleString()}</span>
+                        <span className="ml-2 text-green-600">${calculations.adjustedControllableProfitThisYear.toLocaleString()}</span>
                       </div>
                       <div className="text-sm">
                         <span className="font-medium">Last Year:</span> 
-                        <span className="ml-2 text-blue-600">${calculationsData.data.adjustedControllableProfitLastYear.toLocaleString()}</span>
+                        <span className="ml-2 text-blue-600">${calculations.adjustedControllableProfitLastYear.toLocaleString()}</span>
                       </div>
                     </div>
                   ) : (
@@ -405,26 +469,26 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
               <TableRow>
                 <TableCell className="font-medium">Bonus Calculations</TableCell>
                 <TableCell>
-                  {calculationsLoading ? (
+                  {lineItemsLoading ? (
                     <span className="text-gray-400">Loading...</span>
-                  ) : calculationsData?.data?.bonusCalculations ? (
+                  ) : calculations?.bonusCalculations ? (
                     <div className="space-y-1">
                       <div className="text-sm">
                         <span className="font-medium">GM Bonus:</span> 
-                        <span className={`ml-2 ${calculationsData.data.bonusCalculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${calculationsData.data.bonusCalculations.gmBonus.toLocaleString()}
+                        <span className={`ml-2 ${calculations.bonusCalculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${calculations.bonusCalculations.gmBonus.toLocaleString()}
                         </span>
                       </div>
                       <div className="text-sm">
                         <span className="font-medium">SM Bonus:</span> 
-                        <span className={`ml-2 ${calculationsData.data.bonusCalculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${calculationsData.data.bonusCalculations.smBonus.toLocaleString()}
+                        <span className={`ml-2 ${calculations.bonusCalculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${calculations.bonusCalculations.smBonus.toLocaleString()}
                         </span>
                       </div>
                       <div className="text-sm">
                         <span className="font-medium">AM/Chef Bonus:</span> 
-                        <span className={`ml-2 ${calculationsData.data.bonusCalculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${calculationsData.data.bonusCalculations.amChefBonus.toLocaleString()}
+                        <span className={`ml-2 ${calculations.bonusCalculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${calculations.bonusCalculations.amChefBonus.toLocaleString()}
                         </span>
                       </div>
                     </div>
