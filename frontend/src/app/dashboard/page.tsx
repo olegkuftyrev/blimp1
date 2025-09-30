@@ -377,9 +377,9 @@ function DashboardContent() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">-</div>
+              <div className="text-2xl font-bold">P&L Analytics</div>
               <p className="text-xs text-muted-foreground">
-                P&L Analytics, added Financial Metrics Comparison
+                + added Financial Metrics Comparison
               </p>
             </CardContent>
           </Card>
@@ -390,9 +390,9 @@ function DashboardContent() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">-</div>
+              <div className="text-2xl font-bold">Tell Oleg</div>
               <p className="text-xs text-muted-foreground">
-                Please text Oleg 714.249.5376 / oleg@kuftyrev.us
+                Please text 714.249.5376 / oleg@kuftyrev.us
               </p>
             </CardContent>
           </Card>
