@@ -46,6 +46,8 @@ function EditRestaurantContent() {
 
   // Check if user has permission to edit restaurants
   const canEditRestaurant = user?.role && ['admin', 'ops_lead', 'black_shirt'].includes(user.role);
+  // Only admin can change the active status
+  const canChangeStatus = user?.role === 'admin';
 
   useEffect(() => {
     if (restaurant) {
@@ -106,12 +108,21 @@ function EditRestaurantContent() {
     try {
       setError(null);
 
-      const updateData = {
+      const updateData: {
+        name: string;
+        address: string;
+        phone: string;
+        isActive?: boolean;
+      } = {
         name: `px${formData.name.trim()}`,
         address: formData.address.trim(),
         phone: formData.phone.trim(),
-        isActive: formData.isActive
       };
+
+      // Allow changing status only for admins
+      if (canChangeStatus) {
+        updateData.isActive = formData.isActive;
+      }
 
       await updateRestaurant(updateData);
       setSuccess(true);
@@ -266,7 +277,7 @@ function EditRestaurantContent() {
               />
             </div>
 
-            {/* Active Status */}
+            {/* Active Status (admin-only) */}
             <div className="space-y-2">
               <Label className="flex items-center space-x-2">
                 <span>Restaurant Status</span>
@@ -278,7 +289,7 @@ function EditRestaurantContent() {
                     name="isActive"
                     checked={formData.isActive === true}
                     onChange={() => handleInputChange('isActive', true)}
-                    disabled={!canEditRestaurant}
+                    disabled={!canChangeStatus}
                     className="text-green-600"
                   />
                   <span className="text-sm">Active</span>
@@ -289,14 +300,14 @@ function EditRestaurantContent() {
                     name="isActive"
                     checked={formData.isActive === false}
                     onChange={() => handleInputChange('isActive', false)}
-                    disabled={!canEditRestaurant}
+                    disabled={!canChangeStatus}
                     className="text-red-600"
                   />
                   <span className="text-sm">Inactive</span>
                 </label>
               </div>
               <p className="text-xs text-muted-foreground">
-                Inactive restaurants will not be accessible to regular staff
+                Inactive restaurants will not be accessible to regular staff. Only administrators can change status.
               </p>
             </div>
 

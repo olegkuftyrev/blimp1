@@ -195,7 +195,7 @@ function KitchenModuleContent() {
           )}
         </div>
 
-        {inactiveRestaurants?.length > 0 && (
+        {user?.role === 'admin' && inactiveRestaurants?.length > 0 && (
           <div className="mb-8">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Inactive Restaurants</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

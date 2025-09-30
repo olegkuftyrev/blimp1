@@ -56,10 +56,17 @@ else
   info "frontend/.env.local already exists. Skipping."
 fi
 
-# 4) Apply DB migrations and seed (explicitly) before starting servers
-info "Running database migrations and seed..."
+# 4) Apply DB migrations
+info "Running database migrations..."
 (cd "$BACKEND_DIR" && npx --yes -- node ace migration:run | cat)
-(cd "$BACKEND_DIR" && npx --yes -- node ace db:seed | cat)
+
+# Optional: seed only if explicitly requested
+if [ "${SEED:-0}" = "1" ]; then
+  info "Seeding database (SEED=1) ..."
+  (cd "$BACKEND_DIR" && npx --yes -- node ace db:seed | cat)
+else
+  info "Skipping seeding. Set SEED=1 to seed."
+fi
 success "Database ready."
 
 # 5) Start backend and frontend in background with cleanup

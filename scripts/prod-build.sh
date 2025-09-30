@@ -17,8 +17,12 @@ printf "\n==> Running migrations...\n"
 mkdir -p "$BACKEND_DIR/tmp"
 (cd "$BACKEND_DIR" && node ace migration:run)
 
-printf "\n==> Seeding database...\n"
-(cd "$BACKEND_DIR" && node ace db:seed)
+if [ "${DB_SEED:-0}" = "1" ]; then
+  printf "\n==> Seeding database (DB_SEED=1)...\n"
+  (cd "$BACKEND_DIR" && node ace db:seed)
+else
+  printf "\n==> Skipping seeding. Set DB_SEED=1 to seed.\n"
+fi
 
 printf "\n==> Building frontend...\n"
 (cd "$FRONTEND_DIR" && npm run build)

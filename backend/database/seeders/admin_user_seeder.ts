@@ -3,20 +3,15 @@ import User from '#models/user'
 import env from '#start/env'
 
 export default class extends BaseSeeder {
-  public static environment = ['development', 'testing'] as const
+  public static environment = ['development', 'testing', 'production'] as const
 
   async run() {
     const adminEmail = env.get('ADMIN_EMAIL', 'oleg@kuftyrev.us')
-    const adminPassword = env.get('ADMIN_PASSWORD', 'Panda2475!asd')
+    const adminPassword = env.get('ADMIN_PASSWORD', 'change-me-strong')
 
     const existing = await User.findBy('email', adminEmail)
     if (existing) {
-      // Always reset to known credentials for development/testing
-      existing.password = adminPassword
-      existing.role = 'admin'
-      existing.jobTitle = (existing.jobTitle as any) ?? 'RDO'
-      await existing.save()
-      console.log(`✅ Admin user updated: ${adminEmail}`)
+      console.log(`ℹ️ Admin already exists: ${adminEmail} (id=${existing.id})`)
       return
     }
 
@@ -25,25 +20,10 @@ export default class extends BaseSeeder {
       password: adminPassword,
       fullName: 'Administrator',
       role: 'admin',
-      jobTitle: 'RDO',
+      jobTitle: 'Owner',
     })
-    console.log(`✅ Admin user created: ${adminEmail}`)
 
-    // Ensure a default tablet user exists for PX2475
-    const tabletEmail = 'px2475@pandarg.com'
-    const tablet = await User.findBy('email', tabletEmail)
-    if (!tablet) {
-      await User.create({
-        email: tabletEmail,
-        password: 'px2475px2475',
-        fullName: 'px2475',
-        role: 'tablet',
-        jobTitle: 'Hourly Associate' as any,
-      })
-      console.log('✅ Tablet user created: px2475@pandarg.com')
-    } else {
-      console.log('ℹ️ Tablet user already exists: px2475@pandarg.com')
-    }
+    console.log(`✅ Admin user created: ${adminEmail}`)
   }
 }
 
