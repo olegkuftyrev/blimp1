@@ -1,518 +1,451 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-// Using button-based navigation instead of tabs component
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { DatePicker } from "@/components/ui/date-picker"; // TODO: Implement when needed
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
-  BarChart3,
-  Download,
-  Calendar,
-  Building2,
-  PieChart,
-  AlertCircle,
-  Loader2
-} from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContextSWR';
-import apiClient from '@/lib/axios';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAreaPlKpis, useAreaPlSummary, useAreaPlPeriods } from '@/hooks/useAreaPL';
+import { DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, Building2 } from "lucide-react";
+import { apiFetch } from '@/lib/api';
 
-interface AreaPlData {
-  summary: {
-    totalRevenue: number;
-    totalCosts: number;
-    netProfit: number;
-    profitMargin: number;
-  };
-  monthlyData: Array<{
-    month: string;
-    revenue: number;
-    costs: number;
-    profit: number;
-  }>;
-  categoryBreakdown: {
-    foodCosts: number;
-    laborCosts: number;
-    operatingExpenses: number;
-    other: number;
-  };
-  trends: {
-    revenueGrowth: number;
-    costReduction: number;
-    profitImprovement: number;
-  };
-  restaurants: Array<{
-    id: number;
-    name: string;
-    revenue: number;
-    costs: number;
-    profit: number;
-  }>;
+interface Restaurant {
+  id: number;
+  name: string;
+  address: string;
+  phone: string;
+  isActive: boolean;
 }
 
-function AreaPlContent() {
-  const { user } = useAuth();
-  const [data, setData] = useState<AreaPlData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState('current-month');
-  const [selectedRestaurants, setSelectedRestaurants] = useState('all');
-  const [activeTab, setActiveTab] = useState('overview');
+export default function AreaPl() {
+  const [selectedPeriod, setSelectedPeriod] = useState('P01');
+  const [selectedYear, setSelectedYear] = useState('2025');
+  const [basis, setBasis] = useState('actual');
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [selectedRestaurants, setSelectedRestaurants] = useState<number[]>([]);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
+  const [restaurantsWithData, setRestaurantsWithData] = useState<Set<number>>(new Set());
 
+  // Fetch restaurants on component mount
   useEffect(() => {
-    fetchAreaPlData();
-  }, [selectedPeriod, selectedRestaurants]);
-
-  const fetchAreaPlData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.get('/area-pl');
-      setData(response.data.data);
-    } catch (err: any) {
-      console.error('Failed to fetch Area P&L data:', err);
-      setError(err.response?.data?.message || 'Failed to fetch Area P&L data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExportData = async (format: string) => {
-    try {
-      const response = await apiClient.post('/area-pl/export', {
-        format,
-        startDate: null, // TODO: Use actual date range
-        endDate: null,
-        restaurantIds: selectedRestaurants === 'all' ? null : [selectedRestaurants]
-      });
-      
-      if (response.data.success) {
-        // TODO: Handle download URL when implemented
-        alert(`Export in ${format} format initiated. Download will be available shortly.`);
+    const fetchRestaurants = async () => {
+      try {
+        setRestaurantsLoading(true);
+        const response = await apiFetch<{ data: Restaurant[] }>('restaurants');
+        setRestaurants(response.data);
+        // Select all restaurants by default
+        setSelectedRestaurants(response.data.map(r => r.id));
+      } catch (error) {
+        console.error('Failed to fetch restaurants:', error);
+      } finally {
+        setRestaurantsLoading(false);
       }
-    } catch (err: any) {
-      console.error('Export failed:', err);
-      alert('Export failed. Please try again.');
-    }
+    };
+
+    fetchRestaurants();
+  }, []);
+
+  // Prepare params for API calls
+  const params = {
+    restaurantIds: selectedRestaurants.length > 0 ? selectedRestaurants : [],
+    year: parseInt(selectedYear),
+    periods: [selectedPeriod],
+    basis,
+    ytd: selectedPeriod === 'YTD'
   };
+
+  // Fetch data
+  const { data: kpis, error: kpisError, isLoading: kpisLoading } = useAreaPlKpis(params);
+  const { data: summary, error: summaryError, isLoading: summaryLoading } = useAreaPlSummary(params);
+  
+  // Fetch periods data to check which restaurants have data
+  const { data: periodsData } = useAreaPlPeriods({
+    restaurantIds: restaurants.map(r => r.id),
+    year: parseInt(selectedYear)
+  });
+
+  // Update restaurants with data when periods data changes
+  useEffect(() => {
+    if (periodsData?.periods) {
+      const restaurantsWithDataSet = new Set<number>();
+      periodsData.periods.forEach((period: any) => {
+        // Check if this restaurant has data for the selected period
+        if (period.hasData && period.restaurantId && 
+            (period.period === selectedPeriod || (selectedPeriod === 'YTD' && period.period === 'YTD'))) {
+          restaurantsWithDataSet.add(period.restaurantId);
+        }
+      });
+      setRestaurantsWithData(restaurantsWithDataSet);
+    }
+  }, [periodsData, selectedPeriod]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
   };
 
   const formatPercentage = (value: number) => {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+    return `${value.toFixed(1)}%`;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span>Loading Area P&L data...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleRestaurantToggle = (restaurantId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedRestaurants(prev => [...prev, restaurantId]);
+    } else {
+      setSelectedRestaurants(prev => prev.filter(id => id !== restaurantId));
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <Card className="w-full max-w-md">
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-2 text-destructive mb-4">
-                  <AlertCircle className="h-5 w-5" />
-                  <span className="font-semibold">Error</span>
-                </div>
-                <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={fetchAreaPlData} className="w-full">
-                  Try Again
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleSelectAllRestaurants = () => {
+    setSelectedRestaurants(restaurants.map(r => r.id));
+  };
 
-  return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
-                Area P&L Dashboard
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                Comprehensive profit and loss analysis for your area
-              </p>
-              <Badge variant="secondary" className="mt-2">
-                Restricted Access - Admin Only
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current-month">Current Month</SelectItem>
-                  <SelectItem value="last-month">Last Month</SelectItem>
-                  <SelectItem value="current-quarter">Current Quarter</SelectItem>
-                  <SelectItem value="last-quarter">Last Quarter</SelectItem>
-                  <SelectItem value="ytd">Year to Date</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={selectedRestaurants} onValueChange={setSelectedRestaurants}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select restaurants" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Restaurants</SelectItem>
-                  {data?.restaurants.map((restaurant) => (
-                    <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                      {restaurant.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(data?.summary.totalRevenue || 0)}</div>
-              <div className="flex items-center text-sm">
-                <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                <span className="text-green-600">{formatPercentage(data?.trends.revenueGrowth || 0)}</span>
-                <span className="text-muted-foreground ml-1">vs last period</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Costs</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(data?.summary.totalCosts || 0)}</div>
-              <div className="flex items-center text-sm">
-                <TrendingDown className="h-3 w-3 text-green-600 mr-1" />
-                <span className="text-green-600">{formatPercentage(data?.trends.costReduction || 0)}</span>
-                <span className="text-muted-foreground ml-1">reduction</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(data?.summary.netProfit || 0)}</div>
-              <div className="flex items-center text-sm">
-                <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                <span className="text-green-600">{formatPercentage(data?.trends.profitImprovement || 0)}</span>
-                <span className="text-muted-foreground ml-1">improvement</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
-              <PieChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{(data?.summary.profitMargin || 0).toFixed(1)}%</div>
-              <div className="text-sm text-muted-foreground">
-                Industry avg: 3-5%
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Navigation */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant={activeTab === 'overview' ? 'default' : 'outline'}
-                onClick={() => setActiveTab('overview')}
-              >
-                Overview
-              </Button>
-              <Button 
-                variant={activeTab === 'breakdown' ? 'default' : 'outline'}
-                onClick={() => setActiveTab('breakdown')}
-              >
-                Cost Breakdown
-              </Button>
-              <Button 
-                variant={activeTab === 'restaurants' ? 'default' : 'outline'}
-                onClick={() => setActiveTab('restaurants')}
-              >
-                Restaurant Performance
-              </Button>
-              <Button 
-                variant={activeTab === 'trends' ? 'default' : 'outline'}
-                onClick={() => setActiveTab('trends')}
-              >
-                Trends & Analysis
-              </Button>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={() => handleExportData('csv')}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleExportData('excel')}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleExportData('pdf')}>
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-            </div>
-          </div>
-
-          {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Revenue vs Costs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Chart visualization coming soon</p>
-                      <p className="text-sm">Revenue and cost trends over time</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profit Margin Trend</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Chart visualization coming soon</p>
-                      <p className="text-sm">Profit margin analysis over time</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === 'breakdown' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cost Category Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>Food Costs</span>
-                      <span className="font-semibold">{formatCurrency(data?.categoryBreakdown.foodCosts || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Labor Costs</span>
-                      <span className="font-semibold">{formatCurrency(data?.categoryBreakdown.laborCosts || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Operating Expenses</span>
-                      <span className="font-semibold">{formatCurrency(data?.categoryBreakdown.operatingExpenses || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Other</span>
-                      <span className="font-semibold">{formatCurrency(data?.categoryBreakdown.other || 0)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cost Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <PieChart className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Pie chart coming soon</p>
-                      <p className="text-sm">Visual cost distribution</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === 'restaurants' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Restaurant Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Restaurant</th>
-                        <th className="text-right py-2">Revenue</th>
-                        <th className="text-right py-2">Costs</th>
-                        <th className="text-right py-2">Profit</th>
-                        <th className="text-right py-2">Margin</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data?.restaurants.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                            No restaurant data available
-                          </td>
-                        </tr>
-                      ) : (
-                        data?.restaurants.map((restaurant) => (
-                          <tr key={restaurant.id} className="border-b">
-                            <td className="py-2 font-medium">{restaurant.name}</td>
-                            <td className="text-right py-2">{formatCurrency(restaurant.revenue)}</td>
-                            <td className="text-right py-2">{formatCurrency(restaurant.costs)}</td>
-                            <td className="text-right py-2">{formatCurrency(restaurant.profit)}</td>
-                            <td className="text-right py-2">
-                              {restaurant.revenue > 0 ? ((restaurant.profit / restaurant.revenue) * 100).toFixed(1) : '0.0'}%
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === 'trends' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Key Performance Indicators</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>Revenue Growth</span>
-                      <Badge variant={data && data.trends.revenueGrowth >= 0 ? "default" : "destructive"}>
-                        {formatPercentage(data?.trends.revenueGrowth || 0)}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Cost Reduction</span>
-                      <Badge variant={data && data.trends.costReduction >= 0 ? "default" : "destructive"}>
-                        {formatPercentage(data?.trends.costReduction || 0)}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Profit Improvement</span>
-                      <Badge variant={data && data.trends.profitImprovement >= 0 ? "default" : "destructive"}>
-                        {formatPercentage(data?.trends.profitImprovement || 0)}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Trend Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Trend analysis coming soon</p>
-                      <p className="text-sm">Historical performance trends</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function AreaPl() {
-  const { user } = useAuth();
-  
-  // Check if user has access (admin only)
-  if (user && user.role !== 'admin') {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <Card className="w-full max-w-md">
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-2 text-destructive mb-4">
-                  <AlertCircle className="h-5 w-5" />
-                  <span className="font-semibold">Access Denied</span>
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  Area P&L is restricted to administrators only. Please contact your administrator if you need access.
-                </p>
-                <div className="text-sm text-muted-foreground">
-                  Your current role: <Badge variant="outline">{user.role}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleDeselectAllRestaurants = () => {
+    setSelectedRestaurants([]);
+  };
 
   return (
     <ProtectedRoute>
-      <AreaPlContent />
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-foreground mb-2">
+                  Area P&L Dashboard
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Comprehensive profit and loss analysis for your area
+                </p>
+                <Badge variant="secondary" className="mt-2">
+                  Restricted Access - Admin & Ops Lead Only
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium">Year:</label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2024">2024</SelectItem>
+                        <SelectItem value="2025">2025</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium">Period:</label>
+                    <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="P01">P01</SelectItem>
+                        <SelectItem value="P02">P02</SelectItem>
+                        <SelectItem value="P03">P03</SelectItem>
+                        <SelectItem value="P04">P04</SelectItem>
+                        <SelectItem value="P05">P05</SelectItem>
+                        <SelectItem value="P06">P06</SelectItem>
+                        <SelectItem value="P07">P07</SelectItem>
+                        <SelectItem value="P08">P08</SelectItem>
+                        <SelectItem value="P09">P09</SelectItem>
+                        <SelectItem value="P10">P10</SelectItem>
+                        <SelectItem value="P11">P11</SelectItem>
+                        <SelectItem value="P12">P12</SelectItem>
+                        <SelectItem value="P13">P13</SelectItem>
+                        <SelectItem value="YTD">YTD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium">Basis:</label>
+                    <Select value={basis} onValueChange={setBasis}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="actual">Actual</SelectItem>
+                        <SelectItem value="plan">Plan</SelectItem>
+                        <SelectItem value="prior_year">Prior Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    Selected: {selectedYear} - {selectedPeriod} ({basis})
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Restaurant Selection */}
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Building2 className="h-5 w-5" />
+                  <span>Restaurant Selection</span>
+                  <Badge variant="outline">
+                    {selectedRestaurants.length} of {restaurants.length} selected
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {restaurantsLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading restaurants...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleSelectAllRestaurants}
+                        disabled={selectedRestaurants.length === restaurants.length}
+                      >
+                        Select All
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDeselectAllRestaurants}
+                        disabled={selectedRestaurants.length === 0}
+                      >
+                        Deselect All
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+                      {restaurants.map((restaurant) => {
+                        const hasData = restaurantsWithData.has(restaurant.id);
+                        return (
+                          <div key={restaurant.id} className="flex items-start space-x-2">
+                            <Checkbox
+                              id={`restaurant-${restaurant.id}`}
+                              checked={selectedRestaurants.includes(restaurant.id)}
+                              onCheckedChange={(checked) => 
+                                handleRestaurantToggle(restaurant.id, checked as boolean)
+                              }
+                              className="mt-1"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <label 
+                                htmlFor={`restaurant-${restaurant.id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer block"
+                              >
+                                {restaurant.name}
+                              </label>
+                              {!hasData && (
+                                <div className="text-xs text-amber-600 mt-1">
+                                  Missing P&L report for {selectedYear} {selectedPeriod}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {/* Profit Margin */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
+                <PieChart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {kpisLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                ) : kpisError ? (
+                  <div className="text-sm text-destructive">Error loading data</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {formatPercentage(kpis?.kpis?.profitMargin || 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Industry avg: 3-5%
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Labor % */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Labor %</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {kpisLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                ) : kpisError ? (
+                  <div className="text-sm text-destructive">Error loading data</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {formatPercentage(kpis?.kpis?.laborPct || 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Target: 18-22%
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* COGS % */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">COGS %</CardTitle>
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {kpisLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                ) : kpisError ? (
+                  <div className="text-sm text-destructive">Error loading data</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {formatPercentage(kpis?.kpis?.cogsPct || 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Target: 28-32%
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Controllable Profit % */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">CP %</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {kpisLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                ) : kpisError ? (
+                  <div className="text-sm text-destructive">Error loading data</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {formatPercentage(kpis?.kpis?.cpPct || 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Target: 40-45%
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Summary Overview */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Area Summary - {selectedYear} {selectedPeriod}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {summaryLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Loading summary data...</span>
+                  </div>
+                </div>
+              ) : summaryError ? (
+                <div className="text-center py-8 text-destructive">
+                  Error loading summary data
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{formatCurrency(summary?.summary?.netSales || 0)}</div>
+                    <div className="text-sm text-muted-foreground">Net Sales</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{formatCurrency(summary?.summary?.cogs || 0)}</div>
+                    <div className="text-sm text-muted-foreground">COGS</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{formatCurrency(summary?.summary?.labor || 0)}</div>
+                    <div className="text-sm text-muted-foreground">Labor</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{formatCurrency(summary?.summary?.controllableProfit || 0)}</div>
+                    <div className="text-sm text-muted-foreground">Controllable Profit</div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Debug Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Debug Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm space-y-2">
+                <div><strong>Selected Restaurants:</strong> {selectedRestaurants.length} restaurants</div>
+                <div><strong>Restaurants with Data:</strong> {restaurantsWithData.size} restaurants</div>
+                <div><strong>Restaurant IDs:</strong> {selectedRestaurants.join(', ')}</div>
+                <div><strong>Restaurants with Data IDs:</strong> {Array.from(restaurantsWithData).join(', ')}</div>
+                <div><strong>Params:</strong> {JSON.stringify(params, null, 2)}</div>
+                <div><strong>KPIs Loading:</strong> {kpisLoading ? 'Yes' : 'No'}</div>
+                <div><strong>Summary Loading:</strong> {summaryLoading ? 'Yes' : 'No'}</div>
+                <div><strong>KPIs Error:</strong> {kpisError ? 'Yes' : 'No'}</div>
+                <div><strong>Summary Error:</strong> {summaryError ? 'Yes' : 'No'}</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </ProtectedRoute>
   );
 }

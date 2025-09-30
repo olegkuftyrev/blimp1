@@ -1,5 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import PlPolicy from '#policies/pl_policy'
+import PlReport from '#models/pl_report'
+import PlReportLineItem from '#models/pl_report_line_item'
+import Restaurant from '#models/restaurant'
 
 export default class AreaPlController {
   /**
@@ -62,50 +65,187 @@ export default class AreaPlController {
       return response.status(403).json({ error: 'Access denied. Area P&L is restricted to admin and ops_lead roles.' })
     }
 
-    const restaurantIds = request.qs().restaurantIds || []
+    const restaurantIds = Array.isArray(request.qs().restaurantIds) ? request.qs().restaurantIds : (request.qs().restaurantIds ? [request.qs().restaurantIds] : [])
     const year = request.qs().year
-    const periods = request.qs().periods || []
+    const periods = Array.isArray(request.qs().periods) ? request.qs().periods : (request.qs().periods ? [request.qs().periods] : [])
     const basis = request.qs().basis || 'actual'
     const ytd = request.qs().ytd === 'true' || request.qs().ytd === true
     const includeByRestaurant = request.qs().includeByRestaurant === 'true' || request.qs().includeByRestaurant === true
 
-    // Stub payload structure matching frontend expectations
-    const summary = {
-      netSales: 0,
-      cogs: 0,
-      labor: 0,
-      controllables: 0,
-      controllableProfit: 0,
-      advertising: 0,
-      fixedCosts: 0,
-      contribution: 0,
-      cashflow: 0,
-      margins: {
-        cogsPct: 0,
-        laborPct: 0,
-        controllablesPct: 0,
-        cpPct: 0,
-        contributionPct: 0,
-        profitMargin: 0,
-      },
-    }
+    try {
+      // Build query for pl_reports
+      let query = PlReport.query()
+      
+      // Filter by restaurant IDs if provided
+      if (restaurantIds.length > 0) {
+        query = query.whereIn('restaurant_id', restaurantIds)
+      }
+      
+      // Filter by year
+      if (year) {
+        query = query.where('year', year)
+      }
+      
+      // Filter by periods
+      if (periods.length > 0) {
+        const periodConditions = periods.map(period => {
+          if (period === 'YTD') {
+            return `period LIKE '%${year}%'`
+          }
+          return `period LIKE '%${period}%'`
+        })
+        query = query.whereRaw(`(${periodConditions.join(' OR ')})`)
+      }
 
-    const payload: any = {
-      filters: { restaurantIds, year, periods, basis, ytd },
-      summary,
-      restaurantsCount: Array.isArray(restaurantIds) ? restaurantIds.length : (restaurantIds ? 1 : 0),
-      periods: Array.isArray(periods) ? periods : (periods ? [periods] : []),
-    }
+      const reports = await query
 
-    if (includeByRestaurant) {
-      payload.byRestaurant = (Array.isArray(restaurantIds) ? restaurantIds : [restaurantIds]).filter(Boolean).map((id) => ({
-        restaurantId: Number(id),
-        restaurantName: `Restaurant ${id}`,
+      // Aggregate data based on basis
+      let netSales = 0, cogs = 0, labor = 0, controllables = 0, controllableProfit = 0
+      let advertising = 0, fixedCosts = 0, contribution = 0, cashflow = 0
+
+      reports.forEach(report => {
+        if (ytd) {
+          // Use YTD data
+          netSales += Number(report.netSalesActualYtd) || 0
+          cogs += Number(report.costOfGoodsSoldActualYtd) || 0
+          labor += Number(report.totalLaborActualYtd) || 0
+          controllables += Number(report.controllablesActualYtd) || 0
+          controllableProfit += Number(report.controllableProfitActualYtd) || 0
+          advertising += Number(report.advertisingActualYtd) || 0
+          fixedCosts += Number(report.fixedCostsActualYtd) || 0
+          contribution += Number(report.restaurantContributionActualYtd) || 0
+          cashflow += Number(report.cashflowActualYtd) || 0
+        } else {
+          // Use current period data
+          switch (basis) {
+            case 'plan':
+              netSales += Number(report.netSalesPlan) || 0
+              cogs += Number(report.costOfGoodsSoldPlan) || 0
+              labor += Number(report.totalLaborPlan) || 0
+              controllables += Number(report.controllablesPlan) || 0
+              controllableProfit += Number(report.controllableProfitPlan) || 0
+              break
+            case 'prior_year':
+              netSales += Number(report.netSalesPriorYear) || 0
+              cogs += Number(report.costOfGoodsSoldPriorYear) || 0
+              labor += Number(report.totalLaborPriorYear) || 0
+              controllables += Number(report.controllablesPriorYear) || 0
+              controllableProfit += Number(report.controllableProfitPriorYear) || 0
+              break
+            default: // actual
+              netSales += Number(report.netSales) || 0
+              cogs += Number(report.costOfGoodsSold) || 0
+              labor += Number(report.totalLabor) || 0
+              controllables += Number(report.controllables) || 0
+              controllableProfit += Number(report.controllableProfit) || 0
+              advertising += Number(report.advertising) || 0
+              fixedCosts += Number(report.fixedCosts) || 0
+              contribution += Number(report.restaurantContribution) || 0
+              cashflow += Number(report.cashflow) || 0
+          }
+        }
+      })
+
+      // Calculate margins
+      const margins = {
+        cogsPct: netSales > 0 ? (cogs / netSales) * 100 : 0,
+        laborPct: netSales > 0 ? (labor / netSales) * 100 : 0,
+        controllablesPct: netSales > 0 ? (controllables / netSales) * 100 : 0,
+        cpPct: netSales > 0 ? (controllableProfit / netSales) * 100 : 0,
+        contributionPct: netSales > 0 ? (contribution / netSales) * 100 : 0,
+        profitMargin: netSales > 0 ? (controllableProfit / netSales) * 100 : 0,
+      }
+
+      const summary = {
+        netSales,
+        cogs,
+        labor,
+        controllables,
+        controllableProfit,
+        advertising,
+        fixedCosts,
+        contribution,
+        cashflow,
+        margins,
+      }
+
+      const payload: any = {
+        filters: { restaurantIds, year, periods, basis, ytd },
         summary,
-      }))
-    }
+        restaurantsCount: reports.length,
+        periods: Array.isArray(periods) ? periods : (periods ? [periods] : []),
+      }
 
-    return response.ok(payload)
+      if (includeByRestaurant) {
+        // Get restaurant details for by-restaurant breakdown
+        const restaurantIds = [...new Set(reports.map(r => r.restaurantId))]
+        const restaurants = await Restaurant.query().whereIn('id', restaurantIds)
+        const restaurantMap = new Map(restaurants.map(r => [r.id, r.name]))
+
+        payload.byRestaurant = reports.map(report => {
+          let restaurantNetSales = 0, restaurantCogs = 0, restaurantLabor = 0
+          let restaurantControllables = 0, restaurantCP = 0
+
+          if (ytd) {
+            restaurantNetSales = Number(report.netSalesActualYtd) || 0
+            restaurantCogs = Number(report.costOfGoodsSoldActualYtd) || 0
+            restaurantLabor = Number(report.totalLaborActualYtd) || 0
+            restaurantControllables = Number(report.controllablesActualYtd) || 0
+            restaurantCP = Number(report.controllableProfitActualYtd) || 0
+          } else {
+            switch (basis) {
+              case 'plan':
+                restaurantNetSales = Number(report.netSalesPlan) || 0
+                restaurantCogs = Number(report.costOfGoodsSoldPlan) || 0
+                restaurantLabor = Number(report.totalLaborPlan) || 0
+                restaurantControllables = Number(report.controllablesPlan) || 0
+                restaurantCP = Number(report.controllableProfitPlan) || 0
+                break
+              case 'prior_year':
+                restaurantNetSales = Number(report.netSalesPriorYear) || 0
+                restaurantCogs = Number(report.costOfGoodsSoldPriorYear) || 0
+                restaurantLabor = Number(report.totalLaborPriorYear) || 0
+                restaurantControllables = Number(report.controllablesPriorYear) || 0
+                restaurantCP = Number(report.controllableProfitPriorYear) || 0
+                break
+              default:
+                restaurantNetSales = Number(report.netSales) || 0
+                restaurantCogs = Number(report.costOfGoodsSold) || 0
+                restaurantLabor = Number(report.totalLabor) || 0
+                restaurantControllables = Number(report.controllables) || 0
+                restaurantCP = Number(report.controllableProfit) || 0
+            }
+          }
+
+          return {
+            restaurantId: report.restaurantId,
+            restaurantName: restaurantMap.get(report.restaurantId) || `Restaurant ${report.restaurantId}`,
+            summary: {
+              netSales: restaurantNetSales,
+              cogs: restaurantCogs,
+              labor: restaurantLabor,
+              controllables: restaurantControllables,
+              controllableProfit: restaurantCP,
+              margins: {
+                cogsPct: restaurantNetSales > 0 ? (restaurantCogs / restaurantNetSales) * 100 : 0,
+                laborPct: restaurantNetSales > 0 ? (restaurantLabor / restaurantNetSales) * 100 : 0,
+                controllablesPct: restaurantNetSales > 0 ? (restaurantControllables / restaurantNetSales) * 100 : 0,
+                cpPct: restaurantNetSales > 0 ? (restaurantCP / restaurantNetSales) * 100 : 0,
+                profitMargin: restaurantNetSales > 0 ? (restaurantCP / restaurantNetSales) * 100 : 0,
+              }
+            }
+          }
+        })
+      }
+
+      return response.ok(payload)
+    } catch (error) {
+      console.error('Area P&L Summary error:', error)
+      return response.internalServerError({ 
+        message: 'Failed to fetch Area P&L summary',
+        error: error.message 
+      })
+    }
   }
 
   /**
@@ -196,33 +336,171 @@ export default class AreaPlController {
       return response.status(403).json({ error: 'Access denied. Area P&L is restricted to admin and ops_lead roles.' })
     }
 
-    return response.ok({ periods: [] })
+    const restaurantIds = Array.isArray(request.qs().restaurantIds) ? request.qs().restaurantIds : (request.qs().restaurantIds ? [request.qs().restaurantIds] : [])
+    const year = request.qs().year
+
+    try {
+      // Get all available periods for the specified restaurants and year
+      let query = PlReport.query()
+        .select('restaurant_id', 'period', 'year')
+        .groupBy('restaurant_id', 'period', 'year')
+      
+      if (restaurantIds.length > 0) {
+        query = query.whereIn('restaurant_id', restaurantIds)
+      }
+      
+      if (year) {
+        query = query.where('year', year)
+      }
+
+      const reports = await query
+
+      // Create a map of restaurant -> periods with data
+      const restaurantPeriods = new Map<number, Set<string>>()
+      
+      reports.forEach(report => {
+        if (!restaurantPeriods.has(report.restaurantId)) {
+          restaurantPeriods.set(report.restaurantId, new Set())
+        }
+        restaurantPeriods.get(report.restaurantId)!.add(report.period)
+      })
+
+      // Generate periods list with hasData flag
+      const periods = []
+      const allPeriods = ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'YTD']
+      
+      for (const restaurantId of restaurantIds.length > 0 ? restaurantIds : [...restaurantPeriods.keys()]) {
+        const restaurantIdNum = Number(restaurantId)
+        const restaurantPeriodSet = restaurantPeriods.get(restaurantIdNum) || new Set()
+        
+        for (const period of allPeriods) {
+          // Check if this restaurant has data for this specific period
+          const hasData = restaurantPeriodSet.has(`FY ${year} - ${period}`) || 
+                         restaurantPeriodSet.has(period) ||
+                         (period === 'YTD' && restaurantPeriodSet.size > 0)
+          
+          periods.push({
+            restaurantId: restaurantIdNum,
+            year: Number(year),
+            period,
+            hasData,
+            label: `FY ${year} - ${period}`
+          })
+        }
+      }
+
+      return response.ok({ periods })
+    } catch (error) {
+      console.error('Area P&L Periods error:', error)
+      return response.internalServerError({ 
+        message: 'Failed to fetch Area P&L periods',
+        error: error.message 
+      })
+    }
   }
 
   /**
    * Area P&L: KPIs
    */
-  async kpis({ auth, response }: HttpContext) {
+  async kpis({ auth, request, response }: HttpContext) {
     const currentUser = auth.user!
     const plPolicy = new PlPolicy()
     if (!(await plPolicy.viewAreaPl(currentUser))) {
       return response.status(403).json({ error: 'Access denied. Area P&L is restricted to admin and ops_lead roles.' })
     }
 
-    return response.ok({
-      kpis: {
-        profitMargin: 0,
-        laborPct: 0,
-        cogsPct: 0,
-        cpPct: 0,
-        trendFlags: {
-          profitMargin: 'flat',
-          laborPct: 'flat',
-          cogsPct: 'flat',
-          cpPct: 'flat',
+    const restaurantIds = Array.isArray(request.qs().restaurantIds) ? request.qs().restaurantIds : (request.qs().restaurantIds ? [request.qs().restaurantIds] : [])
+    const year = request.qs().year
+    const periods = Array.isArray(request.qs().periods) ? request.qs().periods : (request.qs().periods ? [request.qs().periods] : [])
+    const basis = request.qs().basis || 'actual'
+    const ytd = request.qs().ytd === 'true' || request.qs().ytd === true
+
+    try {
+      // Build query for pl_reports
+      let query = PlReport.query()
+      
+      if (restaurantIds.length > 0) {
+        query = query.whereIn('restaurant_id', restaurantIds)
+      }
+      
+      if (year) {
+        query = query.where('year', year)
+      }
+      
+      if (periods.length > 0) {
+        const periodConditions = periods.map(period => {
+          if (period === 'YTD') {
+            return `period LIKE '%${year}%'`
+          }
+          return `period LIKE '%${period}%'`
+        })
+        query = query.whereRaw(`(${periodConditions.join(' OR ')})`)
+      }
+
+      const reports = await query
+
+      // Aggregate data
+      let netSales = 0, cogs = 0, labor = 0, controllableProfit = 0
+
+      reports.forEach(report => {
+        if (ytd) {
+          netSales += Number(report.netSalesActualYtd) || 0
+          cogs += Number(report.costOfGoodsSoldActualYtd) || 0
+          labor += Number(report.totalLaborActualYtd) || 0
+          controllableProfit += Number(report.controllableProfitActualYtd) || 0
+        } else {
+          switch (basis) {
+            case 'plan':
+              netSales += Number(report.netSalesPlan) || 0
+              cogs += Number(report.costOfGoodsSoldPlan) || 0
+              labor += Number(report.totalLaborPlan) || 0
+              controllableProfit += Number(report.controllableProfitPlan) || 0
+              break
+            case 'prior_year':
+              netSales += Number(report.netSalesPriorYear) || 0
+              cogs += Number(report.costOfGoodsSoldPriorYear) || 0
+              labor += Number(report.totalLaborPriorYear) || 0
+              controllableProfit += Number(report.controllableProfitPriorYear) || 0
+              break
+            default:
+              netSales += Number(report.netSales) || 0
+              cogs += Number(report.costOfGoodsSold) || 0
+              labor += Number(report.totalLabor) || 0
+              controllableProfit += Number(report.controllableProfit) || 0
+          }
+        }
+      })
+
+      // Calculate KPIs
+      const profitMargin = netSales > 0 ? (controllableProfit / netSales) * 100 : 0
+      const laborPct = netSales > 0 ? (labor / netSales) * 100 : 0
+      const cogsPct = netSales > 0 ? (cogs / netSales) * 100 : 0
+      const cpPct = netSales > 0 ? (controllableProfit / netSales) * 100 : 0
+
+      // Simple trend flags (could be enhanced with historical comparison)
+      const trendFlags = {
+        profitMargin: profitMargin >= 35 ? 'up' : profitMargin >= 30 ? 'flat' : 'down',
+        laborPct: laborPct <= 20 ? 'up' : laborPct <= 25 ? 'flat' : 'down',
+        cogsPct: cogsPct <= 30 ? 'up' : cogsPct <= 35 ? 'flat' : 'down',
+        cpPct: cpPct >= 40 ? 'up' : cpPct >= 35 ? 'flat' : 'down',
+      }
+
+      return response.ok({
+        kpis: {
+          profitMargin,
+          laborPct,
+          cogsPct,
+          cpPct,
+          trendFlags,
         },
-      },
-    })
+      })
+    } catch (error) {
+      console.error('Area P&L KPIs error:', error)
+      return response.internalServerError({ 
+        message: 'Failed to fetch Area P&L KPIs',
+        error: error.message 
+      })
+    }
   }
 
   /**
