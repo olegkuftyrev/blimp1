@@ -15,6 +15,7 @@ import { PLCalculations } from '@/hooks/useSWRPL';
 import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
 import { useDeletePLReport } from '@/hooks/useSWRPL';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
+import { useSWRPeriods, isPeriodAvailableWithData, type PeriodInfo } from '@/hooks/useSWRPeriods';
 
 interface StorePageProps {
   params: Promise<{
@@ -22,62 +23,15 @@ interface StorePageProps {
   }>;
 }
 
-// Financial calendar periods (4-4-4 structure)
-const PERIODS = [
-  { id: 'P01', name: 'P01', quarter: 'Q1', start: '12/30', end: '1/25' },
-  { id: 'P02', name: 'P02', quarter: 'Q1', start: '1/26', end: '2/22' },
-  { id: 'P03', name: 'P03', quarter: 'Q1', start: '2/23', end: '3/22' },
-  { id: 'P04', name: 'P04', quarter: 'Q2', start: '3/23', end: '4/19' },
-  { id: 'P05', name: 'P05', quarter: 'Q2', start: '4/20', end: '5/17' },
-  { id: 'P06', name: 'P06', quarter: 'Q2', start: '5/18', end: '6/14' },
-  { id: 'P07', name: 'P07', quarter: 'Q3', start: '6/15', end: '7/12' },
-  { id: 'P08', name: 'P08', quarter: 'Q3', start: '7/13', end: '8/9' },
-  { id: 'P09', name: 'P09', quarter: 'Q3', start: '8/10', end: '9/6' },
-  { id: 'P10', name: 'P10', quarter: 'Q4', start: '9/7', end: '10/4' },
-  { id: 'P11', name: 'P11', quarter: 'Q4', start: '10/5', end: '11/1' },
-  { id: 'P12', name: 'P12', quarter: 'Q4', start: '11/2', end: '11/29' },
-  { id: 'P13', name: 'P13', quarter: 'Q4', start: '11/30', end: '12/27' },
-];
+// Periods will be loaded from API via SWR hook
 
-// Current period is P10 (September 21, 2025)
-const CURRENT_PERIOD = 'P10';
-
-// Function to check if a period is available for upload
-const isPeriodAvailable = (periodId: string, year: number): boolean => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  
-  // If it's a future year, period is not available
-  if (year > currentYear) {
-    return false;
-  }
-  
-  // If it's a past year, period is available
-  if (year < currentYear) {
-    return true;
-  }
-  
-  // For current year, check if period has started
-  const period = PERIODS.find(p => p.id === periodId);
-  if (!period) return false;
-  
-  // Parse period start date (format: MM/DD)
-  const [month, day] = period.start.split('/').map(Number);
-  const periodStartDate = new Date(currentYear, month - 1, day);
-  
-  // Special case for P01 which starts in previous year
-  if (periodId === 'P01') {
-    const p01StartDate = new Date(currentYear - 1, 11, 30); // December 30 of previous year
-    return currentDate >= p01StartDate;
-  }
-  
-  return currentDate >= periodStartDate;
-};
+// Period availability check will be handled by the SWR hook utility function
 
 export default function StoreYearPage({ params }: StorePageProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { restaurants, loading, error } = useSWRRestaurants();
+  const { periods, currentPeriod, isLoading: periodsLoading } = useSWRPeriods();
   const [selectedYear, setSelectedYear] = useState(2025); // Default to current year
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -217,12 +171,12 @@ export default function StoreYearPage({ params }: StorePageProps) {
 
   // Associates now have access to analytics
 
-  if (loading) {
+  if (loading || periodsLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg text-gray-500">Loading restaurant...</p>
+          <p className="text-lg text-gray-500">Loading restaurant and periods...</p>
         </div>
       </div>
     );
@@ -285,8 +239,8 @@ export default function StoreYearPage({ params }: StorePageProps) {
     const hasData = !!report;
     const calculations = lineItemsData?.calculations;
     const isLoading = reportLoading || (hasData && lineItemsLoading);
-    const isCurrent = period.id === CURRENT_PERIOD && year === currentYear;
-    const isAvailable = isPeriodAvailable(period.id, year);
+    const isCurrent = period.id === currentPeriod && year === currentYear;
+    const isAvailable = isPeriodAvailableWithData(period.id, year, periods);
     const isUploading = uploadingPeriods.has(`${period.id}-${year}`);
     
     // Calculate metrics for styling
@@ -546,7 +500,7 @@ export default function StoreYearPage({ params }: StorePageProps) {
         
         {/* Group by quarters */}
         {['Q1', 'Q2', 'Q3', 'Q4'].map((quarter) => {
-          const quarterPeriods = PERIODS.filter(p => p.quarter === quarter);
+          const quarterPeriods = periods.filter(p => p.quarter === quarter);
           
           // Calculate quarter averages
           const QuarterAverages = () => {

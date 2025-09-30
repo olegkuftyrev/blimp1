@@ -238,6 +238,18 @@ router
   .use(middleware.auth())
 
 // =============================================================================
+// PERIODS ROUTES (Protected)
+// =============================================================================
+
+router
+  .group(() => {
+    router.get('/', '#controllers/periods_controller.index')
+    router.get('/current', '#controllers/periods_controller.current')
+  })
+  .prefix('/periods')
+  .use(middleware.auth())
+
+// =============================================================================
 // AREA P&L ROUTES (Protected - admin and ops_lead via policy)
 // =============================================================================
 

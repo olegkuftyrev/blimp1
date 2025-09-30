@@ -19,6 +19,43 @@ interface Restaurant {
   isActive: boolean;
 }
 
+interface PeriodData {
+  restaurantId: number;
+  year: number;
+  period: string;
+  hasData: boolean;
+  label: string;
+  missingPeriods?: string[];
+}
+
+interface PeriodsResponse {
+  periods: PeriodData[];
+}
+
+interface KpisResponse {
+  kpis: {
+    profitMargin: number;
+    laborPct: number;
+    cogsPct: number;
+    cpPct: number;
+    trendFlags: {
+      profitMargin: string;
+      laborPct: string;
+      cogsPct: string;
+      cpPct: string;
+    };
+  };
+}
+
+interface SummaryResponse {
+  summary: {
+    netSales: number;
+    cogs: number;
+    labor: number;
+    controllableProfit: number;
+  };
+}
+
 export default function AreaPl() {
   const [selectedPeriod, setSelectedPeriod] = useState('P01');
   const [selectedYear, setSelectedYear] = useState('2025');
@@ -27,6 +64,18 @@ export default function AreaPl() {
   const [selectedRestaurants, setSelectedRestaurants] = useState<number[]>([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [restaurantsWithData, setRestaurantsWithData] = useState<Set<number>>(new Set());
+
+  // Convert timeframe selection to periods array
+  const getPeriodsFromTimeframe = (timeframe: string): string[] => {
+    switch (timeframe) {
+      case 'Q1': return ['P01', 'P02', 'P03'];
+      case 'Q2': return ['P04', 'P05', 'P06'];
+      case 'Q3': return ['P07', 'P08', 'P09'];
+      case 'Q4': return ['P10', 'P11', 'P12', 'P13'];
+      case 'YTD': return ['YTD'];
+      default: return [timeframe]; // Individual periods like P01, P02, etc.
+    }
+  };
 
   // Fetch restaurants on component mount
   useEffect(() => {
@@ -48,35 +97,52 @@ export default function AreaPl() {
   }, []);
 
   // Prepare params for API calls
+  const periods = getPeriodsFromTimeframe(selectedPeriod);
   const params = {
     restaurantIds: selectedRestaurants.length > 0 ? selectedRestaurants : [],
     year: parseInt(selectedYear),
-    periods: [selectedPeriod],
+    periods,
     basis,
     ytd: selectedPeriod === 'YTD'
   };
 
   // Fetch data
-  const { data: kpis, error: kpisError, isLoading: kpisLoading } = useAreaPlKpis(params);
-  const { data: summary, error: summaryError, isLoading: summaryLoading } = useAreaPlSummary(params);
+  const { data: kpis, error: kpisError, isLoading: kpisLoading } = useAreaPlKpis(params) as { data: KpisResponse | undefined; error: any; isLoading: boolean };
+  const { data: summary, error: summaryError, isLoading: summaryLoading } = useAreaPlSummary(params) as { data: SummaryResponse | undefined; error: any; isLoading: boolean };
   
   // Fetch periods data to check which restaurants have data
   const { data: periodsData } = useAreaPlPeriods({
     restaurantIds: restaurants.map(r => r.id),
     year: parseInt(selectedYear)
-  });
+  }) as { data: PeriodsResponse | undefined };
 
   // Update restaurants with data when periods data changes
   useEffect(() => {
     if (periodsData?.periods) {
       const restaurantsWithDataSet = new Set<number>();
+      const requiredPeriods = getPeriodsFromTimeframe(selectedPeriod);
+      
+      // Group periods by restaurant
+      const restaurantPeriods = new Map<number, Set<string>>();
       periodsData.periods.forEach((period: any) => {
-        // Check if this restaurant has data for the selected period
-        if (period.hasData && period.restaurantId && 
-            (period.period === selectedPeriod || (selectedPeriod === 'YTD' && period.period === 'YTD'))) {
-          restaurantsWithDataSet.add(period.restaurantId);
+        if (!restaurantPeriods.has(period.restaurantId)) {
+          restaurantPeriods.set(period.restaurantId, new Set());
+        }
+        if (period.hasData) {
+          restaurantPeriods.get(period.restaurantId)!.add(period.period);
         }
       });
+      
+      // Check if each restaurant has all required periods
+      restaurantPeriods.forEach((availablePeriods, restaurantId) => {
+        const hasAllRequiredPeriods = requiredPeriods.every(requiredPeriod => 
+          availablePeriods.has(requiredPeriod)
+        );
+        if (hasAllRequiredPeriods) {
+          restaurantsWithDataSet.add(restaurantId);
+        }
+      });
+      
       setRestaurantsWithData(restaurantsWithDataSet);
     }
   }, [periodsData, selectedPeriod]);
@@ -153,7 +219,7 @@ export default function AreaPl() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium">Period:</label>
+                    <label className="text-sm font-medium">Timeframe:</label>
                     <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                       <SelectTrigger className="w-32">
                         <SelectValue />
@@ -172,6 +238,10 @@ export default function AreaPl() {
                         <SelectItem value="P11">P11</SelectItem>
                         <SelectItem value="P12">P12</SelectItem>
                         <SelectItem value="P13">P13</SelectItem>
+                        <SelectItem value="Q1">Q1</SelectItem>
+                        <SelectItem value="Q2">Q2</SelectItem>
+                        <SelectItem value="Q3">Q3</SelectItem>
+                        <SelectItem value="Q4">Q4</SelectItem>
                         <SelectItem value="YTD">YTD</SelectItem>
                       </SelectContent>
                     </Select>
@@ -241,6 +311,18 @@ export default function AreaPl() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
                       {restaurants.map((restaurant) => {
                         const hasData = restaurantsWithData.has(restaurant.id);
+                        
+                        // Find missing periods for this restaurant and selected timeframe
+                        const requiredPeriods = getPeriodsFromTimeframe(selectedPeriod);
+                        const restaurantPeriods = periodsData?.periods?.filter((p: any) => 
+                          p.restaurantId === restaurant.id && requiredPeriods.includes(p.period)
+                        ) || [];
+                        
+                        const missingPeriods = requiredPeriods.filter(requiredPeriod => {
+                          const periodData = restaurantPeriods.find((p: any) => p.period === requiredPeriod);
+                          return !periodData || !periodData.hasData;
+                        });
+                        
                         return (
                           <div key={restaurant.id} className="flex items-start space-x-2">
                             <Checkbox
@@ -260,7 +342,16 @@ export default function AreaPl() {
                               </label>
                               {!hasData && (
                                 <div className="text-xs text-amber-600 mt-1">
-                                  Missing P&L report for {selectedYear} {selectedPeriod}
+                                  {missingPeriods && missingPeriods.length > 0 ? (
+                                    <div>
+                                      <div>Missing P&L report for {selectedYear} {selectedPeriod}</div>
+                                      <div className="text-amber-700 font-medium mt-1">
+                                        Missing periods: {missingPeriods.join(', ')}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    `Missing P&L report for ${selectedYear} ${selectedPeriod}`
+                                  )}
                                 </div>
                               )}
                             </div>

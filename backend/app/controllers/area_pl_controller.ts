@@ -3,6 +3,7 @@ import PlPolicy from '#policies/pl_policy'
 import PlReport from '#models/pl_report'
 import PlReportLineItem from '#models/pl_report_line_item'
 import Restaurant from '#models/restaurant'
+import { getYtdPeriods, PERIODS } from '#utils/periods'
 
 export default class AreaPlController {
   /**
@@ -90,7 +91,12 @@ export default class AreaPlController {
       if (periods.length > 0) {
         const periodConditions = periods.map(period => {
           if (period === 'YTD') {
-            return `period LIKE '%${year}%'`
+            // For YTD, include all periods up to current date
+            const ytdPeriods = getYtdPeriods()
+            const ytdPeriodConditions = ytdPeriods.map(ytdPeriod => 
+              `period LIKE '%${ytdPeriod}%'`
+            )
+            return `(${ytdPeriodConditions.join(' OR ')})`
           }
           return `period LIKE '%${period}%'`
         })
@@ -374,17 +380,39 @@ export default class AreaPlController {
         const restaurantPeriodSet = restaurantPeriods.get(restaurantIdNum) || new Set()
         
         for (const period of allPeriods) {
-          // Check if this restaurant has data for this specific period
-          const hasData = restaurantPeriodSet.has(`FY ${year} - ${period}`) || 
-                         restaurantPeriodSet.has(period) ||
-                         (period === 'YTD' && restaurantPeriodSet.size > 0)
+          let hasData = false
           
+          if (period === 'YTD') {
+            // For YTD, check if all required periods up to current date are available
+            const ytdPeriods = getYtdPeriods()
+            const hasAllYtdPeriods = ytdPeriods.every(ytdPeriod => 
+              restaurantPeriodSet.has(`FY ${year} - ${ytdPeriod}`) || 
+              restaurantPeriodSet.has(ytdPeriod)
+            )
+            hasData = hasAllYtdPeriods && ytdPeriods.length > 0
+          } else {
+            // For individual periods, check if this specific period exists
+            hasData = restaurantPeriodSet.has(`FY ${year} - ${period}`) || 
+                     restaurantPeriodSet.has(period)
+          }
+          
+          // Calculate missing periods for YTD
+          let missingPeriods: string[] = []
+          if (period === 'YTD' && !hasData) {
+            const ytdPeriods = getYtdPeriods()
+            missingPeriods = ytdPeriods.filter(ytdPeriod => 
+              !restaurantPeriodSet.has(`FY ${year} - ${ytdPeriod}`) && 
+              !restaurantPeriodSet.has(ytdPeriod)
+            )
+          }
+
           periods.push({
             restaurantId: restaurantIdNum,
             year: Number(year),
             period,
             hasData,
-            label: `FY ${year} - ${period}`
+            label: `FY ${year} - ${period}`,
+            missingPeriods: missingPeriods.length > 0 ? missingPeriods : undefined
           })
         }
       }
@@ -430,7 +458,12 @@ export default class AreaPlController {
       if (periods.length > 0) {
         const periodConditions = periods.map(period => {
           if (period === 'YTD') {
-            return `period LIKE '%${year}%'`
+            // For YTD, include all periods up to current date
+            const ytdPeriods = getYtdPeriods()
+            const ytdPeriodConditions = ytdPeriods.map(ytdPeriod => 
+              `period LIKE '%${ytdPeriod}%'`
+            )
+            return `(${ytdPeriodConditions.join(' OR ')})`
           }
           return `period LIKE '%${period}%'`
         })
