@@ -1,8 +1,12 @@
 'use client';
 
 import Link from "next/link";
+import { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ChefHat,
   Users,
@@ -20,10 +24,14 @@ import {
   Calculator,
   TrendingUp,
   User as UserIcon,
+  Edit3,
+  Check,
+  X,
 } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContextSWR';
-import { getItemsBySection, isItemVisibleForRole, type UserRole, type IconName } from '@/data/navigationItems';
+import { getItemsBySection, isItemVisibleForRole, type UserRole, type IconName, navigationItems } from '@/data/navigationItems';
+import { useSWRQuickActions } from '@/hooks/useSWRQuickActions';
 
 // Map IconName to lucide-react components
 const iconMap: Record<IconName, React.ComponentType<any>> = {
@@ -47,8 +55,73 @@ const iconMap: Record<IconName, React.ComponentType<any>> = {
 
 function DashboardContent() {
   const { user } = useAuth();
-
+  const [isEditingQuickActions, setIsEditingQuickActions] = useState(false);
+  const { quickActions, saveQuickActions, isLoading: isLoadingPreferences, isSaving } = useSWRQuickActions();
+  
   const role = (user?.role as UserRole | undefined) ?? undefined;
+
+  // Get available quick actions (filter by role and exclude coming soon)
+  const availableQuickActions = navigationItems.filter(item => 
+    !item.comingSoon && 
+    isItemVisibleForRole(item, role ?? null) &&
+    item.section !== 'dashboard' && // Exclude dashboard itself
+    item.section !== 'profile' // Exclude profile dropdown items
+  );
+
+  // Get default quick actions based on user role
+  const getDefaultQuickActions = () => {
+    const defaultActions: string[] = [];
+    
+    // Add kitchen if user has access
+    if (isItemVisibleForRole(navigationItems.find(item => item.id === 'kitchen')!, role ?? null)) {
+      defaultActions.push('kitchen');
+    }
+    
+    // Add staff if user has access
+    if (isItemVisibleForRole(navigationItems.find(item => item.id === 'staff')!, role ?? null)) {
+      defaultActions.push('staff');
+    }
+    
+    // Add pay-structure if user has access
+    if (isItemVisibleForRole(navigationItems.find(item => item.id === 'pay-structure')!, role ?? null)) {
+      defaultActions.push('pay-structure');
+    }
+    
+    // Add analytics if user has access
+    if (isItemVisibleForRole(navigationItems.find(item => item.id === 'analytics')!, role ?? null)) {
+      defaultActions.push('analytics');
+    }
+    
+    // If we don't have 4 items, fill with other available actions
+    if (defaultActions.length < 4) {
+      const remaining = availableQuickActions
+        .filter(item => !defaultActions.includes(item.id))
+        .slice(0, 4 - defaultActions.length);
+      defaultActions.push(...remaining.map(item => item.id));
+    }
+    
+    return defaultActions.slice(0, 4); // Ensure max 4 items
+  };
+
+  // Use saved quick actions or default ones
+  const [selectedQuickActions, setSelectedQuickActions] = useState<string[]>(() => {
+    if (quickActions && Array.isArray(quickActions)) {
+      return quickActions;
+    }
+    return getDefaultQuickActions();
+  });
+
+  // Update local state when quickActions from SWR changes
+  React.useEffect(() => {
+    if (quickActions && Array.isArray(quickActions)) {
+      // Remove duplicates from saved quick actions
+      const uniqueActions = quickActions.filter((id, index) => quickActions.indexOf(id) === index);
+      setSelectedQuickActions(uniqueActions);
+    } else if (!isLoadingPreferences) {
+      // Only set defaults if we're not loading and no saved preferences
+      setSelectedQuickActions(getDefaultQuickActions());
+    }
+  }, [quickActions, isLoadingPreferences]);
 
   // Safe Tailwind class mapping for background colors referenced in navigationItems
   const colorBgClass: Record<string, string> = {
@@ -112,6 +185,42 @@ function DashboardContent() {
   const totalCount = allVisible.length;
 
   const isKitchenAuthorized = user ? ['admin', 'ops_lead', 'black_shirt'].includes(user.role) : false;
+
+  // Get selected quick action items
+  const getQuickActionItem = (id: string) => {
+    return availableQuickActions.find(item => item.id === id);
+  };
+
+  const selectedItems = selectedQuickActions
+    .map(getQuickActionItem)
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  const handleQuickActionChange = (index: number, newId: string) => {
+    const newSelected = [...selectedQuickActions];
+    newSelected[index] = newId;
+    setSelectedQuickActions(newSelected);
+  };
+
+  const handleSaveQuickActions = async () => {
+    try {
+      const result = await saveQuickActions(selectedQuickActions);
+      if (result.success) {
+        setIsEditingQuickActions(false);
+      } else {
+        console.error('Failed to save quick actions:', result.error);
+        // You could show a toast notification here
+      }
+    } catch (error) {
+      console.error('Error saving quick actions:', error);
+      // You could show a toast notification here
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingQuickActions(false);
+    // Reset to default based on user role
+    setSelectedQuickActions(getDefaultQuickActions());
+  };
   
   return (
     <div className="min-h-screen bg-background p-6">
@@ -126,69 +235,126 @@ function DashboardContent() {
           </p>
         </div>
 
-        {/* Quick Actions - moved to top - COMMENTED OUT FOR LATER WORK */}
-        {/* 
+        {/* Quick Actions */}
         <div className="bg-card rounded-lg p-6 mb-8">
-          <h3 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {isKitchenAuthorized ? (
-              <Link
-                href="/kitchen"
-                className="flex items-center space-x-3 p-4 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 transition-colors"
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold text-foreground">Quick Actions</h3>
+            {!isEditingQuickActions ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditingQuickActions(true)}
+                className="flex items-center gap-2"
               >
-                <ChefHat className="h-8 w-8 text-orange-600" />
-                <div>
-                  <p className="font-medium text-foreground">Kitchen Management</p>
-                  <p className="text-sm text-muted-foreground">Access kitchen operations</p>
-                </div>
-              </Link>
+                <Edit3 className="h-4 w-4" />
+                Customize
+              </Button>
             ) : (
-              <div className="flex items-center space-x-3 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 opacity-70 cursor-not-allowed">
-                <ChefHat className="h-8 w-8 text-orange-600" />
-                <div>
-                  <p className="font-medium text-foreground">Kitchen Management</p>
-                  <p className="text-sm text-muted-foreground">Restricted - Black Shirt and above</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveQuickActions}
+                  disabled={isSaving}
+                  className="flex items-center gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </Button>
               </div>
             )}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {isEditingQuickActions ? (
+              // Edit mode - show selectors
+              selectedQuickActions.map((selectedId, index) => {
+                const IconComponent = iconMap[getQuickActionItem(selectedId)?.icon || 'home'];
+                return (
+                  <div key={index} className="flex flex-col space-y-2 p-4 rounded-lg bg-muted/50">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${colorBgClass[getQuickActionItem(selectedId)?.color || 'blue-600']}`}>
+                        <IconComponent className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <Select
+                          value={selectedId}
+                          onValueChange={(value) => handleQuickActionChange(index, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableQuickActions
+                              .filter(item => {
+                                // Don't show items that are already selected in other slots
+                                const isSelectedElsewhere = selectedQuickActions.some((selectedId, selectedIndex) => 
+                                  selectedId === item.id && selectedIndex !== index
+                                );
+                                return !isSelectedElsewhere;
+                              })
+                              .map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.title}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              // View mode - show selected actions
+              selectedItems.map((item) => {
+                if (!item) return null;
+                const IconComponent = iconMap[item.icon];
+                const isAllowed = isItemVisibleForRole(item, role ?? null);
+                
+                if (!isAllowed) {
+                  return (
+                    <div key={item.id} className="flex items-center space-x-3 p-4 rounded-lg bg-muted/50 opacity-70 cursor-not-allowed">
+                      <div className={`p-2 rounded-lg ${colorBgClass[item.color]}`}>
+                        <IconComponent className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">Restricted</p>
+                      </div>
+                    </div>
+                  );
+                }
 
-            <Link
-              href="/boh/history"
-              className="flex items-center space-x-3 p-4 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 transition-colors"
-            >
-              <BarChart3 className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="font-medium text-foreground">Order History</p>
-                <p className="text-sm text-muted-foreground">Review completed orders</p>
-              </div>
-            </Link>
-
-            {user && ['admin', 'ops_lead'].includes(user.role) && (
-              <Link
-                href="/pay-structure"
-                className="flex items-center space-x-3 p-4 rounded-lg bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/30 transition-colors"
-              >
-                <Banknote className="h-8 w-8 text-cyan-600" />
-                <div>
-                  <p className="font-medium text-foreground">Pay Structure</p>
-                  <p className="text-sm text-muted-foreground">Manage regional pay rates</p>
-                </div>
-              </Link>
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className="flex items-center space-x-3 p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
+                  >
+                    <div className={`p-2 rounded-lg ${colorBgClass[item.color]}`}>
+                      <IconComponent className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{item.title}</p>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                  </Link>
+                );
+              })
             )}
-
-            <Link
-              href="/profile"
-              className="flex items-center space-x-3 p-4 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 transition-colors"
-            >
-              <Settings className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="font-medium text-foreground">Settings</p>
-                <p className="text-sm text-muted-foreground">Manage your profile and preferences</p>
-              </div>
-            </Link>
           </div>
         </div>
-        */}
+
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

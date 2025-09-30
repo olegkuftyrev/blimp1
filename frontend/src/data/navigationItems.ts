@@ -76,7 +76,7 @@ export const navigationItems: NavigationItem[] = [
     description: 'User creation, role assignment, and restaurant access',
     icon: 'users',
     color: 'teal-600',
-    rolesAllowed: ['admin', 'ops_lead'],
+    rolesAllowed: ['admin', 'ops_lead',  'black_shirt'],
     order: 2,
   },
   {
@@ -112,7 +112,6 @@ export const navigationItems: NavigationItem[] = [
     icon: 'dollarSign',
     color: 'indigo-600',
     rolesAllowed: ['admin', 'ops_lead'],
-    comingSoon: true,
     order: 2,
   },
 

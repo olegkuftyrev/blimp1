@@ -348,3 +348,26 @@ export const RolesPerformanceAPI = {
   getOverallProgress: () =>
     apiFetch<{ success: boolean; data: OverallProgress }>('roles-performance/progress/overall'),
 };
+
+export const UserPreferencesAPI = {
+  // Get all user preferences
+  getAll: () =>
+    apiFetch<{ success: boolean; data: Record<string, any> }>('user-preferences'),
+
+  // Save a preference
+  save: (key: string, value: any) =>
+    apiFetch<{ success: boolean; message: string }>('user-preferences', {
+      method: 'POST',
+      body: JSON.stringify({ key, value }),
+    }),
+
+  // Get specific preference
+  get: (key: string) =>
+    apiFetch<{ success: boolean; data: { key: string; value: any } }>(`user-preferences/${key}`),
+
+  // Delete specific preference
+  delete: (key: string) =>
+    apiFetch<{ success: boolean; message: string }>(`user-preferences/${key}`, {
+      method: 'DELETE',
+    }),
+};

@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAreaPlKpis, useAreaPlSummary, useAreaPlPeriods } from '@/hooks/useAreaPL';
-import { DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, Building2 } from "lucide-react";
+import { useAreaPlKpis, useAreaPlSummary, useAreaPlPeriods, useAreaPlLeaderboard } from '@/hooks/useAreaPL';
+import { DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, Building2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from '@/lib/api';
 
 interface Restaurant {
@@ -56,6 +57,27 @@ interface SummaryResponse {
   };
 }
 
+interface LeaderboardItem {
+  restaurantId: number;
+  restaurantName: string;
+  netSales: number;
+  cogs: number;
+  labor: number;
+  controllableProfit: number;
+  profitMargin: number;
+  laborPct: number;
+  cogsPct: number;
+  reportCount: number;
+}
+
+interface LeaderboardResponse {
+  leaderboard: LeaderboardItem[];
+  total: number;
+  metric: string;
+  order: string;
+  filters: any;
+}
+
 export default function AreaPl() {
   const [selectedPeriod, setSelectedPeriod] = useState('P01');
   const [selectedYear, setSelectedYear] = useState('2025');
@@ -64,6 +86,8 @@ export default function AreaPl() {
   const [selectedRestaurants, setSelectedRestaurants] = useState<number[]>([]);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [restaurantsWithData, setRestaurantsWithData] = useState<Set<number>>(new Set());
+  const [sortMetric, setSortMetric] = useState('profitMargin');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Convert timeframe selection to periods array
   const getPeriodsFromTimeframe = (timeframe: string): string[] => {
@@ -109,6 +133,15 @@ export default function AreaPl() {
   // Fetch data
   const { data: kpis, error: kpisError, isLoading: kpisLoading } = useAreaPlKpis(params) as { data: KpisResponse | undefined; error: any; isLoading: boolean };
   const { data: summary, error: summaryError, isLoading: summaryLoading } = useAreaPlSummary(params) as { data: SummaryResponse | undefined; error: any; isLoading: boolean };
+  
+  // Fetch leaderboard data
+  const leaderboardParams = {
+    ...params,
+    metric: sortMetric,
+    order: sortOrder,
+    limit: 50
+  };
+  const { data: leaderboardData, error: leaderboardError, isLoading: leaderboardLoading } = useAreaPlLeaderboard(leaderboardParams) as { data: LeaderboardResponse | undefined; error: any; isLoading: boolean };
   
   // Fetch periods data to check which restaurants have data
   const { data: periodsData } = useAreaPlPeriods({
@@ -174,6 +207,22 @@ export default function AreaPl() {
 
   const handleDeselectAllRestaurants = () => {
     setSelectedRestaurants([]);
+  };
+
+  const handleSort = (metric: string) => {
+    if (sortMetric === metric) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortMetric(metric);
+      setSortOrder('desc');
+    }
+  };
+
+  const getSortIcon = (metric: string) => {
+    if (sortMetric !== metric) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortOrder === 'desc' ? <ArrowDown className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />;
   };
 
   return (
@@ -511,6 +560,133 @@ export default function AreaPl() {
                     <div className="text-2xl font-bold">{formatCurrency(summary?.summary?.controllableProfit || 0)}</div>
                     <div className="text-sm text-muted-foreground">Controllable Profit</div>
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Restaurant Leaderboard */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Restaurant Performance Leaderboard</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Ranking by {sortMetric === 'profitMargin' ? 'Profit Margin' : 
+                           sortMetric === 'netSales' ? 'Net Sales' :
+                           sortMetric === 'laborPct' ? 'Labor %' : 'COGS %'} 
+                ({sortOrder === 'desc' ? 'Highest First' : 'Lowest First'})
+              </p>
+            </CardHeader>
+            <CardContent>
+              {leaderboardLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Loading leaderboard data...</span>
+                  </div>
+                </div>
+              ) : leaderboardError ? (
+                <div className="text-center py-8 text-destructive">
+                  Error loading leaderboard data
+                </div>
+              ) : leaderboardData?.leaderboard.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No restaurant data available for the selected filters
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">#</TableHead>
+                        <TableHead>Restaurant</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleSort('netSales')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Net Sales</span>
+                            {getSortIcon('netSales')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleSort('profitMargin')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Profit Margin</span>
+                            {getSortIcon('profitMargin')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleSort('laborPct')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Labor %</span>
+                            {getSortIcon('laborPct')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleSort('cogsPct')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>COGS %</span>
+                            {getSortIcon('cogsPct')}
+                          </div>
+                        </TableHead>
+                        <TableHead>Controllable Profit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaderboardData?.leaderboard.map((item, index) => (
+                        <TableRow key={item.restaurantId}>
+                          <TableCell className="font-medium">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {item.restaurantName}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(item.netSales)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <span className={item.profitMargin >= 30 ? 'text-green-600' : item.profitMargin >= 20 ? 'text-yellow-600' : 'text-red-600'}>
+                                {formatPercentage(item.profitMargin)}
+                              </span>
+                              {item.profitMargin >= 30 ? <TrendingUp className="h-3 w-3 text-green-600" /> : 
+                               item.profitMargin >= 20 ? <span className="text-yellow-600">→</span> : 
+                               <TrendingDown className="h-3 w-3 text-red-600" />}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <span className={item.laborPct <= 25 ? 'text-green-600' : item.laborPct <= 35 ? 'text-yellow-600' : 'text-red-600'}>
+                                {formatPercentage(item.laborPct)}
+                              </span>
+                              {item.laborPct <= 25 ? <TrendingUp className="h-3 w-3 text-green-600" /> : 
+                               item.laborPct <= 35 ? <span className="text-yellow-600">→</span> : 
+                               <TrendingDown className="h-3 w-3 text-red-600" />}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <span className={item.cogsPct <= 30 ? 'text-green-600' : item.cogsPct <= 35 ? 'text-yellow-600' : 'text-red-600'}>
+                                {formatPercentage(item.cogsPct)}
+                              </span>
+                              {item.cogsPct <= 30 ? <TrendingUp className="h-3 w-3 text-green-600" /> : 
+                               item.cogsPct <= 35 ? <span className="text-yellow-600">→</span> : 
+                               <TrendingDown className="h-3 w-3 text-red-600" />}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(item.controllableProfit)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>

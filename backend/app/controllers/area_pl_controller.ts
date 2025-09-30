@@ -633,6 +633,159 @@ export default class AreaPlController {
   }
 
   /**
+   * Area P&L: Leaderboard (restaurant performance ranking)
+   */
+  async leaderboard({ auth, request, response }: HttpContext) {
+    const currentUser = auth.user!
+    const plPolicy = new PlPolicy()
+    if (!(await plPolicy.viewAreaPl(currentUser))) {
+      return response.status(403).json({ error: 'Access denied. Area P&L is restricted to admin and ops_lead roles.' })
+    }
+
+    const restaurantIds = Array.isArray(request.qs().restaurantIds) ? request.qs().restaurantIds : (request.qs().restaurantIds ? [request.qs().restaurantIds] : [])
+    const year = request.qs().year
+    const periods = Array.isArray(request.qs().periods) ? request.qs().periods : (request.qs().periods ? [request.qs().periods] : [])
+    const basis = request.qs().basis || 'actual'
+    const ytd = request.qs().ytd === 'true' || request.qs().ytd === true
+    const metric = request.qs().metric || 'profitMargin' // profitMargin, netSales, laborPct, cogsPct
+    const order = request.qs().order || 'desc' // asc, desc
+    const limit = parseInt(request.qs().limit) || 50
+
+    try {
+      // Build query for pl_reports
+      let query = PlReport.query()
+      
+      if (restaurantIds.length > 0) {
+        query = query.whereIn('restaurant_id', restaurantIds)
+      }
+      
+      if (year) {
+        query = query.where('year', year)
+      }
+      
+      if (periods.length > 0) {
+        const periodConditions = periods.map(period => {
+          if (period === 'YTD') {
+            // For YTD, include all periods up to current date
+            const ytdPeriods = getYtdPeriods()
+            const ytdPeriodConditions = ytdPeriods.map(ytdPeriod => 
+              `period LIKE '%${ytdPeriod}%'`
+            )
+            return `(${ytdPeriodConditions.join(' OR ')})`
+          }
+          return `period LIKE '%${period}%'`
+        })
+        query = query.whereRaw(`(${periodConditions.join(' OR ')})`)
+      }
+
+      const reports = await query
+
+      // Group by restaurant and aggregate data
+      const restaurantData = new Map<number, any>()
+      
+      reports.forEach(report => {
+        if (!restaurantData.has(report.restaurantId)) {
+          restaurantData.set(report.restaurantId, {
+            restaurantId: report.restaurantId,
+            netSales: 0,
+            cogs: 0,
+            labor: 0,
+            controllableProfit: 0,
+            reportCount: 0
+          })
+        }
+        
+        const data = restaurantData.get(report.restaurantId)!
+        data.reportCount++
+        
+        if (ytd) {
+          data.netSales += Number(report.netSalesActualYtd) || 0
+          data.cogs += Number(report.costOfGoodsSoldActualYtd) || 0
+          data.labor += Number(report.totalLaborActualYtd) || 0
+          data.controllableProfit += Number(report.controllableProfitActualYtd) || 0
+        } else {
+          switch (basis) {
+            case 'plan':
+              data.netSales += Number(report.netSalesPlan) || 0
+              data.cogs += Number(report.costOfGoodsSoldPlan) || 0
+              data.labor += Number(report.totalLaborPlan) || 0
+              data.controllableProfit += Number(report.controllableProfitPlan) || 0
+              break
+            case 'prior_year':
+              data.netSales += Number(report.netSalesPriorYear) || 0
+              data.cogs += Number(report.costOfGoodsSoldPriorYear) || 0
+              data.labor += Number(report.totalLaborPriorYear) || 0
+              data.controllableProfit += Number(report.controllableProfitPriorYear) || 0
+              break
+            default: // actual
+              data.netSales += Number(report.netSales) || 0
+              data.cogs += Number(report.costOfGoodsSold) || 0
+              data.labor += Number(report.totalLabor) || 0
+              data.controllableProfit += Number(report.controllableProfit) || 0
+          }
+        }
+      })
+
+      // Calculate metrics and get restaurant names
+      const leaderboard = []
+      for (const [restaurantId, data] of restaurantData) {
+        if (data.reportCount === 0) continue
+        
+        const restaurant = await Restaurant.find(restaurantId)
+        if (!restaurant) continue
+        
+        // Calculate percentages
+        const profitMargin = data.netSales > 0 ? (data.controllableProfit / data.netSales) * 100 : 0
+        const laborPct = data.netSales > 0 ? (data.labor / data.netSales) * 100 : 0
+        const cogsPct = data.netSales > 0 ? (data.cogs / data.netSales) * 100 : 0
+        
+        leaderboard.push({
+          restaurantId,
+          restaurantName: restaurant.name,
+          netSales: data.netSales,
+          cogs: data.cogs,
+          labor: data.labor,
+          controllableProfit: data.controllableProfit,
+          profitMargin,
+          laborPct,
+          cogsPct,
+          reportCount: data.reportCount
+        })
+      }
+
+      // Sort by selected metric
+      leaderboard.sort((a, b) => {
+        const aValue = a[metric] || 0
+        const bValue = b[metric] || 0
+        return order === 'desc' ? bValue - aValue : aValue - bValue
+      })
+
+      // Apply limit
+      const limitedLeaderboard = leaderboard.slice(0, limit)
+
+      return response.ok({
+        leaderboard: limitedLeaderboard,
+        total: leaderboard.length,
+        metric,
+        order,
+        filters: {
+          restaurantIds,
+          year,
+          periods,
+          basis,
+          ytd
+        }
+      })
+    } catch (error) {
+      console.error('Area P&L Leaderboard error:', error)
+      return response.internalServerError({ 
+        message: 'Failed to fetch Area P&L leaderboard',
+        error: error.message 
+      })
+    }
+  }
+
+  /**
    * Export P&L data to various formats
    */
   async exportData({ request, response }: HttpContext) {

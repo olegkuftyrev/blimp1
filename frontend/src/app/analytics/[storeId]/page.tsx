@@ -16,6 +16,27 @@ import { usePLFileUploadWithAnalytics } from '@/hooks/useAnalytics';
 import { useDeletePLReport } from '@/hooks/useSWRPL';
 import { EnhancedFileUpload, FileUploadItem } from '@/components/ui/enhanced-file-upload';
 import { useSWRPeriods, isPeriodAvailableWithData, type PeriodInfo } from '@/hooks/useSWRPeriods';
+import { usePLReports } from '@/hooks/useSWRPL';
+import * as React from "react";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import {
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface StorePageProps {
   params: Promise<{
@@ -491,6 +512,11 @@ export default function StoreYearPage({ params }: StorePageProps) {
         </div>
       </div>
 
+      {/* Area Chart */}
+      <div className="mb-8">
+        <ChartAreaInteractive storeId={storeId} selectedYear={selectedYear} periods={periods} />
+      </div>
+
       {/* Periods Selection */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -637,5 +663,284 @@ export default function StoreYearPage({ params }: StorePageProps) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// Chart component with real period data
+
+const getChartConfig = (metric: string) => {
+  const configs = {
+    netSales: {
+      actual: {
+        label: "Net Sales Actual",
+        color: "#3b82f6", // blue-500
+      },
+      priorYear: {
+        label: "Net Sales Prior Year",
+        color: "#06b6d4", // cyan-500
+      },
+    },
+    costOfGoodsSold: {
+      actual: {
+        label: "COGS Actual",
+        color: "#ef4444", // red-500
+      },
+      priorYear: {
+        label: "COGS Prior Year",
+        color: "#f97316", // orange-500
+      },
+    },
+    totalLabor: {
+      actual: {
+        label: "Total Labor Actual",
+        color: "#10b981", // emerald-500
+      },
+      priorYear: {
+        label: "Total Labor Prior Year",
+        color: "#8b5cf6", // violet-500
+      },
+    },
+    controllableProfit: {
+      actual: {
+        label: "Controllable Profit Actual",
+        color: "#22c55e", // green-500
+      },
+      priorYear: {
+        label: "Controllable Profit Prior Year",
+        color: "#38bdf8", // sky-400
+      },
+    },
+  };
+  
+  return configs[metric as keyof typeof configs] || configs.netSales;
+};
+
+export function ChartAreaInteractive({ storeId, selectedYear, periods }: { storeId: number, selectedYear: number, periods: any[] }) {
+  const [selectedMetric, setSelectedMetric] = React.useState("netSales");
+
+  // Use PL Reports hook to get all P&L data for the restaurant
+  const { reports: plReportsData, loading: plReportsLoading, error: plReportsError } = usePLReports(storeId);
+
+  console.log('=== PL REPORTS HOOK DEBUG ===');
+  console.log('Store ID:', storeId);
+  console.log('Selected year:', selectedYear);
+  console.log('Periods:', periods);
+  console.log('PL Reports data:', plReportsData);
+  console.log('PL Reports loading:', plReportsLoading);
+  console.log('PL Reports error:', plReportsError);
+  console.log('=== END PL REPORTS HOOK DEBUG ===');
+
+  // Create chart data from real P&L reports (showing all 13 periods)
+  const chartData = React.useMemo(() => {
+    console.log('=== CHART DATA CREATION ===');
+    
+    if (!plReportsData || !Array.isArray(plReportsData)) {
+      console.log('No PL reports data available');
+      return [];
+    }
+    
+    const reports = plReportsData;
+    console.log('Available reports:', reports);
+    
+    // Create data for all 13 periods using real P&L data
+    const transformed = periods.map((period, index) => {
+      // Find report for this period and year
+      const report = reports.find((r: any) => 
+        r.period && r.period.includes(period.id) && r.year === selectedYear
+      );
+      
+      console.log(`Period ${period.name} (${period.id}):`, report);
+      
+      const getMetricValue = (metric: string, type: 'actual' | 'priorYear') => {
+        switch (metric) {
+          case 'netSales':
+            return type === 'actual' ? (report?.netSales || 0) : (report?.netSalesPriorYear || 0);
+          case 'costOfGoodsSold':
+            return type === 'actual' ? (report?.costOfGoodsSold || 0) : (report?.costOfGoodsSoldPriorYear || 0);
+          case 'totalLabor':
+            return type === 'actual' ? (report?.totalLabor || 0) : (report?.totalLaborPriorYear || 0);
+          case 'controllableProfit':
+            return type === 'actual' ? (report?.controllableProfit || 0) : (report?.controllableProfitPriorYear || 0);
+          default:
+            return 0;
+        }
+      };
+
+      return {
+        period: period.name,
+        actual: getMetricValue(selectedMetric, 'actual'),
+        priorYear: getMetricValue(selectedMetric, 'priorYear'),
+        sss: 0,
+      };
+    });
+    
+    console.log('Transformed chart data:', transformed);
+    console.log('=== END CHART DATA CREATION ===');
+    return transformed;
+  }, [plReportsData, periods, selectedYear, selectedMetric]);
+
+  const filteredData = chartData;
+
+  if (plReportsLoading) {
+    return (
+      <Card className="pt-0">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+          <div className="grid flex-1 gap-1">
+            <CardTitle>Net Sales Comparison</CardTitle>
+            <CardDescription>
+              Loading period data...
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+          <div className="flex items-center justify-center h-[250px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Debug info
+  console.log('=== CHART DATA DEBUG ===');
+  console.log('Chart render:', { 
+    chartData, 
+    filteredData, 
+    plReportsData
+  });
+  console.log('Full chartData array:', chartData);
+  console.log('Full filteredData array:', filteredData);
+  console.log('=== END CHART DATA DEBUG ===');
+
+  if (chartData.length === 0) {
+    return (
+      <Card className="pt-0">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+          <div className="grid flex-1 gap-1">
+            <CardTitle>Net Sales Comparison</CardTitle>
+            <CardDescription>
+              No data available for {selectedYear}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+            <div className="text-center">
+              <p>No P&L reports found for the selected year</p>
+              <p className="text-sm mt-2">Periods: {periods?.length || 0}</p>
+              <p className="text-sm">PL Reports: {plReportsData ? 'Available' : 'Not available'}</p>
+              <p className="text-sm">Reports count: {plReportsData?.length || 0}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="pt-0">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+        <div className="grid flex-1 gap-1">
+          <CardTitle>Financial Metrics Comparison</CardTitle>
+          <CardDescription>
+            Current year vs prior year by period
+          </CardDescription>
+        </div>
+        <Select value={selectedMetric} onValueChange={setSelectedMetric}>
+          <SelectTrigger
+            className="hidden w-[180px] rounded-lg sm:ml-auto sm:flex"
+            aria-label="Select metric"
+          >
+            <SelectValue placeholder="Select metric" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="netSales" className="rounded-lg">
+              Net Sales
+            </SelectItem>
+            <SelectItem value="costOfGoodsSold" className="rounded-lg">
+              Cost of Goods Sold
+            </SelectItem>
+            <SelectItem value="totalLabor" className="rounded-lg">
+              Total Labor
+            </SelectItem>
+        <SelectItem value="controllableProfit" className="rounded-lg">
+          Controllable Profit
+        </SelectItem>
+          </SelectContent>
+        </Select>
+      </CardHeader>
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <ChartContainer
+          config={getChartConfig(selectedMetric)}
+          className="aspect-auto h-[250px] w-full"
+        >
+          <AreaChart data={filteredData}>
+            <defs>
+              <linearGradient id="fillActual" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor={getChartConfig(selectedMetric).actual.color}
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor={getChartConfig(selectedMetric).actual.color}
+                  stopOpacity={0.1}
+                />
+              </linearGradient>
+              <linearGradient id="fillPriorYear" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor={getChartConfig(selectedMetric).priorYear.color}
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor={getChartConfig(selectedMetric).priorYear.color}
+                  stopOpacity={0.1}
+                />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="period"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              minTickGap={32}
+              tickFormatter={(value) => {
+                return value;
+              }}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(value) => {
+                    return value;
+                  }}
+                  indicator="dot"
+                />
+              }
+            />
+            <Area
+              dataKey="priorYear"
+              type="natural"
+              fill="url(#fillPriorYear)"
+              stroke={getChartConfig(selectedMetric).priorYear.color}
+              stackId="a"
+            />
+            <Area
+              dataKey="actual"
+              type="natural"
+              fill="url(#fillActual)"
+              stroke={getChartConfig(selectedMetric).actual.color}
+              stackId="a"
+            />
+            <ChartLegend content={<ChartLegendContent />} />
+          </AreaChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
   );
 }

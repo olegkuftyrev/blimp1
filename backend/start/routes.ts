@@ -67,6 +67,17 @@ router
   .prefix('/users')
   .use(middleware.auth())
 
+// User preferences routes
+router
+  .group(() => {
+    router.get('/', '#controllers/user_preferences_controller.index')
+    router.post('/', '#controllers/user_preferences_controller.store')
+    router.get('/:key', '#controllers/user_preferences_controller.show')
+    router.delete('/:key', '#controllers/user_preferences_controller.destroy')
+  })
+  .prefix('/user-preferences')
+  .use(middleware.auth())
+
 // =============================================================================
 // RESTAURANT ROUTES (Protected)
 // =============================================================================
