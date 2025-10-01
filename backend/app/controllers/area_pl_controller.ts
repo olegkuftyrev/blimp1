@@ -320,7 +320,7 @@ export default class AreaPlController {
   }
 
   /**
-   * Area P&L: Line Items
+   * Area P&L: Line Items with calculations
    */
   async lineItems({ auth, request, response }: HttpContext) {
     const currentUser = auth.user!
@@ -329,7 +329,297 @@ export default class AreaPlController {
       return response.status(403).json({ error: 'Access denied. Area P&L is restricted to admin and ops_lead roles.' })
     }
 
-    return response.ok({ items: [], totals: { actual: 0, plan: 0, priorYear: 0, ytd: 0 } })
+    try {
+      const qs = request.qs()
+      // Handle array parameters that come as key[]=value
+      const restaurantIds = qs['restaurantIds[]'] || qs.restaurantIds
+      const periods = qs['periods[]'] || qs.periods
+      const year = qs.year
+      const basis = qs.basis
+      const ytd = qs.ytd
+      
+      if (!restaurantIds || !Array.isArray(restaurantIds) || restaurantIds.length === 0) {
+        return response.badRequest({ error: 'restaurantIds is required and must be an array' })
+      }
+
+      if (!year) {
+        return response.badRequest({ error: 'year is required' })
+      }
+
+      if (!periods || !Array.isArray(periods) || periods.length === 0) {
+        return response.badRequest({ error: 'periods is required and must be an array' })
+      }
+
+      const data = []
+
+      for (const restaurantId of restaurantIds) {
+        // Find P&L reports for this restaurant and period
+        const plReports = await PlReport.query()
+          .where('restaurant_id', restaurantId)
+          .where('year', parseInt(year))
+          .whereIn('period', periods)
+          .preload('lineItems')
+
+        if (plReports.length === 0) {
+          // No data for this restaurant
+          data.push({
+            restaurantId: parseInt(restaurantId),
+            calculations: null
+          })
+          continue
+        }
+
+        // Get the first report (assuming single period or YTD)
+        const plReport = plReports[0]
+        const lineItems = plReport.lineItems
+
+        // Calculate metrics using the same logic as individual P&L reports
+        const calculations = this.calculateMetrics(lineItems)
+
+        // Add restaurant-specific data
+        const restaurant = await Restaurant.find(restaurantId)
+        calculations.storeName = restaurant?.name || `Restaurant ${restaurantId}`
+        calculations.storePIC = 'N/A' // TODO: Get actual PIC from user data
+
+        data.push({
+          restaurantId: parseInt(restaurantId),
+          calculations
+        })
+      }
+
+      return response.ok({ data })
+    } catch (error) {
+      console.error('Area P&L line items error:', error)
+      return response.internalServerError({ error: 'Failed to fetch area P&L line items' })
+    }
+  }
+
+  /**
+   * Calculate all financial metrics from line items (copied from PlReportController)
+   */
+  private calculateMetrics(lineItems: PlReportLineItem[]) {
+    const metrics: Record<string, any> = {}
+
+    // Helper function to find line item by ledger account
+    const findItem = (ledgerAccount: string) => {
+      return lineItems.find(item => item.ledgerAccount === ledgerAccount)
+    }
+
+    // Helper function to parse numeric value
+    const parseValue = (value: any): number => {
+      if (value === null || value === undefined) return 0
+      return parseFloat(value.toString()) || 0
+    }
+
+    // Helper function to get percentage value
+    const getPercentage = (item: PlReportLineItem | undefined): number => {
+      if (!item || !item.actualsPercentage) return 0
+      return parseValue(item.actualsPercentage) * 100
+    }
+
+    // SSS (Same Store Sales) = (Actual Net Sales - Prior Year Net Sales) / Prior Year Net Sales × 100%
+    const netSalesItem = findItem('Net Sales')
+    if (netSalesItem && netSalesItem.actuals && netSalesItem.priorYear) {
+      const actualNetSales = parseValue(netSalesItem.actuals)
+      const priorYearNetSales = parseValue(netSalesItem.priorYear)
+      if (priorYearNetSales !== 0) {
+        metrics.sss = ((actualNetSales - priorYearNetSales) / priorYearNetSales) * 100
+      }
+    }
+
+    // SST% (Same Store Transactions) = (This Year Transactions - Last Year Transactions) / Last Year Transactions × 100%
+    const transactionsItem = findItem('Total Transactions')
+    if (transactionsItem && transactionsItem.actuals && transactionsItem.priorYear) {
+      const actualTransactions = parseValue(transactionsItem.actuals)
+      const priorYearTransactions = parseValue(transactionsItem.priorYear)
+      if (priorYearTransactions !== 0) {
+        metrics.sst = ((actualTransactions - priorYearTransactions) / priorYearTransactions) * 100
+      }
+    }
+
+    // SSS YTD (Same Store Sales Year-to-Date) = (Actual YTD Net Sales - Prior Year YTD Net Sales) / Prior Year YTD Net Sales × 100%
+    if (netSalesItem && netSalesItem.actualYtd && netSalesItem.priorYearYtd) {
+      const actualYtdNetSales = parseValue(netSalesItem.actualYtd)
+      const priorYearYtdNetSales = parseValue(netSalesItem.priorYearYtd)
+      if (priorYearYtdNetSales !== 0) {
+        metrics.sssYtd = ((actualYtdNetSales - priorYearYtdNetSales) / priorYearYtdNetSales) * 100
+      }
+    }
+
+    // SST YTD (Same Store Transactions Year-to-Date) = (This Year YTD Transactions - Last Year YTD Transactions) / Last Year YTD Transactions × 100%
+    if (transactionsItem && transactionsItem.actualYtd && transactionsItem.priorYearYtd) {
+      const actualYtdTransactions = parseValue(transactionsItem.actualYtd)
+      const priorYearYtdTransactions = parseValue(transactionsItem.priorYearYtd)
+      if (priorYearYtdTransactions !== 0) {
+        metrics.sstYtd = ((actualYtdTransactions - priorYearYtdTransactions) / priorYearYtdTransactions) * 100
+      }
+    }
+
+    // COGS YTD % = (Cost of Goods Sold YTD / Net Sales YTD) × 100%
+    const cogsItem = findItem('Cost of Goods Sold')
+    if (cogsItem && cogsItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const cogsYtd = parseValue(cogsItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.cogsYtdPercentage = (cogsYtd / netSalesYtd) * 100
+      }
+    }
+
+    // TL YTD % = (Total Labor YTD / Net Sales YTD) × 100%
+    const laborItem = findItem('Total Labor')
+    if (laborItem && laborItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const laborYtd = parseValue(laborItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.laborYtdPercentage = (laborYtd / netSalesYtd) * 100
+      }
+    }
+
+    // CP YTD % = (Controllable Profit YTD / Net Sales YTD) × 100%
+    const controllableProfitItem = findItem('Controllable Profit')
+    if (controllableProfitItem && controllableProfitItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const cpYtd = parseValue(controllableProfitItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.controllableProfitYtdPercentage = (cpYtd / netSalesYtd) * 100
+      }
+    }
+
+    // RC YTD % = (Restaurant Contribution YTD / Net Sales YTD) × 100%
+    const restaurantContributionItem = findItem('Restaurant Contribution')
+    if (restaurantContributionItem && restaurantContributionItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const rcYtd = parseValue(restaurantContributionItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.restaurantContributionYtdPercentage = (rcYtd / netSalesYtd) * 100
+      }
+    }
+
+    // Prime Cost = COGS % + Labor % (actual)
+    if (cogsItem && laborItem && cogsItem.actualsPercentage && laborItem.actualsPercentage) {
+      const cogsPercentage = parseValue(cogsItem.actualsPercentage) * 100
+      const laborPercentage = parseValue(laborItem.actualsPercentage) * 100
+      metrics.primeCost = cogsPercentage + laborPercentage
+      metrics.cogsPercentage = cogsPercentage
+      metrics.laborPercentage = laborPercentage
+    }
+
+    // Rent Total = Rent - MIN + Storage + Percent + Other + Deferred
+    const rentMin = parseValue(findItem('Rent - MIN')?.actuals)
+    const rentStorage = parseValue(findItem('Rent - Storage')?.actuals)
+    const rentPercent = parseValue(findItem('Rent - Percent')?.actuals)
+    const rentOther = parseValue(findItem('Rent - Other')?.actuals)
+    const rentDeferred = parseValue(findItem('Rent - Deferred Preopening')?.actuals)
+    metrics.rentTotal = rentMin + rentStorage + rentPercent + rentOther + rentDeferred
+    
+    // Individual rent components for display
+    metrics.rentMin = rentMin
+    metrics.rentOther = rentOther
+    
+    // Rent % = (Rent Total / Net Sales) × 100%
+    if (netSalesItem && netSalesItem.actuals && metrics.rentTotal !== 0) {
+      const netSales = parseValue(netSalesItem.actuals)
+      if (netSales !== 0) {
+        metrics.rentPercentage = (metrics.rentTotal / netSales) * 100
+      }
+    }
+
+    // Overtime Hours = Overtime Hours (actual) / Average Hourly Wage (actual)
+    const overtimeHoursItem = findItem('Overtime Hours')
+    const averageWageItem = findItem('Average Hourly Wage')
+    if (overtimeHoursItem && averageWageItem && overtimeHoursItem.actuals && averageWageItem.actuals) {
+      const overtimeHours = parseValue(overtimeHoursItem.actuals)
+      const averageWage = parseValue(averageWageItem.actuals)
+      if (averageWage !== 0) {
+        metrics.overtimeHours = overtimeHours / averageWage
+      }
+    }
+
+    // Flow Thru = (Actual Controllable Profit - Last Year Controllable Profit) / (Actual Net Sales - Prior Year Net Sales)
+    if (netSalesItem && controllableProfitItem && 
+        netSalesItem.actuals && netSalesItem.priorYear &&
+        controllableProfitItem.actuals && controllableProfitItem.priorYear) {
+      const actualNetSales = parseValue(netSalesItem.actuals)
+      const priorYearNetSales = parseValue(netSalesItem.priorYear)
+      const actualControllableProfit = parseValue(controllableProfitItem.actuals)
+      const priorYearControllableProfit = parseValue(controllableProfitItem.priorYear)
+      const netSalesDiff = actualNetSales - priorYearNetSales
+      if (netSalesDiff !== 0) {
+        metrics.flowThru = (actualControllableProfit - priorYearControllableProfit) / netSalesDiff
+      }
+    }
+
+    // Adjusted Controllable Profit = CP + Bonus + Workers Comp
+    const bonusItem = findItem('Bonus')
+    const workersCompItem = findItem('Workers Comp')
+    if (controllableProfitItem && bonusItem && workersCompItem) {
+      const actualCP = parseValue(controllableProfitItem.actuals)
+      const actualBonus = parseValue(bonusItem.actuals)
+      const actualWorkersComp = parseValue(workersCompItem.actuals)
+      metrics.adjustedControllableProfitThisYear = actualCP + actualBonus + actualWorkersComp
+
+      const priorCP = parseValue(controllableProfitItem.priorYear)
+      const priorBonus = parseValue(bonusItem.priorYear)
+      const priorWorkersComp = parseValue(workersCompItem.priorYear)
+      metrics.adjustedControllableProfitLastYear = priorCP + priorBonus + priorWorkersComp
+    }
+
+    // Bonus Calculations
+    if (metrics.adjustedControllableProfitThisYear && metrics.adjustedControllableProfitLastYear) {
+      const ACPTY = metrics.adjustedControllableProfitThisYear
+      const ACPLY = metrics.adjustedControllableProfitLastYear
+      const difference = ACPTY - ACPLY
+      
+      metrics.bonusCalculations = {
+        gmBonus: difference * 0.20,
+        smBonus: difference * 0.15,
+        amChefBonus: difference * 0.10
+      }
+      
+      // Individual bonus components for display
+      metrics.gmBonus = difference * 0.20
+      metrics.smBonus = difference * 0.15
+      metrics.amChefBonus = difference * 0.10
+    }
+
+    // Add dashboard metrics for consistency
+    const netSales = parseValue(netSalesItem?.actuals)
+    const priorNetSales = parseValue(netSalesItem?.priorYear)
+    const totalTransactions = parseValue(findItem('Total Transactions')?.actuals)
+    const priorTransactions = parseValue(findItem('Total Transactions')?.priorYear)
+    const checkAverage = parseValue(findItem('Check Avg - Net')?.actuals)
+    const priorCheckAverage = parseValue(findItem('Check Avg - Net')?.priorYear)
+
+    // Calculate changes and percentages
+    const netSalesChange = netSales - priorNetSales
+    const netSalesChangePercent = priorNetSales !== 0 ? (netSalesChange / priorNetSales) * 100 : 0
+    const transactionsChange = totalTransactions - priorTransactions
+    const transactionsChangePercent = priorTransactions !== 0 ? (transactionsChange / priorTransactions) * 100 : 0
+    const checkAverageChange = checkAverage - priorCheckAverage
+    const checkAverageChangePercent = priorCheckAverage !== 0 ? (checkAverageChange / priorCheckAverage) * 100 : 0
+
+    // Dashboard calculations
+    metrics.dashboard = {
+      netSales,
+      netSalesChange,
+      netSalesChangePercent,
+      totalTransactions,
+      transactionsChange,
+      transactionsChangePercent,
+      checkAverage,
+      checkAverageChange,
+      checkAverageChangePercent,
+      sssPercentage: metrics.sss || 0,
+      cogsPercentage: metrics.cogsPercentage || 0,
+      laborPercentage: metrics.laborPercentage || 0,
+      controllableProfitPercentage: getPercentage(findItem('Controllable Profit')),
+      totalTransactions,
+      priorTransactions,
+      transactionsChange,
+      transactionsChangePercent
+    }
+
+    return metrics
   }
 
   /**

@@ -12,6 +12,7 @@ import { DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, Building2, Arr
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from '@/lib/api';
 import SSSTable from '@/components/area-pl/SSSTable';
+import AreaTestingTable from '@/components/area-pl/AreaTestingTable';
 
 interface Restaurant {
   id: number;
@@ -702,6 +703,19 @@ export default function AreaPl() {
               basis={basis}
               restaurants={restaurants}
               leaderboardData={leaderboardData?.leaderboard || []}
+              loading={leaderboardLoading}
+              error={leaderboardError}
+            />
+          </div>
+
+          {/* Area P&L Testing Table */}
+          <div className="mb-8">
+            <AreaTestingTable 
+              selectedRestaurants={selectedRestaurants}
+              selectedYear={selectedYear}
+              selectedPeriod={selectedPeriod}
+              basis={basis}
+              restaurants={restaurants}
               loading={leaderboardLoading}
               error={leaderboardError}
             />
