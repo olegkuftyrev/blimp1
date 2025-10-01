@@ -1,3 +1,11 @@
+// ============================================================================
+// LEGACY FILE - Use ecosystem.config.js instead
+// ============================================================================
+// This file is kept for reference only.
+// The new deployment system uses ecosystem.config.js
+// See DEPLOY_GUIDE.md for updated deployment instructions
+// ============================================================================
+
 module.exports = {
   apps: [
     {
