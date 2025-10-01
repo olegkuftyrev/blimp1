@@ -30,8 +30,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 7.0,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'appetizer',
-        steamTable: null
+        category: 'Appetizer',
+        steamTable: false
       },
       {
         itemTitle: 'test',
@@ -44,8 +44,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 1.0,
         status: 'available',
         restaurantId: restaurant.id,
-        category: null,
-        steamTable: null
+        category: 'Other',
+        steamTable: true
       },
       {
         itemTitle: 'E3 Cream Cheese Rangoons',
@@ -58,8 +58,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 2.5,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'appetizer',
-        steamTable: null
+        category: 'Appetizer',
+        steamTable: false
       },
       {
         itemTitle: 'E1 Veggie Spring Rolls',
@@ -72,8 +72,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 5,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'appetizer',
-        steamTable: null
+        category: 'Appetizer',
+        steamTable: false
       },
       {
         itemTitle: 'B5 Beijing Beef',
@@ -86,8 +86,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 5,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'beef',
-        steamTable: 'hot'
+        category: 'Beef',
+        steamTable: true
       },
       {
         itemTitle: 'B3 Black Pepper Sirloin Steak',
@@ -100,8 +100,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 2.0,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'beef',
-        steamTable: 'hot'
+        category: 'Beef',
+        steamTable: true
       },
       {
         itemTitle: 'B1 Broccoli Beef',
@@ -114,8 +114,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 1.25,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'beef',
-        steamTable: 'hot'
+        category: 'Beef',
+        steamTable: true
       },
       {
         itemTitle: 'C4 Grilled Teriyaki Chicken',
@@ -128,8 +128,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 7,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'chicken',
-        steamTable: 'hot'
+        category: 'Chicken',
+        steamTable: true
       },
       {
         itemTitle: 'CB3 Honey Sesame Chicken Breast',
@@ -142,8 +142,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 2.5,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'chicken',
-        steamTable: 'hot'
+        category: 'Chicken',
+        steamTable: true
       },
       {
         itemTitle: 'C3 Kung Pao Chicken',
@@ -156,8 +156,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 1.75,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'chicken',
-        steamTable: 'hot'
+        category: 'Chicken',
+        steamTable: true
       },
       {
         itemTitle: 'C2 Mushroom Chicken',
@@ -170,8 +170,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 1.75,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'chicken',
-        steamTable: 'hot'
+        category: 'Chicken',
+        steamTable: true
       },
       {
         itemTitle: 'C1 Orange Chicken',
@@ -184,8 +184,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 8,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'chicken',
-        steamTable: 'hot'
+        category: 'Chicken',
+        steamTable: true
       },
       {
         itemTitle: 'CB1 String Bean Chicken Breast',
@@ -198,8 +198,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 1.25,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'chicken',
-        steamTable: 'hot'
+        category: 'Chicken',
+        steamTable: true
       },
       {
         itemTitle: 'F4 Honey Walnut Shrimp',
@@ -212,8 +212,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 3,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'seafood',
-        steamTable: 'hot'
+        category: 'Seafood',
+        steamTable: true
       },
       {
         itemTitle: 'M1 Chow Mein',
@@ -226,8 +226,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 7,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'side',
-        steamTable: 'cold'
+        category: 'Side',
+        steamTable: false
       },
       {
         itemTitle: 'R1 Fried Rice',
@@ -240,8 +240,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 7,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'side',
-        steamTable: 'cold'
+        category: 'Side',
+        steamTable: false
       },
       {
         itemTitle: 'V1 Super Greens',
@@ -254,8 +254,8 @@ export default class extends BaseSeeder {
         cookingTimeBatch3: 3,
         status: 'available',
         restaurantId: restaurant.id,
-        category: 'vegetable',
-        steamTable: 'hot'
+        category: 'Vegetable',
+        steamTable: true
       },
     ]
     
