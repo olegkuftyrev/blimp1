@@ -20,7 +20,7 @@ export default class extends BaseSeeder {
       password: adminPassword,
       fullName: 'Administrator',
       role: 'admin',
-      jobTitle: 'Owner',
+      jobTitle: 'RDO',
     })
 
     console.log(`✅ Admin user created: ${adminEmail}`)
