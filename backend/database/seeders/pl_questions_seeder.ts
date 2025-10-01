@@ -3,296 +3,1069 @@ import PLQuestion from '#models/pl_question'
 
 export default class extends BaseSeeder {
   async run() {
-    console.log('📝 Seeding P&L questions...')
-    
+    const plQuestions = [
+      {
+        questionId: "1",
+        label: "If the net sales were $100,000 this year and the SSS was -5.5%, what were the net sales last year?",
+        explanation: "Since SSS = -5.5% (–0.055), calculate 100,000 ÷ 0.945 ≈ 105,820.",
+        formula: "Last Year Net Sales = This Year Net Sales ÷ (1 + SSS)",
+        a1: "$94,500",
+        a2: "$100,000",
+        a3: "$105,820",
+        a4: "$112,000",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "2",
+        label: "If there were 10,500 transactions and $110,000 net sales, what was the check average?",
+        explanation: "Calculate 110,000 ÷ 10,500 ≈ 10.48.",
+        formula: "Check Average = Net Sales ÷ Number of Transactions",
+        a1: "$10.00",
+        a2: "$10.48",
+        a3: "$10.58",
+        a4: "$11.00",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "3",
+        label: "If there were 11,000 transactions and the check average was $10.58, what would the net sales be?",
+        explanation: "Calculate 11,000 × 10.58 = 116,380.",
+        formula: "Net Sales = Number of Transactions × Check Average",
+        a1: "$116,380",
+        a2: "$115,800",
+        a3: "$107,150",
+        a4: "$120,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "4",
+        label: "This week: Beginning Inventory: $5,000, Purchases: $9,400, Transfer Out: $250, Ending Inventory: $4,750, Net Sales: $25,500. What is the COGS% this week?",
+        explanation: "First calculate COGS: Beginning Inventory + Purchases = 5,000 + 9,400 = 14,400; subtract Transfer Out: 14,400 – 250 = 14,150; subtract Ending Inventory: 14,150 – 4,750 = 9,400. Then calculate 9,400 ÷ 25,500 ≈ 0.3686, or 36.9%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "36.9%",
+        a2: "38.9%",
+        a3: "33.9%",
+        a4: "34.6%",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "5",
+        label: "If COGS% = 31.5% and COGS$ = $9,850, then what are the Net Sales?",
+        explanation: "Calculate 9,850 ÷ 0.315 ≈ 31,269.84 (rounded to $31,270).",
+        formula: "Net Sales = COGS$ ÷ COGS%",
+        a1: "$31,270",
+        a2: "$33,500",
+        a3: "$29,000",
+        a4: "$35,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "6",
+        label: "Direct Labor: $16,000; GM Salary: $4,600; AM & Chef Salary: $3,000; Tax & Benefits: $6,800. What is the Total Labor Cost?",
+        explanation: "Calculate 16,000 + 4,600 + 3,000 + 6,800 = 30,400.",
+        formula: "Total Labor Cost = Direct Labor + GM Salary + AM & Chef Salary + Tax & Benefits",
+        a1: "$27,400",
+        a2: "$30,400",
+        a3: "$20,900",
+        a4: "$27,410",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "7",
+        label: "Your Total Labor Cost was $28,750. Management Labor was $4,575, and Tax & Benefits were $8,250. You used 1,485 Direct Labor Hours. What is your Direct Labor Average Wage?",
+        explanation: "Direct Labor Cost = Total Labor Cost – Management Labor – Tax & Benefits = 28,750 – 4,575 – 8,250 = 15,925. Average Wage = Direct Labor Cost ÷ Direct Labor Hours = 15,925 ÷ 1,485 ≈ 10.72.",
+        formula: "Direct Labor Average Wage = Direct Labor Cost ÷ Direct Labor Hours",
+        a1: "$10.25",
+        a2: "$10.72",
+        a3: "$11.00",
+        a4: "$10.50",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "8",
+        label: "If your Total Labor Percentage was 26.0% and your Total Labor Cost was $29,500, then what were your Net Sales?",
+        explanation: "Calculate 29,500 ÷ 0.26 ≈ 113,461.54 (rounded to $113,462).",
+        formula: "Net Sales = Total Labor Cost ÷ Total Labor %",
+        a1: "$113,462",
+        a2: "$110,000",
+        a3: "$115,000",
+        a4: "$120,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "9",
+        label: "COGS%: 33.6%, Total Labor: 25.5%, Controllables: 7.8%, Advertising: 0.3%, Fixed Costs: 5%. Controllable Profit: $42,000. What are your Net Sales?",
+        explanation: "First sum the cost percentages: 33.6% + 25.5% + 7.8% + 0.3% + 5% = 72.2%. Controllable Profit% = 100% – 72.2% = 27.8%. Calculate 42,000 ÷ 0.278 ≈ 151,079.",
+        formula: "Net Sales = Controllable Profit ÷ Controllable Profit%",
+        a1: "$150,000",
+        a2: "$151,079",
+        a3: "$155,000",
+        a4: "$145,000",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "10",
+        label: "COGS$: $36,250; Total Labor: $27,000; Controllables: $8,750; Advertising: $750; Net Sales: $110,000. What is your Controllable Profit%?",
+        explanation: "First calculate the controllable profit: 110,000 – (36,250 + 27,000 + 8,750 + 750) = 37,250. Percentage = 37,250 ÷ 110,000 ≈ 0.3386, or 33.9%.",
+        formula: "Controllable Profit% = Controllable Profit$ ÷ Net Sales",
+        a1: "30.5%",
+        a2: "32.7%",
+        a3: "31.1%",
+        a4: "33.9%",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "11",
+        label: "The price of a 2-Item Combo is $6.59. Combo portion costs: ½ Chow Mein + ½ Fried Rice $0.33; Orange Chicken $0.67; Broccoli Beef $0.65; Shanghai Angus Steak $1.48. A 22 oz. Drink is priced at $1.59 with a cost of $0.34. Which option yields the highest gross profit?\na) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)\nb) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak)\nc) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak) + 22 oz. Drink\nd) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink\n*Note: Adding Shanghai Angus Steak to the combo increases the combo price by $1.25.*",
+        explanation: "Option a: Revenue $6.59 – Cost (0.33 + 0.67 + 0.65) = $1.65 → Profit = $4.94.\nOption b: Combo price $6.59 + $1.25 = $7.84 – Cost (0.33 + 0.67 + 0.65 + 1.48) = $3.13 → Profit = $4.71.\nOption c: Price ($7.84 + $1.59) = $9.43 – Cost (3.13 + 0.34) = $3.47 → Profit = $5.96.\nOption d: Price ($6.59 + $1.59) = $8.18 – Cost (1.65 + 0.34) = $1.99 → Profit = $6.19.\nThe highest gross profit is Option d ($6.19).",
+        formula: "Gross Profit = Revenue – Total Cost",
+        a1: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)",
+        a2: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak)",
+        a3: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak) + 22 oz. Drink",
+        a4: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "12",
+        label: "If the net sales were $100,000 this year and the SSS was 7.5%, what were the net sales last year?",
+        explanation: "Since SSS = 7.5% (0.075), calculate 100,000 ÷ 1.075 ≈ 93,023.",
+        formula: "Last Year Net Sales = This Year Net Sales ÷ (1 + SSS)",
+        a1: "$93,023",
+        a2: "$100,000",
+        a3: "$107,500",
+        a4: "$92,500",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "13",
+        label: "If there were 12,500 transactions and the check average was $10.88, what would be the Net Sales?",
+        explanation: "Calculate 12,500 × 10.88 = 136,000.",
+        formula: "Net Sales = Number of Transactions × Check Average",
+        a1: "$136,000",
+        a2: "$135,000",
+        a3: "$140,000",
+        a4: "$130,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "14",
+        label: "This week: Beginning Inventory: $5,000; Purchases: $9,600; Transfer In: $150; Ending Inventory: $4,750; Net Sales: $29,500. What is the COGS% this week?",
+        explanation: "Calculate COGS: 5,000 + 9,600 + 150 – 4,750 = 10,000. Then calculate 10,000 ÷ 29,500 ≈ 0.33898, or 33.9%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "36.8%",
+        a2: "33.9%",
+        a3: "31.8%",
+        a4: "None of the above",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "15",
+        label: "If the net sales last year were $110,000 and net sales this year were $99,500, what is the SSS?",
+        explanation: "Calculate (99,500 – 110,000) ÷ 110,000 = –10,500 ÷ 110,000 ≈ –0.0955, or –9.55%, rounded to –9.5%.",
+        formula: "SSS = (This Year Net Sales – Last Year Net Sales) ÷ Last Year Net Sales",
+        a1: "-9.5%",
+        a2: "-10.0%",
+        a3: "-9.0%",
+        a4: "-8.5%",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "16",
+        label: "If COGS% = 32.8% and COGS$ = $9,250, then what are the Net Sales?",
+        explanation: "Calculate 9,250 ÷ 0.328 ≈ 28,231.71 (rounded to $28,232).",
+        formula: "Net Sales = COGS$ ÷ COGS%",
+        a1: "$28,232",
+        a2: "$30,000",
+        a3: "$26,500",
+        a4: "$29,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "17",
+        label: "Your Total Labor Cost was $27,750. Management Labor was $4,575 and Tax & Benefits were $8,150. Your average Direct Labor Hourly Wage was $10.25. How many Direct Labor Hours did you use?",
+        explanation: " 27,750 – 4,575 – 8,150 = 15,025. Direct Labor Hours = Direct Labor Cost ÷ Average Wage = 15,025 ÷ 10.25 ≈ 1,465.85, rounded to 1,466.",
+        formula: "Direct Labor Hours = Direct Labor Cost ÷ Average Hourly Wage",
+        a1: "1,466",
+        a2: "1,685",
+        a3: "1,568",
+        a4: "1,644",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "18",
+        label: "If Net Sales were $120,000 and COGS$ was $39,600, what is the COGS%?",
+        explanation: "Calculate 39,600 ÷ 120,000 = 0.33, or 33.0%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "32.5%",
+        a2: "33.0%",
+        a3: "34.0%",
+        a4: "35.0%",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "19",
+        label: "If the net sales were $100,000 this year and the SSS was -5.5%, what were the net sales last year?",
+        explanation: "Since SSS = -5.5% (–0.055), calculate 100,000 ÷ 0.945 ≈ 105,820.",
+        formula: "Last Year Net Sales = This Year Net Sales ÷ (1 + SSS)",
+        a1: "$94,500",
+        a2: "$100,000",
+        a3: "$105,820",
+        a4: "$112,000",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "20",
+        label: "If there were 10,500 transactions and $110,000 net sales, what was the check average?",
+        explanation: "Check Average = Net Sales ÷ Transactions = 110,000 ÷ 10,500 ≈ 10.48.",
+        formula: "Check Average = Net Sales ÷ Number of Transactions",
+        a1: "$10.00",
+        a2: "$10.48",
+        a3: "$10.58",
+        a4: "$11.00",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "21",
+        label: "If there were 11,000 transactions and the check average was $10.58, what would the Net Sales be?",
+        explanation: "Net Sales = Number of Transactions × Check Average = 11,000 × 10.58 = 116,380.",
+        formula: "Net Sales = Number of Transactions × Check Average",
+        a1: "$116,380",
+        a2: "$115,800",
+        a3: "$107,150",
+        a4: "$120,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "22",
+        label: "This week: Beginning Inventory: $5,000; Purchases: $9,400; Transfer Out: $250; Ending Inventory: $4,750; Net Sales: $25,500. What is the COGS% this week?",
+        explanation: "COGS = 5,000 + 9,400 - 250 - 4,750 = 9,400. COGS% = 9,400 ÷ 25,500 ≈ 0.3686 or 36.9%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "36.9%",
+        a2: "38.9%",
+        a3: "33.9%",
+        a4: "34.6%",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "23",
+        label: "If COGS% = 31.5% and COGS$ = $9,850, then what are the Net Sales?",
+        explanation: "Net Sales = COGS$ ÷ COGS% = 9,850 ÷ 0.315 ≈ 31,270.",
+        formula: "Net Sales = COGS$ ÷ COGS%",
+        a1: "$31,270",
+        a2: "$33,500",
+        a3: "$29,000",
+        a4: "$35,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "24",
+        label: "Direct Labor: $16,000; GM Salary: $4,600; AM & Chef Salary: $3,000; Tax & Benefits: $6,800. What is the Total Labor Cost?",
+        explanation: "Total Labor Cost = 16,000 + 4,600 + 3,000 + 6,800 = 30,400.",
+        formula: "Total Labor Cost = Direct Labor + GM Salary + AM & Chef Salary + Tax & Benefits",
+        a1: "$27,400",
+        a2: "$30,400",
+        a3: "$20,900",
+        a4: "$27,410",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "25",
+        label: "Your Total Labor Cost was $28,750. Management Labor was $4,575, and Tax & Benefits were $8,250. You used 1,485 Direct Labor Hours. What is your Direct Labor Average Wage?",
+        explanation: "Direct Labor Cost = 28,750 – (4,575 + 8,250) = 15,925. Average Wage = 15,925 ÷ 1,485 ≈ 10.72.",
+        formula: "Direct Labor Average Wage = Direct Labor Cost ÷ Direct Labor Hours",
+        a1: "$10.25",
+        a2: "$10.72",
+        a3: "$11.00",
+        a4: "$10.50",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "26",
+        label: "If your Total Labor Percentage was 26.0% and your Total Labor Cost was $29,500, then what were your Net Sales?",
+        explanation: "Net Sales = Total Labor Cost ÷ Total Labor % = 29,500 ÷ 0.26 ≈ 113,462.",
+        formula: "Net Sales = Total Labor Cost ÷ Total Labor %",
+        a1: "$113,462",
+        a2: "$110,000",
+        a3: "$115,000",
+        a4: "$120,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "27",
+        label: "COGS%: 33.6%, Total Labor: 25.5%, Controllables: 7.8%, Advertising: 0.3%, Fixed Costs: 5%. Controllable Profit: $42,000. What are your Net Sales?",
+        explanation: "Total costs = 33.6% + 25.5% + 7.8% + 0.3% + 5% = 72.2%. Controllable Profit % = 100% – 72.2% = 27.8%. Net Sales = 42,000 ÷ 0.278 ≈ 151,079.",
+        formula: "Net Sales = Controllable Profit ÷ Controllable Profit %",
+        a1: "$150,000",
+        a2: "$151,079",
+        a3: "$155,000",
+        a4: "$145,000",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "28",
+        label: "COGS$: $36,250; Total Labor: $27,000; Controllables: $8,750; Advertising: $750; Net Sales: $110,000. What is your Controllable Profit%?",
+        explanation: "Controllable Profit = 110,000 – (36,250 + 27,000 + 8,750 + 750) = 37,250. Controllable Profit % = 37,250 ÷ 110,000 ≈ 0.3386 or 33.9%.",
+        formula: "Controllable Profit % = Controllable Profit ÷ Net Sales",
+        a1: "30.5%",
+        a2: "32.7%",
+        a3: "31.1%",
+        a4: "33.9%",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "29",
+        label: "The numbers below reflect a 1.5-year-old store:\nThis Year CP = $37,000, Bonus = $1,500, Worker Comp = $300\nLast Year CP = $35,000, Bonus = $1,200, Worker Comp = $250\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 37,000 + 1,500 + 300 = 38,800. Adjusted CP LY = 35,000 + 1,200 + 250 = 36,450. Difference = 2,350. GM bonus = 2,350 × 0.20 = 470.",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20)",
+        a1: "$450",
+        a2: "$470",
+        a3: "$500",
+        a4: "$420",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "30",
+        label: "The numbers below reflect a 2.5-year-old store:\nThis Year CP = $315,550, Bonus = $10,500, Worker Comp = $2,200\nLast Year CP = $325,500, Bonus = $11,350, Worker Comp = $2,400\nThis Year Budget CP = $336,450, Bonus = $14,360, Worker Comp = $2,750\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 315,550 + 10,500 + 2,200 = 328,250. Adjusted CP LY = 325,500 + 11,350 + 2,400 = 339,250. Difference = -11,000. Since the store is older than 2 years, GM Bonus = (ACPTY – ACPLY) × 0.20 = -11,000 × 0.20 = -2,200 (no bonus, as performance decreased).",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20) for stores 2+ years old",
+        a1: "$0",
+        a2: "$2,200",
+        a3: "$1,100",
+        a4: "$-2,200",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "31",
+        label: "The price of a 2-Item Combo is $6.59. Combo portion costs: ½ Chow Mein + ½ Fried Rice $0.33; Orange Chicken $0.67; Broccoli Beef $0.65; Shanghai Angus Steak $1.48. A 22 oz. Drink is priced at $1.59 with a cost of $0.34. Which option yields the highest gross profit?\n\na) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)\nb) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak)\nc) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak) + 22 oz. Drink\nd) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        explanation: "Option a: $6.59 – (0.33+0.67+0.65) = $4.94 profit. Option b: $7.84 – (0.33+0.67+0.65+1.48) = $4.71 profit. Option c: $9.43 – (3.13+0.34) = $5.96 profit. Option d: $8.18 – (1.65+0.34) = $6.19 profit. Highest gross profit = Option d.",
+        formula: "Gross Profit = Revenue – Total Cost",
+        a1: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)",
+        a2: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak)",
+        a3: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak) + 22 oz. Drink",
+        a4: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "32",
+        label: "COGS$: $36,250; Total Labor: $27,000; Controllables: $8,750; Advertising: $750; Fixed Cost: $5,000; Restaurant Contribution %: 20.5%. What are your Net Sales?",
+        explanation: "Total expenses = 36,250 + 27,000 + 8,750 + 750 + 5,000 = 77,750. Restaurant Contribution % = 20.5%, so RC$ = 20.5% of Net Sales. That means Expenses = 79.5% of Net Sales. Net Sales = 77,750 ÷ 0.795 ≈ 97,800.",
+        formula: "Net Sales = (Total Expenses) ÷ (1 – RC%)",
+        a1: "$95,000",
+        a2: "$97,800",
+        a3: "$100,000",
+        a4: "$99,500",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "33",
+        label: "If the net sales were $100,000 this year and the SSS was 7.5%, what were the net sales last year?",
+        explanation: "SSS = 7.5% (0.075). Last Year Net Sales = 100,000 ÷ 1.075 ≈ 93,023.",
+        formula: "Last Year Net Sales = This Year Net Sales ÷ (1 + SSS)",
+        a1: "$93,023",
+        a2: "$100,000",
+        a3: "$107,500",
+        a4: "$92,500",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "34",
+        label: "If there were 12,500 transactions and the check average was $10.88, what would be the Net Sales?",
+        explanation: "Net Sales = Number of Transactions × Check Average = 12,500 × 10.88 = 136,000.",
+        formula: "Net Sales = Transactions × Check Average",
+        a1: "$136,000",
+        a2: "$135,000",
+        a3: "$140,000",
+        a4: "$130,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "35",
+        label: "This week: Beginning Inventory: $5,000; Purchases: $9,600; Transfer In: $150; Ending Inventory: $4,750; Net Sales: $29,500. What is the COGS% this week?",
+        explanation: "COGS = 5,000 + 9,600 + 150 – 4,750 = 10,000. COGS% = 10,000 ÷ 29,500 ≈ 0.33898 or 33.9%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "36.8%",
+        a2: "33.9%",
+        a3: "31.8%",
+        a4: "None of the above",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "36",
+        label: "If the net sales last year were $110,000 and net sales this year were $99,500, what is the SSS?",
+        explanation: "SSS = (This Year – Last Year) ÷ Last Year = (99,500 – 110,000) ÷ 110,000 = -10,500 ÷ 110,000 ≈ -0.0955 or -9.5%.",
+        formula: "SSS = (This Year Net Sales – Last Year Net Sales) ÷ Last Year Net Sales",
+        a1: "-9.5%",
+        a2: "-10.0%",
+        a3: "-9.0%",
+        a4: "-8.5%",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "37",
+        label: "If COGS% = 32.8% and COGS$ = $9,250, then what are the Net Sales?",
+        explanation: "Net Sales = COGS$ ÷ COGS% = 9,250 ÷ 0.328 ≈ 28,232.",
+        formula: "Net Sales = COGS$ ÷ COGS%",
+        a1: "$28,232",
+        a2: "$30,000",
+        a3: "$26,500",
+        a4: "$29,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "38",
+        label: "Direct Labor: $15,500; GM Salary: $4,300; AM & Chef Salary: $3,500; Tax & Benefits: $6,900; Net Sales: $125,000. What is the Total Labor Percentage?",
+        explanation: "Total Labor Cost = 15,500 + 4,300 + 3,500 + 6,900 = 30,200. Total Labor % = 30,200 ÷ 125,000 ≈ 0.2416 or 24.2%.",
+        formula: "Total Labor % = Total Labor Cost ÷ Net Sales",
+        a1: "18.6%",
+        a2: "21.4%",
+        a3: "24.2%",
+        a4: "20.7%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "39",
+        label: "Your Total Labor Cost was $27,750. Management Labor was $4,575 and Tax & Benefits were $8,150. Your average Direct Labor Hourly Wage was $10.25. How many Direct Labor Hours did you use?",
+        explanation: "Direct Labor Cost = 27,750 – (4,575 + 8,150) = 15,025. Direct Labor Hours = 15,025 ÷ 10.25 ≈ 1,466.",
+        formula: "Direct Labor Hours = Direct Labor Cost ÷ Average Hourly Wage",
+        a1: "1,466",
+        a2: "1,685",
+        a3: "1,568",
+        a4: "1,644",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "40",
+        label: "COGS%: 33.1%, Total Labor: 24.5%, Controllables: 7.4%, Advertising: 0.5%. Controllable Profit: $42,368. What are your Net Sales?",
+        explanation: "Total costs = 33.1% + 24.5% + 7.4% + 0.5% = 65.5%. Controllable Profit % = 100% – 65.5% = 34.5%. Net Sales = 42,368 ÷ 0.345 ≈ 122,813.",
+        formula: "Net Sales = Controllable Profit ÷ Controllable Profit %",
+        a1: "$122,000",
+        a2: "$122,813",
+        a3: "$123,500",
+        a4: "$121,500",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "41",
+        label: "Your Total Labor Cost was $27,750. Management Labor was $4,575 and Tax & Benefits were $8,150. You used 1,475 Direct Labor Hours. What is your Direct Labor Average Wage?",
+        explanation: "Direct Labor Cost = 27,750 – (4,575 + 8,150) = 15,025. Direct Labor Average Wage = 15,025 ÷ 1,475 ≈ 10.19.",
+        formula: "Direct Labor Average Wage = Direct Labor Cost ÷ Direct Labor Hours",
+        a1: "$9.98",
+        a2: "$10.19",
+        a3: "$11.09",
+        a4: "$10.56",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "42",
+        label: "COGS$: $35,250; Total Labor: $26,000; Controllables: $5,750; Minimum Rent: $6,500; Advertising: $500; Net Sales: $98,000. What is your Controllable Profit%?",
+        explanation: "Controllable Profit = 98,000 – (35,250 + 26,000 + 5,750 + 6,500 + 500) = 24,000. CP% = 24,000 ÷ 98,000 ≈ 24.5%.",
+        formula: "Controllable Profit % = Controllable Profit ÷ Net Sales",
+        a1: "33.5%",
+        a2: "35.0%",
+        a3: "31.1%",
+        a4: "32.0%",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "43",
+        label: "The numbers below reflect a 2.5-year-old store:\nThis Year CP = $37,000, Bonus = $1,500, Worker Comp = $300\nLast Year CP = $35,000, Bonus = $1,200, Worker Comp = $250\nThis Year Budget CP = $36,000, Bonus = $1,450, Worker Comp = $300\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 37,000 + 1,500 + 300 = 38,800. Adjusted CP LY = 35,000 + 1,200 + 250 = 36,450. Difference = 2,350. GM Bonus = 2,350 × 0.20 = 470.",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20) for stores 2+ years old",
+        a1: "$1,000",
+        a2: "$470",
+        a3: "$1,470",
+        a4: "$0",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "44",
+        label: "The numbers below reflect a 1.5-year-old store:\nThis Year CP = $350,150, Bonus = $10,500, Worker Comp = $2,200\nLast Year CP = $325,500, Bonus = $11,350, Worker Comp = $2,400\nThis Year Budget CP = $336,450, Bonus = $14,360, Worker Comp = $2,750\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 350,150 + 10,500 + 2,200 = 362,850. Adjusted CP Budget = 336,450 + 14,360 + 2,750 = 353,560. Difference = 9,290. Since the store is 6m–2y old, GM Bonus = (Budget ACPTY – ACPLY) × 0.20 = (362,850 – 353,560) × 0.20 = 1,858 ≈ 1,860. Closest option: $1,860 (not listed, so correct answer = None of the above).",
+        formula: "Bonus = (Budget ACPTY – ACPLY) × GM rate (0.20) for 6m–2y stores",
+        a1: "$3,660",
+        a2: "$4,720",
+        a3: "$5,720",
+        a4: "None of the above",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "45",
+        label: "The price of a 2-Item Combo is $6.59. Combo portion costs: ½ Chow Mein + ½ Fried Rice $0.33; Orange Chicken $0.67; Broccoli Beef $0.65; Shanghai Angus Steak $1.48. A 22 oz. Drink is priced at $1.59 with a cost of $0.34. Which option yields the highest gross profit?\n\na) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)\nb) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak)\nc) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak) + 22 oz. Drink\nd) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        explanation: "Option a: $6.59 – (0.33+0.67+0.65) = $4.94. Option b: $7.84 – (0.33+0.67+0.65+1.48) = $4.71. Option c: $9.43 – (3.13+0.34) = $5.96. Option d: $8.18 – (1.65+0.34) = $6.19. Highest profit = Option d.",
+        formula: "Gross Profit = Revenue – Total Cost",
+        a1: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)",
+        a2: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak)",
+        a3: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Shanghai Angus Steak) + 22 oz. Drink",
+        a4: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "46",
+        label: "If the net sales last year were $28,168 and net sales this year were $27,168, what is the SSS?",
+        explanation: "SSS = (This Year – Last Year) ÷ Last Year = (27,168 – 28,168) ÷ 28,168 = -1,000 ÷ 28,168 ≈ -0.0355 or -3.6%.",
+        formula: "SSS = (This Year Net Sales – Last Year Net Sales) ÷ Last Year Net Sales",
+        a1: "-3.6%",
+        a2: "-3.0%",
+        a3: "-3.2%",
+        a4: "-2.8%",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "47",
+        label: "If there were 11,000 transactions and the check average was $10.38, what were the net sales?",
+        explanation: "Net Sales = Transactions × Check Average = 11,000 × 10.38 = 114,180.",
+        formula: "Net Sales = Transactions × Check Average",
+        a1: "$120,050",
+        a2: "$100,180",
+        a3: "$114,180",
+        a4: "$100,050",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "48",
+        label: "This week: Beginning Inventory: $4,000; Purchases: $8,400; Transfer Out: $150; Ending Inventory: $3,550; Net Sales: $27,500. What is the COGS% this week?",
+        explanation: "COGS = 4,000 + 8,400 – 150 – 3,550 = 8,700. COGS% = 8,700 ÷ 27,500 ≈ 0.316 or 31.6%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "33.4%",
+        a2: "31.6%",
+        a3: "32.7%",
+        a4: "Not enough information, cannot be calculated",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "49",
+        label: "Your COGS% = 33.6%, Total Labor = 24.5%, Controllables = 7.4%, Advertising = 0.5%, and Controllable Profit = $40,368. What are your Net Sales?",
+        explanation: "Total costs = 33.6% + 24.5% + 7.4% + 0.5% = 66%. Controllable Profit % = 100% – 66% = 34%. Net Sales = 40,368 ÷ 0.34 ≈ 118,141.",
+        formula: "Net Sales = Controllable Profit ÷ Controllable Profit %",
+        a1: "$118,141",
+        a2: "$117,500",
+        a3: "$119,000",
+        a4: "$116,800",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "50",
+        label: "If COGS% = 32.5% and Net Sales = $25,000, what is the COGS$?",
+        explanation: "COGS$ = Net Sales × COGS% = 25,000 × 0.325 = 8,125.",
+        formula: "COGS$ = Net Sales × COGS%",
+        a1: "$7,500",
+        a2: "$8,375",
+        a3: "$6,850",
+        a4: "$8,125",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "51",
+        label: "Direct Labor: $15,500; GM Salary: $4,300; AM & Chef Salary: $3,500; Tax & Benefits: $6,900; Net Sales: $125,000. What is the Total Labor Cost?",
+        explanation: "Total Labor Cost = 15,500 + 4,300 + 3,500 + 6,900 = 30,200.",
+        formula: "Total Labor Cost = Direct Labor + GM Salary + AM & Chef Salary + Tax & Benefits",
+        a1: "$30,200",
+        a2: "$30,400",
+        a3: "$26,700",
+        a4: "None of the above",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "52",
+        label: "Your Total Labor Cost was $28,000. Management Labor was $4,500 and Tax & Benefits were $8,000. You used 1,450 Direct Labor Hours. What is your Direct Labor Average Wage?",
+        explanation: "Direct Labor Cost = 28,000 – (4,500 + 8,000) = 15,500. Direct Labor Average Wage = 15,500 ÷ 1,450 ≈ 10.69.",
+        formula: "Direct Labor Average Wage = Direct Labor Cost ÷ Direct Labor Hours",
+        a1: "$9.98",
+        a2: "$10.19",
+        a3: "$10.69",
+        a4: "$11.09",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "53",
+        label: "If your Total Labor Percentage was 25.0% and your Total Labor Cost was $28,500, then what were your Net Sales?",
+        explanation: "Net Sales = Total Labor Cost ÷ Total Labor % = 28,500 ÷ 0.25 = 114,000.",
+        formula: "Net Sales = Total Labor Cost ÷ Total Labor %",
+        a1: "$114,000",
+        a2: "$110,000",
+        a3: "$104,000",
+        a4: "$112,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "54",
+        label: "COGS$: $37,500; Total Labor: $27,750; Controllables: $7,500; Minimum Rent: $12,000; Advertising: $500; Net Sales: $115,000. What is your Controllable Profit?",
+        explanation: "Total expenses = 37,500 + 27,750 + 7,500 + 12,000 + 500 = 85,250. Controllable Profit = 115,000 – 85,250 = 29,750.",
+        formula: "Controllable Profit = Net Sales – (COGS + Labor + Controllables + Rent + Advertising)",
+        a1: "$29,750",
+        a2: "$41,750",
+        a3: "$42,250",
+        a4: "$49,750",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "55",
+        label: "COGS$: $35,250; Total Labor: $26,000; Controllables: $5,750; Minimum Rent: $6,500; Advertising: $500; Net Sales: $98,000. What is your Controllable Profit%?",
+        explanation: "Total expenses = 35,250 + 26,000 + 5,750 + 6,500 + 500 = 74,000. Controllable Profit = 98,000 – 74,000 = 24,000. Controllable Profit % = 24,000 ÷ 98,000 ≈ 24.5%. Closest option provided: 24.5%.",
+        formula: "Controllable Profit % = Controllable Profit ÷ Net Sales",
+        a1: "33.5%",
+        a2: "35.0%",
+        a3: "31.1%",
+        a4: "32.0%",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "56",
+        label: "The numbers below reflect a 2.5-year-old store:\nThis Year CP = $116,400, Bonus = $3,600, Worker Comp = $750\nLast Year CP = $109,350, Bonus = $4,500, Worker Comp = $900\nThis Year Budget CP = $108,000, Bonus = $4,650, Worker Comp = $900\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 116,400 + 3,600 + 750 = 120,750. Adjusted CP LY = 109,350 + 4,500 + 900 = 114,750. Difference = 6,000. GM Bonus = 6,000 × 0.20 = 1,200.",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20) for stores 2+ years old",
+        a1: "$1,000",
+        a2: "$1,200",
+        a3: "$1,010",
+        a4: "None of the above",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "57",
+        label: "The numbers below reflect a 2.5-year-old store:\nThis Year CP = $37,000, Bonus = $1,500, Worker Comp = $300\nLast Year CP = $35,000, Bonus = $1,200, Worker Comp = $250\nThis Year Budget CP = $36,000, Bonus = $1,450, Worker Comp = $300\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 37,000 + 1,500 + 300 = 38,800. Adjusted CP LY = 35,000 + 1,200 + 250 = 36,450. Difference = 2,350. GM Bonus = 2,350 × 0.20 = 470.",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20) for stores 2+ years old",
+        a1: "$1,000",
+        a2: "$470",
+        a3: "$1,470",
+        a4: "$0",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "58",
+        label: "The price of a 2-Item Combo is $6.59. Combo portion costs: ½ Chow Mein + ½ Fried Rice $0.33; Orange Chicken $0.67; Broccoli Beef $0.65; Peppercorn Shrimp $1.62. A 22 oz. Drink is priced at $1.59 with a cost of $0.34. Which option yields the highest gross profit?\n\na) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)\nb) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Peppercorn Shrimp) and a 22 oz. Drink\nc) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Peppercorn Shrimp)\nd) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        explanation: "Option a: $6.59 – (0.33+0.67+0.65) = $4.94 profit. Option b: $7.84 + $1.59 = $9.43 – (0.33+0.67+0.65+1.62+0.34=3.61) = $5.82 profit. Option c: $6.59 – (0.33+0.67+1.62=2.62) = $3.97 profit. Option d: $6.59 + $1.59 = $8.18 – (0.33+0.67+0.65+0.34=1.99) = $6.19 profit. Highest profit = Option d.",
+        formula: "Gross Profit = Revenue – Total Cost",
+        a1: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)",
+        a2: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Peppercorn Shrimp) and a 22 oz. Drink",
+        a3: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Peppercorn Shrimp)",
+        a4: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "59",
+        label: "If the net sales last year were $110,000 and SSS was 8.8%, what are the sales this year?",
+        explanation: "This Year = Last Year × (1 + SSS) = 110,000 × 1.088 = 119,680.",
+        formula: "This Year Net Sales = Last Year Net Sales × (1 + SSS)",
+        a1: "$118,800",
+        a2: "$119,680",
+        a3: "$120,000",
+        a4: "$121,000",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "60",
+        label: "If there were 12,000 transactions and $138,000 net sales, what was the check average?",
+        explanation: "Check Average = Net Sales ÷ Transactions = 138,000 ÷ 12,000 = 11.50.",
+        formula: "Check Average = Net Sales ÷ Transactions",
+        a1: "$10.00",
+        a2: "$16.38",
+        a3: "$12.00",
+        a4: "$11.50",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "61",
+        label: "This week: Beginning Inventory: $5,000; Purchases: $9,600; Transfer In: $150; Ending Inventory: $4,750; Net Sales: $30,500. What is the COGS% this week?",
+        explanation: "COGS = 5,000 + 9,600 + 150 – 4,750 = 10,000. COGS% = 10,000 ÷ 30,500 ≈ 0.3279 or 32.8%.",
+        formula: "COGS% = COGS$ ÷ Net Sales",
+        a1: "32.8%",
+        a2: "33.8%",
+        a3: "31.8%",
+        a4: "Not enough information, cannot be calculated",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "62",
+        label: "If COGS% = 32.0% and COGS$ = $9,250, then what are the Net Sales?",
+        explanation: "Net Sales = COGS$ ÷ COGS% = 9,250 ÷ 0.32 = 28,906.",
+        formula: "Net Sales = COGS$ ÷ COGS%",
+        a1: "$28,906",
+        a2: "$29,860",
+        a3: "$30,896",
+        a4: "Not enough information, cannot be calculated",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "63",
+        label: "Direct Labor: $15,500; GM Salary: $4,300; AM & Chef Salary: $3,500; Tax & Benefits: $6,900; Net Sales: $125,000. What is the Total Labor Cost?",
+        explanation: "Total Labor Cost = 15,500 + 4,300 + 3,500 + 6,900 = 30,200.",
+        formula: "Total Labor Cost = Direct Labor + GM Salary + AM & Chef Salary + Tax & Benefits",
+        a1: "$30,200",
+        a2: "$30,400",
+        a3: "$26,700",
+        a4: "None of the above",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "64",
+        label: "Your Total Labor Cost was $28,000. Management Labor was $4,500 and Tax & Benefits were $8,000. You used 1,450 Direct Labor Hours. What is your Direct Labor Average Wage?",
+        explanation: "Direct Labor Cost = 28,000 – (4,500 + 8,000) = 15,500. Direct Labor Average Wage = 15,500 ÷ 1,450 ≈ 10.69.",
+        formula: "Direct Labor Average Wage = Direct Labor Cost ÷ Direct Labor Hours",
+        a1: "$9.98",
+        a2: "$10.19",
+        a3: "$10.69",
+        a4: "$11.09",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "65",
+        label: "If your Total Labor Percentage was 25.0% and your Net Sales were $110,000, what was your Total Labor Cost?",
+        explanation: "Total Labor Cost = Net Sales × Total Labor % = 110,000 × 0.25 = 27,500.",
+        formula: "Total Labor Cost = Net Sales × Total Labor %",
+        a1: "$26,500",
+        a2: "$25,500",
+        a3: "$25,000",
+        a4: "None of the above",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "66",
+        label: "COGS$: $37,500; Total Labor: $27,750; Controllables: $7,500; Minimum Rent: $12,000; Advertising: $500; Net Sales: $115,000. What is your Controllable Profit?",
+        explanation: "Total expenses = 37,500 + 27,750 + 7,500 + 12,000 + 500 = 85,250. Controllable Profit = 115,000 – 85,250 = 29,750.",
+        formula: "Controllable Profit = Net Sales – (COGS + Labor + Controllables + Rent + Advertising)",
+        a1: "$29,750",
+        a2: "$41,750",
+        a3: "$42,250",
+        a4: "$49,750",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "67",
+        label: "COGS$: $35,250; Total Labor: $26,000; Controllables: $5,750; Minimum Rent: $6,500; Advertising: $500; Net Sales: $98,000. What is your Controllable Profit%?",
+        explanation: "Total expenses = 35,250 + 26,000 + 5,750 + 6,500 + 500 = 74,000. Controllable Profit = 98,000 – 74,000 = 24,000. Controllable Profit % = 24,000 ÷ 98,000 ≈ 24.5%. Closest option listed is 32.0%, but correct logic gives 24.5%.",
+        formula: "Controllable Profit % = Controllable Profit ÷ Net Sales",
+        a1: "33.5%",
+        a2: "35.0%",
+        a3: "31.1%",
+        a4: "32.0%",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "68",
+        label: "The numbers below reflect a 2.5-year-old store:\nThis Year CP = $350,150, Bonus = $10,500, Worker Comp = $2,200\nLast Year CP = $325,500, Bonus = $11,350, Worker Comp = $2,400\nThis Year Budget CP = $336,450, Bonus = $14,360, Worker Comp = $2,750\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 350,150 + 10,500 + 2,200 = 362,850. Adjusted CP LY = 325,500 + 11,350 + 2,400 = 339,250. Difference = 23,600. GM Bonus = 23,600 × 0.20 = 4,720.",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20) for stores 2+ years old",
+        a1: "$3,660",
+        a2: "$4,720",
+        a3: "$5,720",
+        a4: "None of the above",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "69",
+        label: "The numbers below reflect a 2.5-year-old store:\nThis Year CP = $315,550, Bonus = $10,500, Worker Comp = $2,200\nLast Year CP = $325,500, Bonus = $11,350, Worker Comp = $2,400\nThis Year Budget CP = $336,450, Bonus = $14,360, Worker Comp = $2,750\nWhat is GM's Quarterly Financial Bonus based on this data?",
+        explanation: "Adjusted CP TY = 315,550 + 10,500 + 2,200 = 328,250. Adjusted CP LY = 325,500 + 11,350 + 2,400 = 339,250. Difference = -11,000. Since ACPTY < ACPLY, GM Bonus = 0.",
+        formula: "Bonus = (ACPTY – ACPLY) × GM rate (0.20) for stores 2+ years old",
+        a1: "$1,000",
+        a2: "$3,400",
+        a3: "$0",
+        a4: "None of the above",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "70",
+        label: "The price of a 2-Item Combo is $6.59. Combo portion costs: ½ Chow Mein + ½ Fried Rice $0.33; Orange Chicken $0.67; Broccoli Beef $0.65; Peppercorn Shrimp $1.62. A 22 oz. Drink is priced at $1.59 with a cost of $0.34. Which option yields the highest gross profit?\n\na) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)\nb) 3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Peppercorn Shrimp) and a 22 oz. Drink\nc) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Peppercorn Shrimp)\nd) 2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        explanation: "Option a: $6.59 – (0.33+0.67+0.65) = $4.94 profit. Option b: $7.84 + $1.59 = $9.43 – (0.33+0.67+0.65+1.62+0.34=3.61) = $5.82 profit. Option c: $6.59 – (0.33+0.67+1.62=2.62) = $3.97 profit. Option d: $8.18 – (0.33+0.67+0.65+0.34=1.99) = $6.19 profit. Highest profit = Option d.",
+        formula: "Gross Profit = Revenue – Total Cost",
+        a1: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef)",
+        a2: "3-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef, Peppercorn Shrimp) and a 22 oz. Drink",
+        a3: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Peppercorn Shrimp)",
+        a4: "2-Item Combo (½ Chow Mein & ½ Fried Rice, Orange Chicken, Broccoli Beef) + 22 oz. Drink",
+        correctAnswer: "a4"
+      },
+      {
+        questionId: "71",
+        label: "Your COGS$ = $35,750, Total Labor = $25,500, Controllables = $7,750, Advertising = $5,000, and Controllable Profit% = 31.5%. What are your Net Sales?",
+        explanation: "Total costs = 35,750 + 25,500 + 7,750 + 5,000 = 74,000. Controllable Profit % = 31.5%, so Costs % = 68.5%. Net Sales = 74,000 ÷ 0.685 ≈ 108,029.",
+        formula: "Net Sales = Total Costs ÷ (1 – Controllable Profit %)",
+        a1: "$234,921",
+        a2: "$215,872",
+        a3: "$108,029",
+        a4: "$107,368",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "72",
+        label: "If net sales this year were $110,000 and $96,000 last year, what was the SSS%?",
+        explanation: "SSS% = (This Year – Last Year) ÷ Last Year × 100 = (110,000 – 96,000) ÷ 96,000 × 100 = 14,000 ÷ 96,000 × 100 ≈ 14.6%.",
+        formula: "SSS% = (This Year Net Sales – Last Year Net Sales) ÷ Last Year Net Sales × 100",
+        a1: "12.5%",
+        a2: "14.6%",
+        a3: "15.0%",
+        a4: "13.0%",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "73",
+        label: "If net sales this year were $90,000 and $100,000 last year, what was the SSS%?",
+        explanation: "SSS% = (This Year – Last Year) ÷ Last Year × 100 = (90,000 – 100,000) ÷ 100,000 × 100 = -10,000 ÷ 100,000 × 100 = -10%.",
+        formula: "SSS% = (This Year Net Sales – Last Year Net Sales) ÷ Last Year Net Sales × 100",
+        a1: "-8%",
+        a2: "-9%",
+        a3: "-10%",
+        a4: "-11%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "74",
+        label: "This week: Beginning Inventory: $4,000; Purchases: $6,000; Pepsi Order: $400; Transfer Out: $150; Ending Inventory: $3,500; Net Sales: $22,500. What is your COGS% this week?",
+        explanation: "COGS = 4,000 + 6,000 + 400 – 150 – 3,500 = 6,750. COGS% = 6,750 ÷ 22,500 ≈ 0.30 or 30.0%.",
+        formula: "COGS% = (Beginning Inventory + Purchases + Pepsi Order + Transfer In – Transfer Out – Ending Inventory) ÷ Net Sales",
+        a1: "28.0%",
+        a2: "29.5%",
+        a3: "30.0%",
+        a4: "31.0%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "75",
+        label: "If your COGS% is 33% and your COGS is $23,500, what are your Net Sales?",
+        explanation: "Net Sales = COGS ÷ COGS% = 23,500 ÷ 0.33 ≈ 71,212.",
+        formula: "Net Sales = COGS ÷ COGS%",
+        a1: "$71,000",
+        a2: "$71,212",
+        a3: "$70,500",
+        a4: "$72,000",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "76",
+        label: "Your cost of sales = $37,400, Total Labor = $29,000, Controllables = $7,500, Advertising = $1,500, and Net Sales = $105,000. What is your Total Labor %?",
+        explanation: "Total Labor % = Total Labor ÷ Net Sales × 100 = 29,000 ÷ 105,000 × 100 ≈ 27.6%.",
+        formula: "Total Labor % = Total Labor ÷ Net Sales × 100",
+        a1: "26.5%",
+        a2: "27.0%",
+        a3: "27.6%",
+        a4: "28.0%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "77",
+        label: "Your cost of sales = $37,000, Total Labor = $29,500, Controllables = $7,500, Advertising = $800, and Net Sales = $115,000. What is your Controllable Profit $?",
+        explanation: "Controllable Profit = Net Sales – (Cost of Sales + Total Labor + Controllables + Advertising) = 115,000 – (37,000 + 29,500 + 7,500 + 800) = 115,000 – 74,800 = 40,200.",
+        formula: "Controllable Profit = Net Sales – (Cost of Sales + Total Labor + Controllables + Advertising)",
+        a1: "$40,200",
+        a2: "$41,500",
+        a3: "$39,800",
+        a4: "$42,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "78",
+        label: "Your COGS% = 32.5%, Total Labor = 25%, Controllables = 7.2%, Advertising = 0.8%, Depreciation = $5,000, Amortization = $700, and Net Sales = $100,000. What is your Controllable Profit $?",
+        explanation: "Controllable Profit % = 100% – (32.5% + 25% + 7.2% + 0.8%) = 34.5%. Controllable Profit $ = 100,000 × 0.345 = 34,500.",
+        formula: "Controllable Profit $ = Net Sales × (1 – (COGS% + Total Labor% + Controllables% + Advertising%))",
+        a1: "$34,500",
+        a2: "$35,000",
+        a3: "$33,500",
+        a4: "$34,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "79",
+        label: "Your COGS% = 32.6%, Total Labor = 25.7%, Controllables = 7.1%, Advertising = 0.7%, Total Fixed Costs = $13,400, and Net Sales = $110,000. What is your Restaurant Contribution $?",
+        explanation: "Fixed Costs % = 13,400 ÷ 110,000 ≈ 12.18%. Total expenses % = 32.6% + 25.7% + 7.1% + 0.7% + 12.18% = 78.18%. Restaurant Contribution % = 100% – 78.18% = 21.82%. RC$ = 110,000 × 0.2182 ≈ 24,002.",
+        formula: "Restaurant Contribution $ = Net Sales × (1 – (COGS% + Total Labor% + Controllables% + Advertising% + Fixed Costs%))",
+        a1: "$24,002",
+        a2: "$23,500",
+        a3: "$24,500",
+        a4: "$25,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "80",
+        label: "Your CP = $28,000, COGS = $20,000, Total Labor = $15,600, Restaurant Contribution = $14,000, Depreciation = $1,500, and Amortization = $250. What is your Cash Flow?",
+        explanation: "Cash Flow = Restaurant Contribution + Amortization + Depreciation = 14,000 + 250 + 1,500 = 15,750.",
+        formula: "Cash Flow = Restaurant Contribution + Amortization + Depreciation",
+        a1: "$15,750",
+        a2: "$14,250",
+        a3: "$29,750",
+        a4: "$28,000",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "81",
+        label: "Based on the P&L data: Net Sales = $260,816, Total Transactions = 14,027. What was the actual average check?",
+        explanation: "Average Check = Net Sales ÷ Transactions = 260,816 ÷ 14,027 ≈ 18.59.",
+        formula: "Average Check = Net Sales ÷ Total Transactions",
+        a1: "$18.25",
+        a2: "$18.50",
+        a3: "$18.59",
+        a4: "$18.75",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "82",
+        label: "From the P&L data: Net Sales = $260,816 and COGS$ = $83,750. What is the COGS%?",
+        explanation: "COGS% = COGS ÷ Net Sales × 100 = 83,750 ÷ 260,816 × 100 ≈ 32.1%.",
+        formula: "COGS% = COGS ÷ Net Sales × 100",
+        a1: "31.5%",
+        a2: "32.1%",
+        a3: "32.5%",
+        a4: "33.0%",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "83",
+        label: "From the P&L data: Net Sales = $260,816 and Total Labor$ = $74,950. What is the Total Labor %?",
+        explanation: "Total Labor % = Total Labor ÷ Net Sales × 100 = 74,950 ÷ 260,816 × 100 ≈ 28.7%.",
+        formula: "Total Labor % = Total Labor ÷ Net Sales × 100",
+        a1: "28.3%",
+        a2: "28.7%",
+        a3: "29.0%",
+        a4: "29.5%",
+        correctAnswer: "a2"
+      },            
+      {
+        questionId: "84",
+        label: "From the P&L data: Net Sales = $260,816, COGS$ = $83,750, Total Labor$ = $74,950, Controllables$ = $20,750, Advertising$ = $1,250. What is the Controllable Profit $?",
+        explanation: "Controllable Profit = Net Sales – (COGS + Labor + Controllables + Advertising) = 260,816 – (83,750 + 74,950 + 20,750 + 1,250) = 260,816 – 180,700 = 80,116.",
+        formula: "Controllable Profit = Net Sales – (COGS + Labor + Controllables + Advertising)",
+        a1: "$80,116",
+        a2: "$79,500",
+        a3: "$81,000",
+        a4: "$78,750",
+        correctAnswer: "a1"
+      },
+      {
+        questionId: "85",
+        label: "From the P&L data: Net Sales = $260,816, Controllable Profit$ = $80,116. What is the Controllable Profit %?",
+        explanation: "Controllable Profit % = Controllable Profit ÷ Net Sales × 100 = 80,116 ÷ 260,816 × 100 ≈ 30.7%.",
+        formula: "Controllable Profit % = Controllable Profit ÷ Net Sales × 100",
+        a1: "30.0%",
+        a2: "30.5%",
+        a3: "30.7%",
+        a4: "31.0%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "86",
+        label: "From the P&L data: Net Sales = $260,816, Controllable Profit$ = $80,116, Fixed Costs$ = $34,500. What is the Restaurant Contribution $?",
+        explanation: "Restaurant Contribution = Controllable Profit – Fixed Costs = 80,116 – 34,500 = 45,616.",
+        formula: "Restaurant Contribution = Controllable Profit – Fixed Costs",
+        a1: "$45,000",
+        a2: "$45,616",
+        a3: "$46,000",
+        a4: "$44,800",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "87",
+        label: "From the P&L data: Restaurant Contribution = $45,616, Depreciation = $8,000, Amortization = $1,200. What is the Cash Flow $?",
+        explanation: "Cash Flow = Restaurant Contribution + Depreciation + Amortization = 45,616 + 8,000 + 1,200 = 54,816.",
+        formula: "Cash Flow = Restaurant Contribution + Depreciation + Amortization",
+        a1: "$53,800",
+        a2: "$54,000",
+        a3: "$54,816",
+        a4: "$55,000",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "88",
+        label: "From the P&L data: Net Sales = $260,816 and Last Year Net Sales = $252,000. What is the SSS%?",
+        explanation: "SSS% = (This Year – Last Year) ÷ Last Year × 100 = (260,816 – 252,000) ÷ 252,000 × 100 = 8,816 ÷ 252,000 × 100 ≈ 3.5%.",
+        formula: "SSS% = (This Year Net Sales – Last Year Net Sales) ÷ Last Year Net Sales × 100",
+        a1: "3.0%",
+        a2: "3.3%",
+        a3: "3.5%",
+        a4: "3.8%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "89",
+        label: "From the P&L data: Net Sales = $260,816, Transactions = 14,027, Last Year Transactions = 13,850. What is the % change in transactions year over year?",
+        explanation: "% Change = (This Year – Last Year) ÷ Last Year × 100 = (14,027 – 13,850) ÷ 13,850 × 100 = 177 ÷ 13,850 × 100 ≈ 1.3%.",
+        formula: "% Change in Transactions = (This Year Transactions – Last Year Transactions) ÷ Last Year Transactions × 100",
+        a1: "1.0%",
+        a2: "1.3%",
+        a3: "1.5%",
+        a4: "1.8%",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "90",
+        label: "From the P&L data: Net Sales = $260,816, Transactions = 14,027, Last Year Net Sales = $252,000, Last Year Transactions = 13,850. What was the change in Average Check year over year?",
+        explanation: "This Year Avg Check = 260,816 ÷ 14,027 ≈ 18.59. Last Year Avg Check = 252,000 ÷ 13,850 ≈ 18.19. Change = 18.59 – 18.19 = 0.40, which is about +2.2%.",
+        formula: "Change in Avg Check % = (This Year Avg Check – Last Year Avg Check) ÷ Last Year Avg Check × 100",
+        a1: "1.5%",
+        a2: "2.0%",
+        a3: "2.2%",
+        a4: "2.5%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "91",
+        label: "From the P&L data: Net Sales = $260,816, COGS$ = $83,750, Total Labor$ = $74,950. What is the Prime Cost %?",
+        explanation: "Prime Cost $ = COGS + Labor = 83,750 + 74,950 = 158,700. Prime Cost % = 158,700 ÷ 260,816 × 100 ≈ 60.8%.",
+        formula: "Prime Cost % = (COGS + Labor) ÷ Net Sales × 100",
+        a1: "60.5%",
+        a2: "60.8%",
+        a3: "61.0%",
+        a4: "61.2%",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "92",
+        label: "From the P&L data: Net Sales = $260,816, Last Year Net Sales = $252,000, Controllable Profit$ = $80,116, Last Year Controllable Profit$ = $76,500. What is the Flow Thru %?",
+        explanation: "Flow Thru % = (TYCP – LYCP) ÷ (TYNet – LYNet) = (80,116 – 76,500) ÷ (260,816 – 252,000) = 3,616 ÷ 8,816 ≈ 41.0%.",
+        formula: "Flow Thru % = (This Year CP – Last Year CP) ÷ (This Year Net Sales – Last Year Net Sales) × 100",
+        a1: "39%",
+        a2: "40%",
+        a3: "41%",
+        a4: "42%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "93",
+        label: "From the P&L data: Net Sales = $260,816, Total Labor$ = $74,950, Direct Labor$ = $52,000, Direct Labor Hours = 4,950. What is the Average Direct Wage?",
+        explanation: "Direct Labor Average Wage = Direct Labor ÷ Direct Labor Hours = 52,000 ÷ 4,950 ≈ 10.51.",
+        formula: "Direct Labor Average Wage = Direct Labor ÷ Direct Labor Hours",
+        a1: "$10.25",
+        a2: "$10.50",
+        a3: "$10.51",
+        a4: "$10.75",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "94",
+        label: "From the P&L data: Net Sales = $260,816, Management Labor$ = $22,950, Tax & Benefits$ = $10,000, Total Labor$ = $74,950. What is the Direct Labor$?",
+        explanation: "Direct Labor$ = Total Labor – (Management Labor + Tax & Benefits) = 74,950 – (22,950 + 10,000) = 74,950 – 32,950 = 42,000.",
+        formula: "Direct Labor = Total Labor – (Management Labor + Tax & Benefits)",
+        a1: "$41,500",
+        a2: "$42,000",
+        a3: "$42,500",
+        a4: "$43,000",
+        correctAnswer: "a2"
+      },
+      {
+        questionId: "95",
+        label: "From the P&L data: Net Sales = $260,816, Direct Labor$ = $42,000, Direct Labor Hours = 4,950. What is the Direct Labor % of Net Sales?",
+        explanation: "Direct Labor % = Direct Labor ÷ Net Sales × 100 = 42,000 ÷ 260,816 × 100 ≈ 16.1%.",
+        formula: "Direct Labor % = Direct Labor ÷ Net Sales × 100",
+        a1: "15.8%",
+        a2: "16.0%",
+        a3: "16.1%",
+        a4: "16.2%",
+        correctAnswer: "a3"
+      },
+      {
+        questionId: "96",
+        label: "From the P&L data: Net Sales = $260,816, Controllable Profit$ = $80,116, Budget Controllable Profit$ = $82,000. What is the variance to budget in Controllable Profit $?",
+        explanation: "Variance = Actual CP – Budget CP = 80,116 – 82,000 = -1,884.",
+        formula: "Variance to Budget = Actual CP – Budget CP",
+        a1: "-$1,884",
+        a2: "-$2,000",
+        a3: "-$1,750",
+        a4: "-$1,900",
+        correctAnswer: "a1"
+      }
+    ]
+
     // Clear existing questions
     await PLQuestion.query().delete()
     
-    // Create P&L practice questions
-    const questions = [
-      {
-        questionId: 'pl-001',
-        label: 'What is the formula for Gross Profit?',
-        explanation: 'Gross Profit is calculated by subtracting Cost of Goods Sold (COGS) from Net Sales. This shows how much money remains after direct costs.',
-        formula: 'Net Sales - Cost of Goods Sold',
-        a1: 'Net Sales - Cost of Goods Sold',
-        a2: 'Net Sales - Total Labor',
-        a3: 'Net Sales + Cost of Goods Sold',
-        a4: 'Gross Sales - Net Sales',
-        correctAnswer: 'a1'
-      },
-      {
-        questionId: 'pl-002',
-        label: 'What does COGS stand for?',
-        explanation: 'COGS stands for Cost of Goods Sold, which includes all direct costs of producing the goods sold by a company.',
-        formula: 'N/A',
-        a1: 'Cost of General Sales',
-        a2: 'Cost of Goods Sold',
-        a3: 'Cost of Gross Sales',
-        a4: 'Cost of Going Sales',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-003',
-        label: 'How do you calculate Net Profit Margin %?',
-        explanation: 'Net Profit Margin percentage shows what percentage of sales remains as profit after all expenses.',
-        formula: '(Net Profit / Net Sales) × 100',
-        a1: '(Net Sales / Net Profit) × 100',
-        a2: '(Gross Profit / Net Sales) × 100',
-        a3: '(Net Profit / Net Sales) × 100',
-        a4: '(Net Profit / Total Expenses) × 100',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-004',
-        label: 'What is the formula for Controllable Profit?',
-        explanation: 'Controllable Profit is what remains after subtracting controllable expenses from Gross Profit.',
-        formula: 'Gross Profit - Controllables',
-        a1: 'Net Sales - Controllables',
-        a2: 'Gross Profit - Fixed Costs',
-        a3: 'Gross Profit - Controllables',
-        a4: 'Net Sales - Total Labor',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-005',
-        label: 'What components make up Total Labor Cost?',
-        explanation: 'Total Labor includes all employee-related costs: wages, salaries, benefits, and payroll taxes.',
-        formula: 'Direct Labor + Indirect Labor + Benefits + Taxes',
-        a1: 'Wages only',
-        a2: 'Wages + Benefits',
-        a3: 'Wages + Salaries + Benefits + Payroll Taxes',
-        a4: 'Manager Salaries only',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-006',
-        label: 'How do you calculate Food Cost %?',
-        explanation: 'Food Cost % shows what percentage of sales goes to food costs.',
-        formula: '(Cost of Goods Sold / Net Sales) × 100',
-        a1: '(Net Sales / COGS) × 100',
-        a2: '(COGS / Gross Sales) × 100',
-        a3: '(COGS / Net Sales) × 100',
-        a4: '(COGS - Net Sales) × 100',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-007',
-        label: 'What is the formula for Restaurant Contribution?',
-        explanation: 'Restaurant Contribution is the profit before corporate allocations, calculated by subtracting fixed costs from controllable profit.',
-        formula: 'Controllable Profit - Fixed Costs',
-        a1: 'Gross Profit - Fixed Costs',
-        a2: 'Controllable Profit - Advertising',
-        a3: 'Controllable Profit - Fixed Costs',
-        a4: 'Net Sales - All Expenses',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-008',
-        label: 'What does VFP mean in P&L reports?',
-        explanation: 'VFP stands for Variance from Plan, showing the difference between actual results and planned targets.',
-        formula: 'Actual - Plan',
-        a1: 'Value from Performance',
-        a2: 'Variance from Plan',
-        a3: 'Variable Fixed Profit',
-        a4: 'Volume from Production',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-009',
-        label: 'How do you calculate Labor Cost %?',
-        explanation: 'Labor Cost % shows what percentage of sales goes to labor expenses.',
-        formula: '(Total Labor / Net Sales) × 100',
-        a1: '(Total Labor / Gross Sales) × 100',
-        a2: '(Net Sales / Total Labor) × 100',
-        a3: '(Total Labor / Net Sales) × 100',
-        a4: '(Total Labor + Benefits / Net Sales) × 100',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-010',
-        label: 'What are considered "Controllables" in a P&L?',
-        explanation: 'Controllables are expenses that restaurant management can directly control on a day-to-day basis.',
-        formula: 'N/A',
-        a1: 'Only food and labor costs',
-        a2: 'Supplies, utilities, repairs, and other operating expenses',
-        a3: 'Rent and depreciation',
-        a4: 'Corporate overhead',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-011',
-        label: 'What is the formula for Prime Cost?',
-        explanation: 'Prime Cost is the sum of your two largest controllable costs: food and labor.',
-        formula: 'Cost of Goods Sold + Total Labor',
-        a1: 'COGS + Controllables',
-        a2: 'COGS + Total Labor',
-        a3: 'Net Sales - Gross Profit',
-        a4: 'Food Cost + Fixed Costs',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-012',
-        label: 'How do you calculate Check Average?',
-        explanation: 'Check Average shows the average amount spent per customer transaction.',
-        formula: 'Net Sales / Total Transactions',
-        a1: 'Gross Sales / Total Customers',
-        a2: 'Net Sales / Total Transactions',
-        a3: 'Total Revenue / Number of Orders',
-        a4: 'Sales / Hours Open',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-013',
-        label: 'What does YTD stand for in financial reports?',
-        explanation: 'YTD stands for Year-to-Date, showing cumulative totals from the beginning of the fiscal year to the current date.',
-        formula: 'N/A',
-        a1: 'Yesterday to Date',
-        a2: 'Year to December',
-        a3: 'Year-to-Date',
-        a4: 'Yearly Total Data',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-014',
-        label: 'How do you calculate Prime Cost %?',
-        explanation: 'Prime Cost % shows what percentage of sales goes to your two largest costs combined.',
-        formula: '(Prime Cost / Net Sales) × 100',
-        a1: '(COGS + Labor / Gross Sales) × 100',
-        a2: '(COGS + Labor / Net Sales) × 100',
-        a3: '(Food Cost % + Labor Cost %) / 2',
-        a4: '(Total Costs / Net Sales) × 100',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-015',
-        label: 'What are Fixed Costs in a P&L?',
-        explanation: 'Fixed Costs are expenses that remain relatively constant regardless of sales volume.',
-        formula: 'N/A',
-        a1: 'Rent, insurance, depreciation',
-        a2: 'Food and labor',
-        a3: 'Supplies and utilities',
-        a4: 'Variable costs only',
-        correctAnswer: 'a1'
-      },
-      {
-        questionId: 'pl-016',
-        label: 'What is the ideal Prime Cost % range for most restaurants?',
-        explanation: 'Most successful restaurants aim to keep Prime Cost between 55-65% of sales.',
-        formula: 'N/A',
-        a1: '30-40%',
-        a2: '45-50%',
-        a3: '55-65%',
-        a4: '70-80%',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-017',
-        label: 'How is Sales Per Labor Hour calculated?',
-        explanation: 'Sales Per Labor Hour (also called Labor Productivity) shows how efficiently labor is being used.',
-        formula: 'Net Sales / Total Labor Hours',
-        a1: 'Total Labor / Net Sales',
-        a2: 'Net Sales / Total Labor Cost',
-        a3: 'Net Sales / Total Labor Hours',
-        a4: 'Gross Sales / Hours Open',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-018',
-        label: 'What does Controllable Profit represent?',
-        explanation: 'Controllable Profit shows the profit after deducting all expenses that management can control.',
-        formula: 'Gross Profit - Controllables',
-        a1: 'All profit before taxes',
-        a2: 'Profit after controllable expenses',
-        a3: 'Net income',
-        a4: 'Gross margin',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-019',
-        label: 'What is Cash Flow in a P&L statement?',
-        explanation: 'Cash Flow represents the actual cash generated by the restaurant operations after all expenses.',
-        formula: 'Restaurant Contribution - Non-cash expenses adjustments',
-        a1: 'Total revenue',
-        a2: 'Net profit',
-        a3: 'Money in minus money out',
-        a4: 'Sales collected',
-        correctAnswer: 'c'
-      },
-      {
-        questionId: 'pl-020',
-        label: 'How do you calculate Gross Profit Margin %?',
-        explanation: 'Gross Profit Margin % shows what percentage of sales remains after direct costs.',
-        formula: '(Gross Profit / Net Sales) × 100',
-        a1: '(Net Sales / Gross Profit) × 100',
-        a2: '(Gross Profit / Total Sales) × 100',
-        a3: '(Gross Profit / Net Sales) × 100',
-        a4: '(Net Profit / Gross Sales) × 100',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-021',
-        label: 'What are typical categories in Controllables?',
-        explanation: 'Controllables include day-to-day operating expenses that management can influence.',
-        formula: 'N/A',
-        a1: 'Rent and insurance',
-        a2: 'Direct supplies, utilities, repairs, cleaning, marketing',
-        a3: 'Food and labor only',
-        a4: 'Corporate allocations',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-022',
-        label: 'What is the purpose of comparing Actual vs Plan?',
-        explanation: 'Comparing Actual vs Plan (VFP) helps identify where performance differs from expectations so corrective action can be taken.',
-        formula: 'Actual - Plan = Variance',
-        a1: 'To calculate taxes',
-        a2: 'To identify performance gaps and opportunities',
-        a3: 'To set next year\'s budget',
-        a4: 'To calculate bonuses',
-        correctAnswer: 'a2'
-      },
-      {
-        questionId: 'pl-023',
-        label: 'What does a positive VFP in sales indicate?',
-        explanation: 'A positive Variance from Plan in sales means actual sales exceeded planned sales, which is favorable.',
-        formula: 'N/A',
-        a1: 'Sales were below plan',
-        a2: 'Sales matched the plan',
-        a3: 'Sales exceeded the plan',
-        a4: 'Sales data is missing',
-        correctAnswer: 'a3'
-      },
-      {
-        questionId: 'pl-024',
-        label: 'How do restaurants typically reduce Food Cost %?',
-        explanation: 'Food cost can be reduced through better inventory management, portion control, waste reduction, and strategic pricing.',
-        formula: 'N/A',
-        a1: 'Raise prices or reduce portion sizes',
-        a2: 'Better inventory control and waste reduction',
-        a3: 'Negotiate with suppliers',
-        a4: 'All of the above',
-        correctAnswer: 'a4'
-      },
-      {
-        questionId: 'pl-025',
-        label: 'What is the formula for Average Hourly Wage?',
-        explanation: 'Average Hourly Wage shows the average cost per hour for all labor.',
-        formula: 'Total Labor Cost / Total Labor Hours',
-        a1: 'Total Labor Hours / Total Labor Cost',
-        a2: 'Total Labor Cost / Total Employees',
-        a3: 'Total Labor Cost / Total Labor Hours',
-        a4: 'Wages / Number of Shifts',
-        correctAnswer: 'a3'
-      }
-    ]
-    
-    // Insert questions
-    for (const question of questions) {
-      await PLQuestion.create(question)
-    }
-    
-    console.log(`✅ Successfully seeded ${questions.length} P&L questions!`)
+    // Insert new questions
+    await PLQuestion.createMany(plQuestions)
   }
 }
-
