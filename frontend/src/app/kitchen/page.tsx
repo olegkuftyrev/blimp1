@@ -67,7 +67,7 @@ function KitchenModuleContent() {
         <div className="text-center">
           <ChefHat className="h-16 w-16 text-orange-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            Accessing {restaurants[0].name}
+            Accessing {restaurants[0].name.toUpperCase()}
           </h2>
           <p className="text-muted-foreground">Redirecting to kitchen dashboard...</p>
         </div>
@@ -125,7 +125,7 @@ function KitchenModuleContent() {
                 <Card key={restaurant.id} className="hover:shadow-lg transition-shadow h-full flex flex-col">
                   <CardHeader className="flex-shrink-0">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{restaurant.name}</CardTitle>
+                      <CardTitle className="text-lg">{restaurant.name.toUpperCase()}</CardTitle>
                       <Badge variant={restaurant.isActive ? "default" : "secondary"}>
                         {restaurant.isActive ? "Active" : "Inactive"}
                       </Badge>
@@ -204,7 +204,7 @@ function KitchenModuleContent() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="font-medium">{r.name}</div>
+                        <div className="font-medium">{r.name.toUpperCase()}</div>
                         <div className="text-xs text-muted-foreground">{r.address}</div>
                       </div>
                       <Badge variant="outline" className="text-destructive border-destructive/50">Inactive</Badge>
@@ -256,7 +256,7 @@ function KitchenModuleContent() {
                 <Button variant="outline" onClick={() => setIsCreateRestaurantDialogOpen(false)}>Cancel</Button>
                 <Button onClick={async () => {
                   if (!newRestaurant.name || !newRestaurant.address || !newRestaurant.phone) return;
-                  const payload = { ...newRestaurant, name: `px${newRestaurant.name}` };
+                  const payload = { ...newRestaurant, name: `PX${newRestaurant.name}` };
                   try {
                     setCreatingRestaurant(true);
                     await apiFetch('restaurants', {
