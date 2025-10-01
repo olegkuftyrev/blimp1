@@ -259,7 +259,9 @@ export default function PeriodReportPage({ params }: PeriodReportPageProps) {
       {/* Testing Table - Mock Data for Calculations */}
       <TestingTable 
         calculations={calculations} 
-        lineItemsLoading={lineItemsLoading} 
+        lineItemsLoading={lineItemsLoading}
+        storeName={currentStore?.name}
+        storePIC={user?.fullName || 'N/A'}
       />
 
       {/* Ready to Use Table - Real Data */}

@@ -786,13 +786,28 @@ export const PLUtils = {
 // P&L Calculations Interface
 export interface PLCalculations {
   sss?: number;
+  sssYtd?: number;
   sst?: number;
+  sstYtd?: number;
   primeCost?: number;
+  cogsPercentage?: number;
+  cogsYtdPercentage?: number;
+  laborPercentage?: number;
+  laborYtdPercentage?: number;
+  controllableProfitPercentage?: number;
+  controllableProfitYtdPercentage?: number;
+  restaurantContributionYtdPercentage?: number;
+  rentMin?: number;
+  rentPercentage?: number;
+  rentOther?: number;
   rentTotal?: number;
   overtimeHours?: number;
   flowThru?: number;
   adjustedControllableProfitThisYear?: number;
   adjustedControllableProfitLastYear?: number;
+  gmBonus?: number;
+  smBonus?: number;
+  amChefBonus?: number;
   bonusCalculations?: {
     gmBonus: number;
     smBonus: number;

@@ -1,7 +1,7 @@
 import Audit from '#models/audit'
 import { DateTime } from 'luxon'
 
-export type AuditEntity = 'user' | 'restaurant' | 'invite' | 'membership' | 'lead_relation' | 'auth' | 'pl_report'
+export type AuditEntity = 'user' | 'restaurant' | 'invite' | 'membership' | 'lead_relation' | 'auth' | 'pl_report' | 'todo'
 
 export default class AuditService {
   static async log(params: {

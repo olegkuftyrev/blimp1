@@ -49,6 +49,11 @@ export function useAreaPlCompare(params: Params) {
   return useSWR(['area-pl/compare', qs], () => AnalyticsAPI.getAreaPlCompare(params))
 }
 
+export function useAreaPlSss(params: Params) {
+  const qs = toSearchParams(params)
+  return useSWR(['area-pl/sss', qs], () => AnalyticsAPI.getAreaPlSss(params))
+}
+
 
 
 

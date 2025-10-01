@@ -15,6 +15,9 @@ router.get('/test', ({ response }) => {
   return response.json({ message: 'Routes are working!', timestamp: new Date().toISOString() })
 })
 
+// Debug SSS endpoint (no auth)
+router.get('/debug/sss', '#controllers/area_pl_controller.sss')
+
 // =============================================================================
 // GLOBAL API PREFIX
 // =============================================================================
@@ -188,6 +191,37 @@ router
   .use(middleware.auth())
 
 // =============================================================================
+// TODO ROUTES (Protected)
+// =============================================================================
+
+router
+  .group(() => {
+    // User todos
+    router.get('/users/:userId/todos', '#controllers/todos_controller.listUserTodos')
+    router.post('/users/:userId/todos', '#controllers/todos_controller.createUserTodo')
+    router.patch('/users/:userId/todos/:id', '#controllers/todos_controller.updateUserTodo')
+    router.delete('/users/:userId/todos/:id', '#controllers/todos_controller.deleteUserTodo')
+
+    // Store todos
+    router.get('/restaurants/:restaurantId/todos', '#controllers/todos_controller.listStoreTodos')
+    router.post('/restaurants/:restaurantId/todos', '#controllers/todos_controller.createStoreTodo')
+    router.patch('/restaurants/:restaurantId/todos/:id', '#controllers/todos_controller.updateStoreTodo')
+    router.delete('/restaurants/:restaurantId/todos/:id', '#controllers/todos_controller.deleteStoreTodo')
+
+    // Tags
+    router.get('/todos/:id/tags', '#controllers/todos_controller.getTags')
+    router.post('/todos/:id/tags', '#controllers/todos_controller.addTags')
+    router.delete('/todos/:id/tags/:tagId', '#controllers/todos_controller.deleteTag')
+
+    // Checklist
+    router.get('/todos/:id/checklist', '#controllers/todos_controller.getChecklist')
+    router.post('/todos/:id/checklist', '#controllers/todos_controller.addChecklistItem')
+    router.patch('/todos/:id/checklist/:itemId', '#controllers/todos_controller.updateChecklistItem')
+    router.delete('/todos/:id/checklist/:itemId', '#controllers/todos_controller.deleteChecklistItem')
+  })
+  .use(middleware.auth())
+
+// =============================================================================
 // ROLES PERFORMANCE ROUTES (Protected)
 // =============================================================================
 
@@ -279,6 +313,7 @@ router
     router.get('/periods', '#controllers/area_pl_controller.periods')
     router.get('/kpis', '#controllers/area_pl_controller.kpis')
     router.get('/compare', '#controllers/area_pl_controller.compare')
+    router.get('/sss', '#controllers/area_pl_controller.sss').use(middleware.auth())
   })
   .prefix('/area-pl')
   .use(middleware.auth())

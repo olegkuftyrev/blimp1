@@ -1,0 +1,54 @@
+"use client"
+import React from 'react'
+import { useParams } from 'next/navigation'
+import { useUserTodos, updateUserTodo, createUserTodo, deleteUserTodo } from '../../../../hooks/useTodos'
+import TodoFilters from '../../../../components/todos/TodoFilters'
+import TodoList from '../../../../components/todos/TodoList'
+import TodoForm from '../../../../components/todos/TodoForm'
+
+export default function UserTodosPage() {
+  const params = useParams<{ userId: string }>()
+  const userId = Number(params.userId)
+  const [filters, setFilters] = React.useState<{ status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'; search?: string }>({})
+  const { todos, isLoading, error, revalidate } = useUserTodos(userId, filters)
+
+  const onToggleDone = async (todo: any) => {
+    const nextStatus = todo.status === 'completed' ? 'pending' : 'completed'
+    await updateUserTodo(userId, todo.id, { status: nextStatus })
+    await revalidate()
+  }
+
+  // Check if user is authenticated
+  React.useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      console.warn('No auth token found. Please log in first.')
+    }
+  }, [])
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto p-4 space-y-4">
+        <h1 className="text-2xl font-semibold">My Tasks</h1>
+        <div className="text-red-600 p-4 border border-red-200 rounded">
+          <p>Failed to load tasks: {error.message}</p>
+          <p className="text-sm mt-2">Make sure you're logged in and the backend server is running.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto p-4 space-y-4">
+      <h1 className="text-2xl font-semibold">My Tasks</h1>
+      <TodoForm onSubmit={async (v) => {
+        await createUserTodo(userId, { ...v, scope: 'user' })
+        await revalidate()
+      }} />
+      <TodoFilters status={filters.status} search={filters.search} onChange={setFilters} />
+      <TodoList todos={todos} onToggleDone={onToggleDone} onDelete={async (t) => { await deleteUserTodo(userId, t.id); await revalidate() }} />
+    </div>
+  )
+}
+
+

@@ -7,9 +7,11 @@ import { PLCalculations } from '@/hooks/useSWRPL';
 interface TestingTableProps {
   calculations: PLCalculations | null;
   lineItemsLoading: boolean;
+  storeName?: string;
+  storePIC?: string;
 }
 
-export function TestingTable({ calculations, lineItemsLoading }: TestingTableProps) {
+export function TestingTable({ calculations, lineItemsLoading, storeName, storePIC }: TestingTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -25,6 +27,40 @@ export function TestingTable({ calculations, lineItemsLoading }: TestingTablePro
           </TableHeader>
           <TableBody>
             <TableRow>
+              <TableCell className="font-medium">Store Name</TableCell>
+              <TableCell>
+                {storeName ? (
+                  <span className="text-blue-600 font-semibold">{storeName}</span>
+                ) : (
+                  <span className="text-gray-500">No store name available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Store PIC</TableCell>
+              <TableCell>
+                {storePIC ? (
+                  <span className="text-green-600 font-semibold">{storePIC}</span>
+                ) : (
+                  <span className="text-gray-500">No PIC available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Avg Weekly Sales</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.dashboard?.netSales !== undefined ? (
+                  <span className="text-purple-600 font-semibold">
+                    ${(calculations.dashboard.netSales / 4).toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
               <TableCell className="font-medium">SSS (Same Store Sales)</TableCell>
               <TableCell>
                 {lineItemsLoading ? (
@@ -32,6 +68,20 @@ export function TestingTable({ calculations, lineItemsLoading }: TestingTablePro
                 ) : calculations?.sss !== undefined ? (
                   <span className={calculations.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
                     {calculations.sss.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">SSS YTD (Same Store Sales Year-to-Date)</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.sssYtd !== undefined ? (
+                  <span className={calculations.sssYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.sssYtd.toFixed(2)}%
                   </span>
                 ) : (
                   <span className="text-gray-500">No calculation available</span>
@@ -53,13 +103,13 @@ export function TestingTable({ calculations, lineItemsLoading }: TestingTablePro
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">Prime Cost</TableCell>
+              <TableCell className="font-medium">SST YTD (Same Store Transactions Year-to-Date)</TableCell>
               <TableCell>
                 {lineItemsLoading ? (
                   <span className="text-gray-400">Loading...</span>
-                ) : calculations?.primeCost !== undefined ? (
-                  <span className="text-blue-600">
-                    {(calculations.primeCost * 100).toFixed(1)}%
+                ) : calculations?.sstYtd !== undefined ? (
+                  <span className={calculations.sstYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.sstYtd.toFixed(2)}%
                   </span>
                 ) : (
                   <span className="text-gray-500">No calculation available</span>
@@ -67,7 +117,147 @@ export function TestingTable({ calculations, lineItemsLoading }: TestingTablePro
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">Rent Total</TableCell>
+              <TableCell className="font-medium">Cost of Goods Sold Total %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.dashboard?.cogsPercentage !== undefined ? (
+                  <span className={calculations.dashboard.cogsPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.dashboard.cogsPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">COGS YTD %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.cogsYtdPercentage !== undefined ? (
+                  <span className={calculations.cogsYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.cogsYtdPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">TL (Total Labor) Actual %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.dashboard?.laborPercentage !== undefined ? (
+                  <span className={calculations.dashboard.laborPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.dashboard.laborPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">TL YTD %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.laborYtdPercentage !== undefined ? (
+                  <span className={calculations.laborYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.laborYtdPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">CP (Controllable Profit) %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.dashboard?.controllableProfitPercentage !== undefined ? (
+                  <span className={calculations.dashboard.controllableProfitPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.dashboard.controllableProfitPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">CP YTD %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.controllableProfitYtdPercentage !== undefined ? (
+                  <span className={calculations.controllableProfitYtdPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.controllableProfitYtdPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">RC (Restaurant Contribution) YTD %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.restaurantContributionYtdPercentage !== undefined ? (
+                  <span className={calculations.restaurantContributionYtdPercentage >= 10 ? 'text-green-600' : 'text-red-600'}>
+                    {calculations.restaurantContributionYtdPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Rent Min $</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.rentMin !== undefined ? (
+                  <span className="text-purple-600">
+                    ${calculations.rentMin.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Rent %</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.rentPercentage !== undefined ? (
+                  <span className="text-purple-600">
+                    {calculations.rentPercentage.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Rent Other $</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.rentOther !== undefined ? (
+                  <span className="text-purple-600">
+                    ${calculations.rentOther.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Rent Total $</TableCell>
               <TableCell>
                 {lineItemsLoading ? (
                   <span className="text-gray-400">Loading...</span>
@@ -109,52 +299,70 @@ export function TestingTable({ calculations, lineItemsLoading }: TestingTablePro
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">Adjusted Controllable Profit</TableCell>
+              <TableCell className="font-medium">Adjusted Controllable Profit This Year</TableCell>
               <TableCell>
                 {lineItemsLoading ? (
                   <span className="text-gray-400">Loading...</span>
-                ) : calculations?.adjustedControllableProfitThisYear !== undefined && calculations?.adjustedControllableProfitLastYear !== undefined ? (
-                  <div className="space-y-1">
-                    <div className="text-sm">
-                      <span className="font-medium">This Year:</span> 
-                      <span className="ml-2 text-green-600">${calculations.adjustedControllableProfitThisYear.toLocaleString()}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">Last Year:</span> 
-                      <span className="ml-2 text-blue-600">${calculations.adjustedControllableProfitLastYear.toLocaleString()}</span>
-                    </div>
-                  </div>
+                ) : calculations?.adjustedControllableProfitThisYear !== undefined ? (
+                  <span className="text-green-600 font-semibold">
+                    ${calculations.adjustedControllableProfitThisYear.toLocaleString()}
+                  </span>
                 ) : (
                   <span className="text-gray-500">No calculation available</span>
                 )}
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">Bonus Calculations</TableCell>
+              <TableCell className="font-medium">Adjusted Controllable Profit Last Year</TableCell>
               <TableCell>
                 {lineItemsLoading ? (
                   <span className="text-gray-400">Loading...</span>
-                ) : calculations?.bonusCalculations ? (
-                  <div className="space-y-1">
-                    <div className="text-sm">
-                      <span className="font-medium">GM Bonus:</span> 
-                      <span className={`ml-2 ${calculations.bonusCalculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${calculations.bonusCalculations.gmBonus.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">SM Bonus:</span> 
-                      <span className={`ml-2 ${calculations.bonusCalculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${calculations.bonusCalculations.smBonus.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">AM/Chef Bonus:</span> 
-                      <span className={`ml-2 ${calculations.bonusCalculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${calculations.bonusCalculations.amChefBonus.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
+                ) : calculations?.adjustedControllableProfitLastYear !== undefined ? (
+                  <span className="text-blue-600 font-semibold">
+                    ${calculations.adjustedControllableProfitLastYear.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">GM Bonus</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.gmBonus !== undefined ? (
+                  <span className={`font-semibold ${calculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ${calculations.gmBonus.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">SM Bonus</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.smBonus !== undefined ? (
+                  <span className={`font-semibold ${calculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ${calculations.smBonus.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">No calculation available</span>
+                )}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">AM/Chef Bonus</TableCell>
+              <TableCell>
+                {lineItemsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : calculations?.amChefBonus !== undefined ? (
+                  <span className={`font-semibold ${calculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ${calculations.amChefBonus.toLocaleString()}
+                  </span>
                 ) : (
                   <span className="text-gray-500">No calculation available</span>
                 )}

@@ -11,6 +11,7 @@ import { useAreaPlKpis, useAreaPlSummary, useAreaPlPeriods, useAreaPlLeaderboard
 import { DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, Building2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from '@/lib/api';
+import SSSTable from '@/components/area-pl/SSSTable';
 
 interface Restaurant {
   id: number;
@@ -691,6 +692,20 @@ export default function AreaPl() {
               )}
             </CardContent>
           </Card>
+
+          {/* Net Sales Table */}
+          <div className="mb-8">
+            <SSSTable 
+              selectedRestaurants={selectedRestaurants}
+              selectedYear={selectedYear}
+              selectedPeriod={selectedPeriod}
+              basis={basis}
+              restaurants={restaurants}
+              leaderboardData={leaderboardData?.leaderboard || []}
+              loading={leaderboardLoading}
+              error={leaderboardError}
+            />
+          </div>
 
           {/* Debug Info */}
           <Card>

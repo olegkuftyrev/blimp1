@@ -223,4 +223,8 @@ export const AnalyticsAPI = {
     const query = toSearchParams(params);
     return apiFetch(`area-pl/compare?${query}`);
   },
+  getAreaPlSss: async (params: Record<string, any>) => {
+    const query = toSearchParams(params);
+    return apiFetch(`area-pl/sss?${query}`);
+  },
 };

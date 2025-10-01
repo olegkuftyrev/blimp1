@@ -283,9 +283,65 @@ export default class PlReportController {
       }
     }
 
-    // Prime Cost = COGS % + Labor % (actual)
+    // SSS YTD (Same Store Sales Year-to-Date) = (Actual YTD Net Sales - Prior Year YTD Net Sales) / Prior Year YTD Net Sales × 100%
+    if (netSalesItem && netSalesItem.actualYtd && netSalesItem.priorYearYtd) {
+      const actualYtdNetSales = parseValue(netSalesItem.actualYtd)
+      const priorYearYtdNetSales = parseValue(netSalesItem.priorYearYtd)
+      if (priorYearYtdNetSales !== 0) {
+        metrics.sssYtd = ((actualYtdNetSales - priorYearYtdNetSales) / priorYearYtdNetSales) * 100
+      }
+    }
+
+    // SST YTD (Same Store Transactions Year-to-Date) = (This Year YTD Transactions - Last Year YTD Transactions) / Last Year YTD Transactions × 100%
+    if (transactionsItem && transactionsItem.actualYtd && transactionsItem.priorYearYtd) {
+      const actualYtdTransactions = parseValue(transactionsItem.actualYtd)
+      const priorYearYtdTransactions = parseValue(transactionsItem.priorYearYtd)
+      if (priorYearYtdTransactions !== 0) {
+        metrics.sstYtd = ((actualYtdTransactions - priorYearYtdTransactions) / priorYearYtdTransactions) * 100
+      }
+    }
+
+    // COGS YTD % = (Cost of Goods Sold YTD / Net Sales YTD) × 100%
     const cogsItem = findItem('Cost of Goods Sold')
+    if (cogsItem && cogsItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const cogsYtd = parseValue(cogsItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.cogsYtdPercentage = (cogsYtd / netSalesYtd) * 100
+      }
+    }
+
+    // TL YTD % = (Total Labor YTD / Net Sales YTD) × 100%
     const laborItem = findItem('Total Labor')
+    if (laborItem && laborItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const laborYtd = parseValue(laborItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.laborYtdPercentage = (laborYtd / netSalesYtd) * 100
+      }
+    }
+
+    // CP YTD % = (Controllable Profit YTD / Net Sales YTD) × 100%
+    const controllableProfitItem = findItem('Controllable Profit')
+    if (controllableProfitItem && controllableProfitItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const cpYtd = parseValue(controllableProfitItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.controllableProfitYtdPercentage = (cpYtd / netSalesYtd) * 100
+      }
+    }
+
+    // RC YTD % = (Restaurant Contribution YTD / Net Sales YTD) × 100%
+    const restaurantContributionItem = findItem('Restaurant Contribution')
+    if (restaurantContributionItem && restaurantContributionItem.actualYtd && netSalesItem && netSalesItem.actualYtd) {
+      const rcYtd = parseValue(restaurantContributionItem.actualYtd)
+      const netSalesYtd = parseValue(netSalesItem.actualYtd)
+      if (netSalesYtd !== 0) {
+        metrics.restaurantContributionYtdPercentage = (rcYtd / netSalesYtd) * 100
+      }
+    }
+
+    // Prime Cost = COGS % + Labor % (actual)
     if (cogsItem && laborItem && cogsItem.actualsPercentage && laborItem.actualsPercentage) {
       const cogsPercentage = parseValue(cogsItem.actualsPercentage) * 100
       const laborPercentage = parseValue(laborItem.actualsPercentage) * 100
@@ -301,6 +357,18 @@ export default class PlReportController {
     const rentOther = parseValue(findItem('Rent - Other')?.actuals)
     const rentDeferred = parseValue(findItem('Rent - Deferred Preopening')?.actuals)
     metrics.rentTotal = rentMin + rentStorage + rentPercent + rentOther + rentDeferred
+    
+    // Individual rent components for display
+    metrics.rentMin = rentMin
+    metrics.rentOther = rentOther
+    
+    // Rent % = (Rent Total / Net Sales) × 100%
+    if (netSalesItem && netSalesItem.actuals && metrics.rentTotal !== 0) {
+      const netSales = parseValue(netSalesItem.actuals)
+      if (netSales !== 0) {
+        metrics.rentPercentage = (metrics.rentTotal / netSales) * 100
+      }
+    }
 
     // Overtime Hours = Overtime Hours (actual) / Average Hourly Wage (actual)
     const overtimeHoursItem = findItem('Overtime Hours')
@@ -314,7 +382,6 @@ export default class PlReportController {
     }
 
     // Flow Thru = (Actual Controllable Profit - Last Year Controllable Profit) / (Actual Net Sales - Prior Year Net Sales)
-    const controllableProfitItem = findItem('Controllable Profit')
     if (netSalesItem && controllableProfitItem && 
         netSalesItem.actuals && netSalesItem.priorYear &&
         controllableProfitItem.actuals && controllableProfitItem.priorYear) {
@@ -354,6 +421,11 @@ export default class PlReportController {
         smBonus: difference * 0.15,
         amChefBonus: difference * 0.10
       }
+      
+      // Individual bonus components for display
+      metrics.gmBonus = difference * 0.20
+      metrics.smBonus = difference * 0.15
+      metrics.amChefBonus = difference * 0.10
     }
 
     // === NEW CALCULATIONS FOR CLIENT-SIDE OPTIMIZATION ===
