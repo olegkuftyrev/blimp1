@@ -1068,4 +1068,4 @@ export default class extends BaseSeeder {
     // Insert new questions
     await PLQuestion.createMany(plQuestions)
   }
-}
+

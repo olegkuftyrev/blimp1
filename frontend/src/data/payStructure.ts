@@ -42,7 +42,7 @@ const pay = {
       }
     },
     {
-      name: "Spokane/CDA/Moscow/Pullman/Lewiston/Central WA",
+      name: "Spokane / CDA / Moscow / Pullman /Lewiston / Central WA",
       stores: [
         1080, 1182, 1220, 1302, 1423, 1449, 1495, 1504, 1596, 1658,
         1670, 1708, 1725, 1742, 1881, 1887, 2047, 2128, 2129, 2527,

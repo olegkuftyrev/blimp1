@@ -140,3 +140,4 @@ echo "  ssh root@$SERVER_IP 'pm2 restart all'"
 echo "  ssh root@$SERVER_IP 'nginx -t && systemctl restart nginx'"
 echo ""
 
+

@@ -228,19 +228,19 @@ function PayStructureContent() {
           {filteredRegions.map((region, index) => (
             <Card key={index} className="border">
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-1">{region.name}</CardTitle>
-                    <div className="text-sm text-muted-foreground">
-                      {region.stores.map((store, index) => (
-                        <span key={store}>
-                          #{store}{index < region.stores.length - 1 ? ', ' : ''}
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base mb-2 leading-tight">{region.name}</CardTitle>
+                    <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+                      {region.stores.map((store) => (
+                        <span key={store} className="inline-block">
+                          #{store}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <Badge variant="outline" className="ml-2">
-                    {region.stores.length} stores
+                  <Badge variant="outline" className="ml-2 shrink-0 text-xs">
+                    {region.stores.length}
                   </Badge>
                 </div>
               </CardHeader>

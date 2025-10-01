@@ -14,7 +14,7 @@
 # ============================================================================
 # Server Configuration
 # ============================================================================
-export DEPLOY_SERVER_IP="YOUR_SERVER_IP"          # e.g., "146.190.53.83"
+export DEPLOY_SERVER_IP="137.184.82.40"          # e.g., "146.190.53.83"
 export DEPLOY_SERVER_USER="root"                   # SSH user
 export DEPLOY_SERVER_PASS=""                       # Leave empty if using SSH keys
 export DEPLOY_SERVER_PORT="22"                     # SSH port
