@@ -23,7 +23,7 @@ export const getApiUrl = (endpoint: string) => {
 // Create axios instance
 const apiClient = axios.create({
   baseURL: process.env.NODE_ENV === 'production' 
-    ? (process.env.NEXT_PUBLIC_API_URL || '/api')
+    ? ((process.env.NEXT_PUBLIC_API_URL || '') + '/api')
     : '/api', // Use Next.js proxy in development
   timeout: 10000, // 10 seconds timeout
   headers: {
