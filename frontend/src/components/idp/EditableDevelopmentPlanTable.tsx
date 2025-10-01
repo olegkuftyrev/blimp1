@@ -483,15 +483,15 @@ export function EditableDevelopmentPlanTable({
 
     {/* Add Item Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="p-0 flex flex-col">
+          <DialogHeader className="sticky top-0 z-10 bg-background p-6 pb-3 border-b">
             <DialogTitle>Add Development Plan Item</DialogTitle>
             <DialogDescription>
               Select a competency and choose which measurements you want to include in your development plan.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 pb-28 space-y-6">
             {/* Step 1: Competency Selection */}
             {showCompetencySelection && (
               <div className="space-y-3">
@@ -584,13 +584,13 @@ export function EditableDevelopmentPlanTable({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sticky z-10 bg-background p-6 pt-3 border-t">
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancel
             </Button>
             <Button 
               onClick={confirmAddItem}
-              disabled={!selectedCompetencyId || selectedCompetencyId === 0 || !selectedMeasurementId || isSaving}
+              disabled={!selectedCompetencyId || selectedCompetencyId === 0 || selectedMeasurementId === null || isSaving}
             >
               {isSaving ? 'Adding...' : 'Add to Plan'}
             </Button>
@@ -600,16 +600,16 @@ export function EditableDevelopmentPlanTable({
       
       {/* Edit Measurement Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="p-0 flex flex-col">
           {showDeleteConfirmation ? (
             <>
-              <DialogHeader>
+              <DialogHeader className="sticky top-0 z-10 bg-background p-6 pb-3 border-b">
                 <DialogTitle>Delete Measurement</DialogTitle>
                 <DialogDescription>
                   Are you sure you want to delete this measurement? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className="flex-1 overflow-y-auto p-6 pb-28">
                 <div className="border rounded-lg p-4 bg-muted/50">
                   <div className="mb-2">
                     <span className="text-sm font-medium text-muted-foreground">
@@ -628,7 +628,7 @@ export function EditableDevelopmentPlanTable({
             </>
           ) : (
             <>
-              <DialogHeader>
+              <DialogHeader className="sticky top-0 z-10 bg-background p-6 pb-3 border-b">
                 <DialogTitle>Edit Measurement</DialogTitle>
                 <DialogDescription>
                   Edit this specific measurement for your development plan. Changes are saved automatically.
@@ -636,7 +636,7 @@ export function EditableDevelopmentPlanTable({
               </DialogHeader>
 
               {editingItemIndex !== null && editingMeasurementIndex !== null && planItems[editingItemIndex] && planItems[editingItemIndex].measurements[editingMeasurementIndex] && (
-                <div className="space-y-6">
+                <div className="flex-1 overflow-y-auto p-6 pb-28 space-y-6">
                   <div className="border rounded-lg p-4 bg-muted/50">
                     <div className="mb-4">
                       <span className="text-sm font-medium text-muted-foreground">
@@ -700,7 +700,7 @@ export function EditableDevelopmentPlanTable({
             </>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="sticky z-10 bg-background p-6 pt-3 border-t">
             {showDeleteConfirmation ? (
               <div className="flex justify-between w-full">
                 <Button variant="outline" onClick={cancelDeleteMeasurement}>
