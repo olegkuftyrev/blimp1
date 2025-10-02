@@ -5,15 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { usePLReports, usePLLineItems } from '@/hooks/useSWRPL';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Loader2 } from "lucide-react";
 
 // Default parameters for API calls
 const defaultParams = {
-  restaurantIds: [1], // Default to restaurant ID 1 (PX1234)
+  restaurantIds: [5], // Try restaurant ID 5 (PX2475)
   year: 2025, // Use 2025 year
-  periods: ['P09'], // Use P09 period
+  periods: ['P06'], // Try P06 period instead
   basis: 'actual',
   ytd: false
 };
@@ -22,19 +22,17 @@ function AreaPlContent() {
   const { user } = useAuth();
   const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
   
-  // Fetch data using the same approach as analytics page
-  const { reports: plReports, error: plReportsError, loading: plReportsLoading } = usePLReports(
-    defaultParams.restaurantIds[0], 
-    defaultParams.periods[0]
-  );
+  // Fetch data using useAnalytics hook
+  const { reportData, loading, error } = useAnalytics({
+    storeId: defaultParams.restaurantIds[0],
+    year: defaultParams.year,
+    period: defaultParams.periods[0]
+  });
   
-  // Get the first report if available
-  const plReport = plReports?.length > 0 ? plReports[0] : null;
-  
-  // Fetch line items for the report
-  const { lineItems, calculations, loading: lineItemsLoading, error: lineItemsError } = usePLLineItems(
-    plReport?.id || undefined
-  );
+  // Extract data from reportData
+  const plReport = reportData;
+  const calculations = null; // PLReportData doesn't have calculations field
+  const lineItems = null; // PLReportData doesn't have lineItems field
   
   // Get current restaurant info
   const currentRestaurant = restaurants?.find((r: any) => r.id === defaultParams.restaurantIds[0]);
@@ -43,21 +41,16 @@ function AreaPlContent() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Area PL Debug Info:', {
-        plReports,
+        reportData,
         plReport,
         lineItems,
         calculations,
-        plReportsLoading,
-        lineItemsLoading,
-        plReportsError,
-        lineItemsError,
+        loading,
+        error,
         defaultParams
       });
     }
-  }, [plReports, plReport, lineItems, calculations, plReportsLoading, lineItemsLoading, plReportsError, lineItemsError]);
-  
-  const loading = plReportsLoading || lineItemsLoading;
-  const error = plReportsError || lineItemsError;
+  }, [reportData, plReport, lineItems, calculations, loading, error]);
   
   if (loading) {
   return (
@@ -82,10 +75,10 @@ function AreaPlContent() {
         <div className="max-w-6xl mx-auto">
             <Card>
             <CardContent className="text-center py-12">
-              <p className="text-destructive">Error loading data: {error.message || 'Unknown error'}</p>
+              <p className="text-destructive">Error loading data: {error || 'Unknown error'}</p>
               <p className="text-sm text-gray-500 mt-2">
                 This might be because there's no P&L data for restaurant ID {defaultParams.restaurantIds[0]} 
-                for period {defaultParams.periods[0]} in {defaultParams.year}.
+                for period {defaultParams.periods[0]} in {defaultParams.year}. Try different restaurant or period.
               </p>
               </CardContent>
             </Card>
@@ -136,7 +129,7 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Store Name</TableCell>
                   <TableCell>
                     <span className="text-blue-600 font-semibold">
-                      {plReport?.storeName || currentRestaurant?.name || 'PX1234'}
+                      {currentRestaurant?.name || 'PX2475'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -144,7 +137,7 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Store PIC</TableCell>
                   <TableCell>
                     <span className="text-green-600 font-semibold">
-                      {calculations?.storePIC || user?.fullName || 'Administrator'}
+                      {user?.fullName || 'Administrator'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -152,11 +145,9 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Avg Weekly Sales</TableCell>
                   <TableCell>
                     <span className="text-purple-600 font-semibold">
-                      {calculations?.dashboard?.netSales ? 
-                        `$${(calculations.dashboard.netSales / 4).toLocaleString()}` : 
-                        plReport?.netSales ? 
-                          `$${(plReport.netSales / 4).toLocaleString()}` :
-                          'N/A'
+                      {plReport?.data?.revenue?.actual ? 
+                        `$${(plReport.data.revenue.actual / 4).toLocaleString()}` : 
+                        'N/A'
                       }
                     </span>
                   </TableCell>
@@ -164,23 +155,17 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SSS (Same Store Sales)</TableCell>
                   <TableCell>
-                    {calculations?.sss !== undefined ? (
-                      <span className={calculations.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.sss.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">
-                        N/A {error && <span className="text-xs text-red-500">(Error: {error.message})</span>}
-                      </span>
-                    )}
+                    <span className="text-gray-500">
+                      N/A {error && <span className="text-xs text-red-500">(Error: {error})</span>}
+                    </span>
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">SSS YTD (Same Store Sales Year-to-Date)</TableCell>
                   <TableCell>
-                    {calculations?.sssYtd !== undefined ? (
-                      <span className={calculations.sssYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.sssYtd.toFixed(2)}%
+                    {false.sssYtd !== undefined ? (
+                      <span className={falsesssYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {falsesssYtd.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -190,9 +175,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SST% (Same Store Transactions)</TableCell>
                   <TableCell>
-                    {calculations?.sst !== undefined ? (
-                      <span className={calculations.sst >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.sst.toFixed(2)}%
+                    {false.sst !== undefined ? (
+                      <span className={falsesst >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {falsesst.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -202,9 +187,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SST YTD (Same Store Transactions Year-to-Date)</TableCell>
                   <TableCell>
-                    {calculations?.sstYtd !== undefined ? (
-                      <span className={calculations.sstYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.sstYtd.toFixed(2)}%
+                    {false.sstYtd !== undefined ? (
+                      <span className={falsesstYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {falsesstYtd.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -214,9 +199,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Cost of Goods Sold Total %</TableCell>
                   <TableCell>
-                    {calculations?.cogsPercentage !== undefined ? (
-                      <span className={calculations.cogsPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.cogsPercentage.toFixed(2)}%
+                    {false.cogsPercentage !== undefined ? (
+                      <span className={falsecogsPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {falsecogsPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -226,9 +211,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">COGS YTD %</TableCell>
                   <TableCell>
-                    {calculations?.cogsYtdPercentage !== undefined ? (
-                      <span className={calculations.cogsYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.cogsYtdPercentage.toFixed(2)}%
+                    {false.cogsYtdPercentage !== undefined ? (
+                      <span className={falsecogsYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {falsecogsYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -238,9 +223,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">TL (Total Labor) Actual %</TableCell>
                   <TableCell>
-                    {calculations?.laborPercentage !== undefined ? (
-                      <span className={calculations.laborPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.laborPercentage.toFixed(2)}%
+                    {false.laborPercentage !== undefined ? (
+                      <span className={falselaborPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {falselaborPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -250,9 +235,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">TL YTD %</TableCell>
                   <TableCell>
-                    {calculations?.laborYtdPercentage !== undefined ? (
-                      <span className={calculations.laborYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.laborYtdPercentage.toFixed(2)}%
+                    {false.laborYtdPercentage !== undefined ? (
+                      <span className={falselaborYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {falselaborYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -262,9 +247,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">CP (Controllable Profit) %</TableCell>
                   <TableCell>
-                    {calculations?.controllableProfitPercentage !== undefined ? (
-                      <span className={calculations.controllableProfitPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.controllableProfitPercentage.toFixed(2)}%
+                    {false.controllableProfitPercentage !== undefined ? (
+                      <span className={falsecontrollableProfitPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
+                        {falsecontrollableProfitPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -274,9 +259,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">CP YTD %</TableCell>
                   <TableCell>
-                    {calculations?.controllableProfitYtdPercentage !== undefined ? (
-                      <span className={calculations.controllableProfitYtdPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.controllableProfitYtdPercentage.toFixed(2)}%
+                    {false.controllableProfitYtdPercentage !== undefined ? (
+                      <span className={falsecontrollableProfitYtdPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
+                        {falsecontrollableProfitYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -286,9 +271,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">RC (Restaurant Contribution) YTD %</TableCell>
                   <TableCell>
-                    {calculations?.restaurantContributionYtdPercentage !== undefined ? (
-                      <span className={calculations.restaurantContributionYtdPercentage >= 10 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.restaurantContributionYtdPercentage.toFixed(2)}%
+                    {false.restaurantContributionYtdPercentage !== undefined ? (
+                      <span className={falserestaurantContributionYtdPercentage >= 10 ? 'text-green-600' : 'text-red-600'}>
+                        {falserestaurantContributionYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -298,9 +283,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent Min $</TableCell>
                   <TableCell>
-                    {calculations?.rentMin !== undefined ? (
+                    {false.rentMin !== undefined ? (
                       <span className="text-purple-600">
-                        ${calculations.rentMin.toLocaleString()}
+                        ${falserentMin.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -310,9 +295,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent %</TableCell>
                   <TableCell>
-                    {calculations?.rentPercentage !== undefined ? (
+                    {false.rentPercentage !== undefined ? (
                       <span className="text-purple-600">
-                        {calculations.rentPercentage.toFixed(2)}%
+                        {falserentPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -322,9 +307,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent Other $</TableCell>
                   <TableCell>
-                    {calculations?.rentOther !== undefined ? (
+                    {false.rentOther !== undefined ? (
                       <span className="text-purple-600">
-                        ${calculations.rentOther.toLocaleString()}
+                        ${falserentOther.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -334,9 +319,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent Total $</TableCell>
                   <TableCell>
-                    {calculations?.rentTotal !== undefined ? (
+                    {false.rentTotal !== undefined ? (
                       <span className="text-purple-600">
-                        ${calculations.rentTotal.toLocaleString()}
+                        ${falserentTotal.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -346,9 +331,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Overtime Hours</TableCell>
                   <TableCell>
-                    {calculations?.overtimeHours !== undefined ? (
+                    {false.overtimeHours !== undefined ? (
                       <span className="text-orange-600">
-                        {calculations.overtimeHours.toFixed(2)} hours
+                        {falseovertimeHours.toFixed(2)} hours
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -358,9 +343,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Flow Thru</TableCell>
                   <TableCell>
-                    {calculations?.flowThru !== undefined ? (
-                      <span className={calculations.flowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {calculations.flowThru.toFixed(2)}
+                    {false.flowThru !== undefined ? (
+                      <span className={falseflowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {falseflowThru.toFixed(2)}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -370,9 +355,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Adjusted Controllable Profit This Year</TableCell>
                           <TableCell>
-                    {calculations?.adjustedControllableProfitThisYear !== undefined ? (
+                    {false.adjustedControllableProfitThisYear !== undefined ? (
                       <span className="text-green-600 font-semibold">
-                        ${calculations.adjustedControllableProfitThisYear.toLocaleString()}
+                        ${falseadjustedControllableProfitThisYear.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -382,9 +367,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Adjusted Controllable Profit Last Year</TableCell>
                           <TableCell>
-                    {calculations?.adjustedControllableProfitLastYear !== undefined ? (
+                    {false.adjustedControllableProfitLastYear !== undefined ? (
                       <span className="text-blue-600 font-semibold">
-                        ${calculations.adjustedControllableProfitLastYear.toLocaleString()}
+                        ${falseadjustedControllableProfitLastYear.toLocaleString()}
                               </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -394,9 +379,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">GM Bonus</TableCell>
                           <TableCell>
-                    {calculations?.gmBonus !== undefined ? (
-                      <span className={`font-semibold ${calculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${calculations.gmBonus.toLocaleString()}
+                    {false.gmBonus !== undefined ? (
+                      <span className={`font-semibold ${falsegmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${falsegmBonus.toLocaleString()}
                               </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -406,9 +391,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SM Bonus</TableCell>
                           <TableCell>
-                    {calculations?.smBonus !== undefined ? (
-                      <span className={`font-semibold ${calculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${calculations.smBonus.toLocaleString()}
+                    {false.smBonus !== undefined ? (
+                      <span className={`font-semibold ${falsesmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${falsesmBonus.toLocaleString()}
                               </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -418,9 +403,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">AM/Chef Bonus</TableCell>
                           <TableCell>
-                    {calculations?.amChefBonus !== undefined ? (
-                      <span className={`font-semibold ${calculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${calculations.amChefBonus.toLocaleString()}
+                    {false.amChefBonus !== undefined ? (
+                      <span className={`font-semibold ${falseamChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${falseamChefBonus.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
