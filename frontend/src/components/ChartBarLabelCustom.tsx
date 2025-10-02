@@ -43,12 +43,14 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function ChartBarLabelCustom({ data }: ChartBarLabelCustomProps) {
-  // Transform data to show net sales vs avg weekly sales
-  const chartData = data.map(store => ({
-    store: store.storeName,
-    netSales: store.netSales,
-    avgWeeklySales: store.avgWeeklySales,
-  }));
+  // Transform data to show net sales vs avg weekly sales and sort by netSales descending
+  const chartData = data
+    .map(store => ({
+      store: store.storeName,
+      netSales: store.netSales,
+      avgWeeklySales: store.avgWeeklySales,
+    }))
+    .sort((a, b) => b.netSales - a.netSales); // Sort from highest to lowest netSales
   return (
     <Card>
       <CardHeader>
