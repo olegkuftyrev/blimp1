@@ -289,11 +289,16 @@ function DashboardContent() {
                         <Select
                           value={selectedId}
                           onValueChange={(value) => handleQuickActionChange(index, value)}
+                          modal={false}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent position="popper">
+                          <SelectContent 
+                            position="popper" 
+                            className="z-[9999]"
+                            style={{ pointerEvents: 'auto' }}
+                          >
                             {availableQuickActions
                               .filter(item => {
                                 // Don't show items that are already selected in other slots
