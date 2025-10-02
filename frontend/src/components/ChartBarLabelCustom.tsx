@@ -1,7 +1,7 @@
 "use client"
 
 import { TrendingUp } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, XAxis, YAxis } from "recharts"
 
 import {
   Card,
@@ -25,6 +25,7 @@ interface ChartBarLabelCustomProps {
     storeName: string;
     netSales: number;
     avgWeeklySales: number;
+    sss: number;
   }>;
 }
 
@@ -49,13 +50,14 @@ export function ChartBarLabelCustom({ data }: ChartBarLabelCustomProps) {
       store: store.storeName,
       netSales: store.netSales,
       avgWeeklySales: store.avgWeeklySales,
+      sss: store.sss,
     }))
     .sort((a, b) => b.netSales - a.netSales); // Sort from highest to lowest netSales
   return (
     <Card>
       <CardHeader>
         <CardTitle>Store Sales Performance</CardTitle>
-        <CardDescription>Net Sales vs Average Weekly Sales by Store</CardDescription>
+        <CardDescription>Net Sales Top</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[400px]">
@@ -105,16 +107,22 @@ export function ChartBarLabelCustom({ data }: ChartBarLabelCustomProps) {
                 fill="#000000"
                 fontSize={12}
               />
+              {chartData.map((item) => (
+                <Cell
+                  key={item.store}
+                  fill={item.sss >= 0 ? "#16a34a" : "#dc2626"}
+                />
+              ))}
             </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
-          Store sales performance comparison <TrendingUp className="h-4 w-4" />
+          Green bars: Positive SSS (Good Performance) <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
-          Showing net sales data for selected stores
+          Red bars: Negative SSS (Needs Attention) - Colors based on Same Store Sales performance
         </div>
       </CardFooter>
     </Card>

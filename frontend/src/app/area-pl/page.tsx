@@ -526,7 +526,8 @@ function AreaPlContent() {
                 data={filteredStoreMetrics.map(store => ({
                   storeName: store.storeName,
                   netSales: store.avgWeeklySales * 4, // Convert weekly to period sales
-                  avgWeeklySales: store.avgWeeklySales
+                  avgWeeklySales: store.avgWeeklySales,
+                  sss: store.sss
                 })).filter(store => store.avgWeeklySales > 0)}
               />
             )}
