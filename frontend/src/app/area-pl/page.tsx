@@ -12,6 +12,7 @@ import { ChevronDown } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { usePLReportsBatch, usePLLineItemsBatch, PLUtils } from '@/hooks/useSWRPL';
+import { ChartBarNegative } from '@/components/ChartBarNegative';
 
 interface StoreMetrics {
   restaurantId: number;
@@ -26,6 +27,8 @@ interface StoreMetrics {
   cogsYtdPercentage: number;
   laborPercentage: number;
   laborYtdPercentage: number;
+  primeCostPercentage: number;
+  primeCostYtdPercentage: number;
   controllableProfitPercentage: number;
   controllableProfitYtdPercentage: number;
   restaurantContributionYtdPercentage: number;
@@ -89,6 +92,8 @@ function AreaPlContent() {
     { id: 'cogsYtdPercentage', name: 'COGS YTD %' },
     { id: 'laborPercentage', name: 'TL (Total Labor) Actual %' },
     { id: 'laborYtdPercentage', name: 'TL YTD %' },
+    { id: 'primeCostPercentage', name: 'Prime Cost (COGS+TL) %' },
+    { id: 'primeCostYtdPercentage', name: 'Prime Cost YTD %' },
     { id: 'controllableProfitPercentage', name: 'CP (Controllable Profit) %' },
     { id: 'controllableProfitYtdPercentage', name: 'CP YTD %' },
     { id: 'restaurantContributionYtdPercentage', name: 'RC (Restaurant Contribution) YTD %' },
@@ -135,6 +140,10 @@ function AreaPlContent() {
     // Calculate average weekly sales (assuming 4 weeks per period)
     const avgWeeklySales = report?.netSales ? report.netSales / 4 : 0;
 
+    // Calculate Prime Cost (COGS + TL)
+    const primeCostPercentage = (calculations?.cogsPercentage || 0) + (calculations?.laborPercentage || 0);
+    const primeCostYtdPercentage = (calculations?.cogsYtdPercentage || 0) + (calculations?.laborYtdPercentage || 0);
+
     return {
       restaurantId: restaurant.id,
       storeName: restaurant.name,
@@ -148,6 +157,8 @@ function AreaPlContent() {
       cogsYtdPercentage: calculations?.cogsYtdPercentage || 0,
       laborPercentage: calculations?.laborPercentage || 0,
       laborYtdPercentage: calculations?.laborYtdPercentage || 0,
+      primeCostPercentage: primeCostPercentage,
+      primeCostYtdPercentage: primeCostYtdPercentage,
       controllableProfitPercentage: calculations?.controllableProfitPercentage || 0,
       controllableProfitYtdPercentage: calculations?.controllableProfitYtdPercentage || 0,
       restaurantContributionYtdPercentage: calculations?.restaurantContributionYtdPercentage || 0,
@@ -493,6 +504,16 @@ function AreaPlContent() {
           </CardContent>
         </Card>
 
+        {/* Chart Component */}
+        {filteredStoreMetrics.filter(store => store.primeCostPercentage > 0).length > 0 && (
+          <ChartBarNegative 
+            data={filteredStoreMetrics.map(store => ({
+              storeName: store.storeName,
+              primeCostPercentage: store.primeCostPercentage
+            })).filter(store => store.primeCostPercentage > 0)} // Only show stores with data
+          />
+        )}
+
         {/* Store Metrics Table */}
         <Card>
           <CardHeader>
@@ -583,6 +604,20 @@ function AreaPlContent() {
                             metric.name, 
                             (store) => formatPercentage(store.laborYtdPercentage),
                             (store) => getThresholdColor(store.laborYtdPercentage)
+                          );
+                        case 'primeCostPercentage':
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.primeCostPercentage),
+                            (store) => getThresholdColor(store.primeCostPercentage, 60)
+                          );
+                        case 'primeCostYtdPercentage':
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.primeCostYtdPercentage),
+                            (store) => getThresholdColor(store.primeCostYtdPercentage, 60)
                           );
                         case 'controllableProfitPercentage':
                           return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.controllableProfitPercentage));

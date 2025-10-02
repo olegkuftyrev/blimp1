@@ -1123,7 +1123,7 @@ function StaffManagementContent() {
 
             {/* Hourly Associates */}
             {(() => {
-              const hourlyAssociateUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'Hourly Associate'), searchQuery);
+              const hourlyAssociateUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'Hourly Associate' && user.role !== 'tablet'), searchQuery);
               const paginatedHourlyAssociateUsers = getPaginatedUsers(hourlyAssociateUsers, 'hourlyAssociates');
               const totalPages = getTotalPages(hourlyAssociateUsers);
               
