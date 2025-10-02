@@ -5,15 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { useAreaPlLineItems, useAreaPlSummary } from '@/hooks/useAreaPL';
+import { usePLReports, usePLLineItems } from '@/hooks/useSWRPL';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Loader2 } from "lucide-react";
 
 // Default parameters for API calls
 const defaultParams = {
   restaurantIds: [1], // Default to restaurant ID 1 (PX1234)
-  year: 2025,
-  periods: ['P01'],
+  year: 2024, // Try 2024 instead of 2025
+  periods: ['P12'], // Try P12 (December) instead of P01
   basis: 'actual',
   ytd: false
 };
@@ -22,42 +22,42 @@ function AreaPlContent() {
   const { user } = useAuth();
   const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
   
-  // Fetch data using Area PL hooks
-  const { data: lineItemsData, error: lineItemsError, isLoading: lineItemsLoading } = useAreaPlLineItems(defaultParams) as { 
-    data: { data?: any[] } | undefined; 
-    error: any; 
-    isLoading: boolean 
-  };
-  const { data: summaryData, error: summaryError, isLoading: summaryLoading } = useAreaPlSummary(defaultParams) as { 
-    data: { summary?: any } | undefined; 
-    error: any; 
-    isLoading: boolean 
-  };
+  // Fetch data using the same approach as analytics page
+  const { reports: plReports, error: plReportsError, loading: plReportsLoading } = usePLReports(
+    defaultParams.restaurantIds[0], 
+    defaultParams.periods[0]
+  );
+  
+  // Get the first report if available
+  const plReport = plReports?.length > 0 ? plReports[0] : null;
+  
+  // Fetch line items for the report
+  const { lineItems, calculations, loading: lineItemsLoading, error: lineItemsError } = usePLLineItems(
+    plReport?.id || undefined
+  );
   
   // Get current restaurant info
   const currentRestaurant = restaurants?.find((r: any) => r.id === defaultParams.restaurantIds[0]);
-  
-  // Extract calculations from line items data
-  const calculations = lineItemsData?.data?.[0]?.calculations;
   
   // Debug logging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Area PL Debug Info:', {
-        lineItemsData,
+        plReports,
+        plReport,
+        lineItems,
         calculations,
-        summaryData,
+        plReportsLoading,
         lineItemsLoading,
-        summaryLoading,
+        plReportsError,
         lineItemsError,
-        summaryError,
         defaultParams
       });
     }
-  }, [lineItemsData, calculations, summaryData, lineItemsLoading, summaryLoading, lineItemsError, summaryError]);
+  }, [plReports, plReport, lineItems, calculations, plReportsLoading, lineItemsLoading, plReportsError, lineItemsError]);
   
-  const loading = lineItemsLoading || summaryLoading;
-  const error = lineItemsError || summaryError;
+  const loading = plReportsLoading || lineItemsLoading;
+  const error = plReportsError || lineItemsError;
   
   if (loading) {
   return (
@@ -83,6 +83,32 @@ function AreaPlContent() {
             <Card>
             <CardContent className="text-center py-12">
               <p className="text-destructive">Error loading data: {error.message || 'Unknown error'}</p>
+              <p className="text-sm text-gray-500 mt-2">
+                This might be because there's no P&L data for restaurant ID {defaultParams.restaurantIds[0]} 
+                for period {defaultParams.periods[0]} in {defaultParams.year}.
+              </p>
+              </CardContent>
+            </Card>
+          </div>
+                  </div>
+    );
+  }
+
+  // Check if we have no data
+  if (!loading && !calculations && !plReport) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-gray-500">No P&L data available</p>
+              <p className="text-sm text-gray-500 mt-2">
+                There's no P&L data for restaurant ID {defaultParams.restaurantIds[0]} 
+                for period {defaultParams.periods[0]} in {defaultParams.year}.
+              </p>
+              <p className="text-xs text-gray-400 mt-4">
+                Check console for debug information.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -110,7 +136,7 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Store Name</TableCell>
                   <TableCell>
                     <span className="text-blue-600 font-semibold">
-                      {calculations?.storeName || currentRestaurant?.name || 'PX1234'}
+                      {plReport?.storeName || currentRestaurant?.name || 'PX1234'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -126,9 +152,11 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Avg Weekly Sales</TableCell>
                   <TableCell>
                     <span className="text-purple-600 font-semibold">
-                      {summaryData?.summary?.netSales ? 
-                        `$${(summaryData.summary.netSales / 4).toLocaleString()}` : 
-                        'N/A'
+                      {calculations?.dashboard?.netSales ? 
+                        `$${(calculations.dashboard.netSales / 4).toLocaleString()}` : 
+                        plReport?.netSales ? 
+                          `$${(plReport.netSales / 4).toLocaleString()}` :
+                          'N/A'
                       }
                     </span>
                   </TableCell>
@@ -142,7 +170,7 @@ function AreaPlContent() {
                       </span>
                     ) : (
                       <span className="text-gray-500">
-                        N/A {lineItemsError && <span className="text-xs text-red-500">(Error: {lineItemsError.message})</span>}
+                        N/A {error && <span className="text-xs text-red-500">(Error: {error.message})</span>}
                       </span>
                     )}
                   </TableCell>
