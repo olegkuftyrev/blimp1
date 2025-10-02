@@ -12,8 +12,8 @@ import { Loader2 } from "lucide-react";
 // Default parameters for API calls
 const defaultParams = {
   restaurantIds: [1], // Default to restaurant ID 1 (PX1234)
-  year: 2024, // Try 2024 instead of 2025
-  periods: ['P12'], // Try P12 (December) instead of P01
+  year: 2025, // Use 2025 year
+  periods: ['P06'], // Use P06 period
   basis: 'actual',
   ytd: false
 };
