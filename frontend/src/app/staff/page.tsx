@@ -129,6 +129,132 @@ function StaffManagementContent() {
     restaurantIds: []
   });
 
+  // Pagination state for each table
+  const [pagination, setPagination] = useState({
+    rdo: 1,
+    aco: 1,
+    blackShirts: 1,
+    hourlyAssociates: 1,
+    tablets: 1,
+    otherStaff: 1
+  });
+
+  const ITEMS_PER_PAGE = 10;
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Search function
+  const searchUsers = (users: User[], query: string) => {
+    if (!query.trim()) return users;
+    
+    const lowercaseQuery = query.toLowerCase();
+    return users.filter((user: User) => 
+      user.fullName.toLowerCase().includes(lowercaseQuery) ||
+      user.email.toLowerCase().includes(lowercaseQuery) ||
+      user.jobTitle.toLowerCase().includes(lowercaseQuery) ||
+      (user.restaurants || []).some(restaurant => 
+        restaurant.name.toLowerCase().includes(lowercaseQuery)
+      )
+    );
+  };
+
+  // Reset pagination when search changes
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    // Reset all pagination to page 1 when search changes
+    setPagination({
+      rdo: 1,
+      aco: 1,
+      blackShirts: 1,
+      hourlyAssociates: 1,
+      tablets: 1,
+      otherStaff: 1
+    });
+  };
+
+  // Pagination functions
+  const updatePagination = (tableType: keyof typeof pagination, page: number) => {
+    setPagination(prev => ({ ...prev, [tableType]: page }));
+  };
+
+  const getPaginatedUsers = (users: User[], tableType: keyof typeof pagination) => {
+    const currentPage = pagination[tableType];
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return users.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (users: User[]) => {
+    return Math.ceil(users.length / ITEMS_PER_PAGE);
+  };
+
+  // Pagination Component
+  const PaginationComponent = ({ 
+    currentPage, 
+    totalPages, 
+    totalItems,
+    onPageChange, 
+    tableType 
+  }: { 
+    currentPage: number; 
+    totalPages: number; 
+    totalItems: number;
+    onPageChange: (page: number) => void;
+    tableType: keyof typeof pagination;
+  }) => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-sm text-muted-foreground">
+          Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} of {totalItems} entries
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          {pages.map((page) => (
+            <Button
+              key={page}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => onPageChange(page)}
+            >
+              {page}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   // moved to kitchen page
 
   useEffect(() => {
@@ -352,7 +478,7 @@ function StaffManagementContent() {
               </Button>
             </Link>
           </div>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">
                 Staff Management
@@ -666,97 +792,596 @@ function StaffManagementContent() {
           </Card>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <Input
+              type="text"
+              placeholder="Search users by name, email, job title, or restaurant..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          {searchQuery && (
+            <div className="mt-2">
+              <p className="text-sm text-muted-foreground">
+                Searching for: "{searchQuery}"
+              </p>
+              {(() => {
+                const allSearchedUsers = searchUsers(visibleUsers, searchQuery);
+                if (allSearchedUsers.length === 0) {
+                  return (
+                    <p className="text-sm text-red-600 mt-1">
+                      No users found matching your search criteria.
+                    </p>
+                  );
+                }
+                return (
+                  <p className="text-sm text-green-600 mt-1">
+                    Found {allSearchedUsers.length} user{allSearchedUsers.length !== 1 ? 's' : ''} matching your search.
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+
         {/* Restaurant UI moved to /kitchen */}
 
-        {/* Users Table */}
+        {/* Users Tables by Job Title */}
+        {usersLoading ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Users</CardTitle>
-          </CardHeader>
           <CardContent>
-            {usersLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p>Loading users...</p>
               </div>
+            </CardContent>
+          </Card>
             ) : usersError ? (
+          <Card>
+            <CardContent>
               <div className="text-center py-8">
                 <div className="text-red-600 mb-4">Error loading users</div>
                 <p className="text-muted-foreground mb-4">{usersError.message}</p>
                 <Button onClick={() => refetchUsers()}>Retry</Button>
               </div>
+            </CardContent>
+          </Card>
             ) : visibleUsers.length === 0 ? (
+          <Card>
+            <CardContent>
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No users found. Create your first user to get started.</p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Job Title</TableHead>
-                      <TableHead>Restaurants</TableHead>
-                      {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visibleUsers.map((user: User) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.fullName}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {roleLabels[user.role as keyof typeof roleLabels] || user.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{jobTitleLabels[user.jobTitle as keyof typeof jobTitleLabels]}</TableCell>
-                        <TableCell>
-                          {user.role === 'admin' ? (
-                            <span className="text-muted-foreground text-sm">All restaurants</span>
-                          ) : (
-                            <div className="flex flex-wrap gap-1">
-                              {user.restaurants?.map((restaurant: Restaurant) => (
-                                <Badge key={restaurant.id} variant="outline" className="text-xs">
-                                  {restaurant.name}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* Regional Director of Operations */}
+            {(() => {
+              const rdoUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'RDO'), searchQuery);
+              const paginatedRdoUsers = getPaginatedUsers(rdoUsers, 'rdo');
+              const totalPages = getTotalPages(rdoUsers);
+              
+              return rdoUsers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Regional Director of Operations ({rdoUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Restaurants</TableHead>
+                            {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedRdoUsers.map((user: User) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.fullName}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                  {roleLabels[user.role as keyof typeof roleLabels] || user.role}
                                 </Badge>
-                              )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
-                            </div>
-                          )}
-                        </TableCell>
-                        {currentUser?.role !== 'associate' && (
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                title="Edit user"
-                                onClick={() => handleEditUser(user)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                title="Delete user"
-                                onClick={() => handleDeleteUser(user)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                              </TableCell>
+                              <TableCell>
+                                {user.role === 'admin' ? (
+                                  <span className="text-muted-foreground text-sm">All restaurants</span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {user.restaurants?.map((restaurant: Restaurant) => (
+                                      <Badge key={restaurant.id} variant="outline" className="text-xs">
+                                        {restaurant.name}
+                                      </Badge>
+                                    )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
+                                  </div>
+                                )}
+                              </TableCell>
+                              {currentUser?.role !== 'associate' && (
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Edit user"
+                                      onClick={() => handleEditUser(user)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Delete user"
+                                      onClick={() => handleDeleteUser(user)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <PaginationComponent
+                      currentPage={pagination.rdo}
+                      totalPages={totalPages}
+                      totalItems={rdoUsers.length}
+                      onPageChange={(page) => updatePagination('rdo', page)}
+                      tableType="rdo"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Area Coach */}
+            {(() => {
+              const acoUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'ACO'), searchQuery);
+              const paginatedAcoUsers = getPaginatedUsers(acoUsers, 'aco');
+              const totalPages = getTotalPages(acoUsers);
+              
+              return acoUsers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Area Coach ({acoUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Restaurants</TableHead>
+                            {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedAcoUsers.map((user: User) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.fullName}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                  {roleLabels[user.role as keyof typeof roleLabels] || user.role}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {user.role === 'admin' ? (
+                                  <span className="text-muted-foreground text-sm">All restaurants</span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {user.restaurants?.map((restaurant: Restaurant) => (
+                                      <Badge key={restaurant.id} variant="outline" className="text-xs">
+                                        {restaurant.name}
+                                      </Badge>
+                                    )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
+                                  </div>
+                                )}
+                              </TableCell>
+                              {currentUser?.role !== 'associate' && (
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Edit user"
+                                      onClick={() => handleEditUser(user)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Delete user"
+                                      onClick={() => handleDeleteUser(user)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <PaginationComponent
+                      currentPage={pagination.aco}
+                      totalPages={totalPages}
+                      totalItems={acoUsers.length}
+                      onPageChange={(page) => updatePagination('aco', page)}
+                      tableType="aco"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Black Shirts */}
+            {(() => {
+              const blackShirtUsers = searchUsers(visibleUsers.filter((user: User) => user.role === 'black_shirt'), searchQuery);
+              const paginatedBlackShirtUsers = getPaginatedUsers(blackShirtUsers, 'blackShirts');
+              const totalPages = getTotalPages(blackShirtUsers);
+              
+              return blackShirtUsers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Black Shirts ({blackShirtUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Job Title</TableHead>
+                            <TableHead>Restaurants</TableHead>
+                            {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedBlackShirtUsers.map((user: User) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.fullName}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>{jobTitleLabels[user.jobTitle as keyof typeof jobTitleLabels]}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {user.restaurants?.map((restaurant: Restaurant) => (
+                                    <Badge key={restaurant.id} variant="outline" className="text-xs">
+                                      {restaurant.name}
+                                    </Badge>
+                                  )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
+                                </div>
+                              </TableCell>
+                              {currentUser?.role !== 'associate' && (
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Edit user"
+                                      onClick={() => handleEditUser(user)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Delete user"
+                                      onClick={() => handleDeleteUser(user)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <PaginationComponent
+                      currentPage={pagination.blackShirts}
+                      totalPages={totalPages}
+                      totalItems={blackShirtUsers.length}
+                      onPageChange={(page) => updatePagination('blackShirts', page)}
+                      tableType="blackShirts"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Hourly Associates */}
+            {(() => {
+              const hourlyAssociateUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'Hourly Associate'), searchQuery);
+              const paginatedHourlyAssociateUsers = getPaginatedUsers(hourlyAssociateUsers, 'hourlyAssociates');
+              const totalPages = getTotalPages(hourlyAssociateUsers);
+              
+              return hourlyAssociateUsers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Hourly Associates ({hourlyAssociateUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Restaurants</TableHead>
+                            {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedHourlyAssociateUsers.map((user: User) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.fullName}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary">
+                                  {roleLabels[user.role as keyof typeof roleLabels] || user.role}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {user.restaurants?.map((restaurant: Restaurant) => (
+                                    <Badge key={restaurant.id} variant="outline" className="text-xs">
+                                      {restaurant.name}
+                                    </Badge>
+                                  )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
+                                </div>
+                              </TableCell>
+                              {currentUser?.role !== 'associate' && (
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Edit user"
+                                      onClick={() => handleEditUser(user)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Delete user"
+                                      onClick={() => handleDeleteUser(user)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <PaginationComponent
+                      currentPage={pagination.hourlyAssociates}
+                      totalPages={totalPages}
+                      totalItems={hourlyAssociateUsers.length}
+                      onPageChange={(page) => updatePagination('hourlyAssociates', page)}
+                      tableType="hourlyAssociates"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Tablets */}
+            {(() => {
+              const tabletUsers = searchUsers(visibleUsers.filter((user: User) => user.role === 'tablet'), searchQuery);
+              const paginatedTabletUsers = getPaginatedUsers(tabletUsers, 'tablets');
+              const totalPages = getTotalPages(tabletUsers);
+              
+              return tabletUsers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Tablets ({tabletUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Job Title</TableHead>
+                            <TableHead>Restaurants</TableHead>
+                            {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedTabletUsers.map((user: User) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.fullName}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>{jobTitleLabels[user.jobTitle as keyof typeof jobTitleLabels]}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {user.restaurants?.map((restaurant: Restaurant) => (
+                                    <Badge key={restaurant.id} variant="outline" className="text-xs">
+                                      {restaurant.name}
+                                    </Badge>
+                                  )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
+                                </div>
+                              </TableCell>
+                              {currentUser?.role !== 'associate' && (
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Edit user"
+                                      onClick={() => handleEditUser(user)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Delete user"
+                                      onClick={() => handleDeleteUser(user)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <PaginationComponent
+                      currentPage={pagination.tablets}
+                      totalPages={totalPages}
+                      totalItems={tabletUsers.length}
+                      onPageChange={(page) => updatePagination('tablets', page)}
+                      tableType="tablets"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Other Users (catch-all for any users that don't fit the above categories) */}
+            {(() => {
+              const otherUsers = searchUsers(visibleUsers.filter((user: User) => 
+                user.jobTitle !== 'RDO' && 
+                user.jobTitle !== 'ACO' && 
+                user.role !== 'black_shirt' && 
+                user.jobTitle !== 'Hourly Associate' && 
+                user.role !== 'tablet'
+              ), searchQuery);
+              const paginatedOtherUsers = getPaginatedUsers(otherUsers, 'otherStaff');
+              const totalPages = getTotalPages(otherUsers);
+              
+              return otherUsers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Other Staff ({otherUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Job Title</TableHead>
+                            <TableHead>Restaurants</TableHead>
+                            {currentUser?.role !== 'associate' && <TableHead>Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedOtherUsers.map((user: User) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.fullName}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                  {roleLabels[user.role as keyof typeof roleLabels] || user.role}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{jobTitleLabels[user.jobTitle as keyof typeof jobTitleLabels]}</TableCell>
+                              <TableCell>
+                                {user.role === 'admin' ? (
+                                  <span className="text-muted-foreground text-sm">All restaurants</span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {user.restaurants?.map((restaurant: Restaurant) => (
+                                      <Badge key={restaurant.id} variant="outline" className="text-xs">
+                                        {restaurant.name}
+                                      </Badge>
+                                    )) || <span className="text-muted-foreground text-sm">No restaurants assigned</span>}
+                                  </div>
+                                )}
+                              </TableCell>
+                              {currentUser?.role !== 'associate' && (
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Edit user"
+                                      onClick={() => handleEditUser(user)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      title="Delete user"
+                                      onClick={() => handleDeleteUser(user)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <PaginationComponent
+                      currentPage={pagination.otherStaff}
+                      totalPages={totalPages}
+                      totalItems={otherUsers.length}
+                      onPageChange={(page) => updatePagination('otherStaff', page)}
+                      tableType="otherStaff"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })()}
+          </div>
+        )}
       </div>
       
       {/* Confirm Dialog Component */}
