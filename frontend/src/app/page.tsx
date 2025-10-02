@@ -42,37 +42,37 @@ export default function LandingPage() {
     return null
   }
   return (<>
-    <div className="relative min-h-screen bg-black text-white overflow-hidden">
+    <div className="relative min-h-screen bg-black text-white overflow-hidden" data-theme="dark">
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20" />
-      <div className="relative z-10 container mx-auto px-6 py-16">
-        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[70vh] sm:min-h-[80vh]">
           {/* Left: Text */}
-          <div className="space-y-8 lg:pr-8 text-left">
+          <div className="space-y-6 sm:space-y-8 lg:pr-8 text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm">
               <Sparkles className="w-4 h-4" />
               Kitchen Ops Platform
             </div>
 
-            <div className="space-y-6">
-              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight leading-tight">
-                Run a faster
+            <div className="space-y-4 sm:space-y-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight leading-tight">
+                Run a smarter
                 {" "}
                 <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                  kitchen
+                  store
                 </span>
               </h1>
-              <p className="text-xl lg:text-2xl text-gray-300 leading-relaxed max-w-2xl">
+              <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 leading-relaxed max-w-2xl">
                 Real-time orders, precise timers, and performance insights in one place.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
               <Link href="/auth">
                 <GetStartedButton />
               </Link>
             </div>
 
-            <div className="flex items-center gap-8 pt-8 text-sm text-gray-400">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 pt-6 sm:pt-8 text-sm text-gray-400">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 Always on
@@ -83,15 +83,15 @@ export default function LandingPage() {
           </div>
 
           {/* Right: Shader visual */}
-          <div className="flex justify-center lg:justify-end">
-            <div className="relative">
+          <div className="flex justify-center lg:justify-end mt-8 lg:mt-0">
+            <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-none">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 blur-3xl scale-110" />
               <div className="relative">
                 <PulsingBorderShader />
               </div>
-              <div className="absolute -top-4 -right-4 w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
-              <div className="absolute top-1/3 -left-6 w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "1s" }} />
-              <div className="absolute bottom-1/4 -right-8 w-4 h-4 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "2s" }} />
+              <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 w-2 h-2 sm:w-3 sm:h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
+              <div className="absolute top-1/3 -left-3 sm:-left-6 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "1s" }} />
+              <div className="absolute bottom-1/4 -right-4 sm:-right-8 w-3 h-3 sm:w-4 sm:h-4 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "2s" }} />
             </div>
           </div>
         </div>
@@ -105,96 +105,96 @@ export default function LandingPage() {
     </div>
     
     {/* Features Section - Kitchen domain */}
-    <section className="bg-black text-white">
-      <div className="container mx-auto px-6 py-20">
-        <div className="text-center max-w-3xl mx-auto mb-12">
+    <section className="bg-black text-white dark:bg-black dark:text-white" data-theme="dark">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs mb-4">
             BLIMP Features
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Kitchen operations, simplified</h2>
-          <p className="mt-4 text-gray-400">
-            Tools your team actually uses—fast order flow, clear batching, and built‑in performance.
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">Complete operations platform</h2>
+          <p className="mt-4 text-gray-400 text-sm sm:text-base">
+            Everything you need to run a successful business—from kitchen operations to staff management and analytics.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="bg-[#0b0b0c] border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Live order queue</CardTitle>
+              <CardTitle className="text-white">Kitchen Operations</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400">Real-time orders with statuses and ETA highlights for quick triage.</p>
+              <p className="text-gray-400">Real-time order queue, precision timers, and batching tools to streamline kitchen workflow.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-[#0b0b0c] border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Batching made clear</CardTitle>
+              <CardTitle className="text-white">Staff Management</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400">Surface batch size only on cards—no meal labels—so cooks stay focused.</p>
+              <p className="text-gray-400">Complete staff oversight with scheduling, performance tracking, and role-based permissions.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-[#0b0b0c] border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Kitchen timers</CardTitle>
+              <CardTitle className="text-white">Analytics & Reporting</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400">Precision timers with audible cues to nail every cook window.</p>
+              <p className="text-gray-400">Comprehensive insights with profit/loss tracking, performance metrics, and operational analytics.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-[#0b0b0c] border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Performance & IDP</CardTitle>
+              <CardTitle className="text-white">Learning & Development</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400">Competency tracking and assessments to grow skills on the line.</p>
+              <p className="text-gray-400">IDP tracking, competency assessments, and skill development programs for team growth.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-[#0b0b0c] border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Audit trail</CardTitle>
+              <CardTitle className="text-white">Inventory & Compliance</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400">Automatic logs for actions and changes to keep ops transparent.</p>
+              <p className="text-gray-400">Streamlined inventory management with compliance tracking and automated audit trails.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-[#0b0b0c] border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Role-based access</CardTitle>
+              <CardTitle className="text-white">Customer & Delivery</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400">SSO-ready permissions so each role sees exactly what they need.</p>
+              <p className="text-gray-400">End-to-end customer management with delivery coordination and customer service tools.</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex items-center justify-center gap-3 mt-10">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-8 sm:mt-10">
           <Link href="/auth">
-            <Button className="bg-purple-600 hover:bg-purple-700 rounded-full px-6">Get started</Button>
+            <Button className="bg-purple-600 hover:bg-purple-700 rounded-full px-6 w-full sm:w-auto">Get started</Button>
           </Link>
           <Link href="#more">
-            <Button variant="outline" className="border-gray-700 text-white hover:bg-gray-900 rounded-full px-6">See more</Button>
+            <Button variant="outline" className="border-gray-700 text-white hover:bg-gray-900 rounded-full px-6 w-full sm:w-auto">See more</Button>
           </Link>
         </div>
       </div>
     </section>
     {/* FAQs (moved to end) */}
-    <section className="bg-black text-white">
-      <div className="container mx-auto px-6 py-20">
-        <div className="text-center max-w-3xl mx-auto mb-12">
+    <section className="bg-black text-white dark:bg-black dark:text-white" data-theme="dark">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs mb-4">
             FAQs
           </div>
-          <h3 className="text-4xl md:text-5xl font-bold tracking-tight">Frequently asked questions</h3>
-          <p className="mt-4 text-gray-400">Advice and answers from our team.</p>
+          <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">Frequently asked questions</h3>
+          <p className="mt-4 text-gray-400 text-sm sm:text-base">Advice and answers from our team.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {[
             {
               q: "What industries can benefit from BLIMP?",
@@ -237,11 +237,11 @@ export default function LandingPage() {
     
 
     {/* Testimonials */}
-    <section className="bg-[#0b0b0c] text-white">
-      <div className="container mx-auto px-6 py-20">
-        <div className="flex items-center justify-between mb-8">
-          <h3 className="text-2xl md:text-3xl font-semibold">What our clients say</h3>
-          <div className="hidden md:flex items-center gap-2">
+    <section className="bg-[#0b0b0c] text-white dark:bg-[#0b0b0c] dark:text-white" data-theme="dark">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold">What our clients say</h3>
+          <div className="hidden sm:flex items-center gap-2">
             <Button
               variant="outline"
               className="border-gray-700 text-white hover:bg-gray-900"
@@ -263,7 +263,7 @@ export default function LandingPage() {
 
         <div
           ref={testimonialsRef}
-          className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-2 [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-2 [-ms-overflow-style:none] [scrollbar-width:none]"
           style={{ scrollbarWidth: 'none' }}
         >
           {/* hide scrollbar on WebKit */}
@@ -296,10 +296,10 @@ export default function LandingPage() {
             role: "FOH Lead, Vista",
             initials: "SL",
           }].map((t) => (
-            <div key={t.name} className="min-w-[300px] md:min-w-[420px] lg:min-w-[520px] snap-start">
+            <div key={t.name} className="min-w-[280px] sm:min-w-[300px] md:min-w-[420px] lg:min-w-[520px] snap-start">
               <Card className="h-full bg-black border-gray-800">
                 <CardContent className="pt-6">
-                  <p className="text-gray-300 text-lg leading-relaxed">“{t.quote}”</p>
+                  <p className="text-gray-300 text-base sm:text-lg leading-relaxed">"{t.quote}"</p>
                 </CardContent>
                 <div className="border-t border-gray-800">
                   <div className="flex items-center gap-3 p-4">

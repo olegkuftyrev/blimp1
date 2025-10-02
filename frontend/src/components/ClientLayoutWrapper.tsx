@@ -10,6 +10,11 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
   const { user } = useAuth()
   const isTablet = user?.role === 'tablet'
 
+  // If no user is authenticated, render children without navigation (landing page)
+  if (!user) {
+    return <>{children}</>
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {!isTablet && <Navigation />}

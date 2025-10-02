@@ -293,7 +293,7 @@ function DashboardContent() {
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent position="popper">
                             {availableQuickActions
                               .filter(item => {
                                 // Don't show items that are already selected in other slots
@@ -444,7 +444,7 @@ function DashboardContent() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground mb-4">{item.description}</p>
+                    <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
                     {isAllowed && !item.comingSoon ? (
                       <Link
                         href={item.href}
@@ -500,7 +500,7 @@ function DashboardContent() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">{item.description}</p>
+                      <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
                       {isAllowed && !item.comingSoon ? (
                         <Link
                           href={item.href}
@@ -557,7 +557,7 @@ function DashboardContent() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">{item.description}</p>
+                      <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
                       {isAllowed && !item.comingSoon ? (
                         <Link
                           href={item.href}
@@ -614,7 +614,7 @@ function DashboardContent() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">{item.description}</p>
+                      <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
                       {isAllowed && !item.comingSoon ? (
                         <Link
                           href={item.href}

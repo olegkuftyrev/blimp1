@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-primary" />
-                      {restaurant.name}
+                      {restaurant.name.toUpperCase()}
                     </CardTitle>
                     <Badge variant={restaurant.isActive ? "default" : "secondary"}>
                       {restaurant.isActive ? "Active" : "Inactive"}
