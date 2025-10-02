@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { useAreaPlKpis, useAreaPlSummary } from '@/hooks/useAreaPL';
+import { useAreaPlLineItems, useAreaPlSummary } from '@/hooks/useAreaPL';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Loader2 } from "lucide-react";
 
@@ -23,8 +23,8 @@ function AreaPlContent() {
   const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
   
   // Fetch data using Area PL hooks
-  const { data: kpisData, error: kpisError, isLoading: kpisLoading } = useAreaPlKpis(defaultParams) as { 
-    data: { kpis?: any } | undefined; 
+  const { data: lineItemsData, error: lineItemsError, isLoading: lineItemsLoading } = useAreaPlLineItems(defaultParams) as { 
+    data: { data?: any[] } | undefined; 
     error: any; 
     isLoading: boolean 
   };
@@ -37,31 +37,50 @@ function AreaPlContent() {
   // Get current restaurant info
   const currentRestaurant = restaurants?.find((r: any) => r.id === defaultParams.restaurantIds[0]);
   
-  const loading = kpisLoading || summaryLoading;
-  const error = kpisError || summaryError;
+  // Extract calculations from line items data
+  const calculations = lineItemsData?.data?.[0]?.calculations;
+  
+  // Debug logging
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Area PL Debug Info:', {
+        lineItemsData,
+        calculations,
+        summaryData,
+        lineItemsLoading,
+        summaryLoading,
+        lineItemsError,
+        summaryError,
+        defaultParams
+      });
+    }
+  }, [lineItemsData, calculations, summaryData, lineItemsLoading, summaryLoading, lineItemsError, summaryError]);
+  
+  const loading = lineItemsLoading || summaryLoading;
+  const error = lineItemsError || summaryError;
   
   if (loading) {
-    return (
+  return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
-          <Card>
+            <Card>
             <CardContent className="flex items-center justify-center py-12">
-              <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin" />
                 <span>Loading Area P&L data...</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+                </div>
+              </CardContent>
+            </Card>
+                            </div>
+                          </div>
+                        );
   }
   
   if (error) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
-          <Card>
+            <Card>
             <CardContent className="text-center py-12">
               <p className="text-destructive">Error loading data: {error.message || 'Unknown error'}</p>
             </CardContent>
@@ -75,23 +94,23 @@ function AreaPlContent() {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
         <Card>
-          <CardHeader>
+            <CardHeader>
             <CardTitle className="text-lg font-semibold">Testing</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
+            </CardHeader>
+            <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
                   <TableHead>Metric</TableHead>
                   <TableHead>Results</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                 <TableRow>
                   <TableCell className="font-medium">Store Name</TableCell>
                   <TableCell>
                     <span className="text-blue-600 font-semibold">
-                      {currentRestaurant?.name || 'PX2475'}
+                      {calculations?.storeName || currentRestaurant?.name || 'PX2475'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -99,7 +118,7 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Store PIC</TableCell>
                   <TableCell>
                     <span className="text-green-600 font-semibold">
-                      {user?.fullName || 'Administrator'}
+                      {calculations?.storePIC || user?.fullName || 'Administrator'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -117,21 +136,23 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SSS (Same Store Sales)</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.sss !== undefined ? (
-                      <span className={kpisData.kpis.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.sss.toFixed(2)}%
+                    {calculations?.sss !== undefined ? (
+                      <span className={calculations.sss >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.sss.toFixed(2)}%
                       </span>
                     ) : (
-                      <span className="text-gray-500">N/A</span>
+                      <span className="text-gray-500">
+                        N/A {lineItemsError && <span className="text-xs text-red-500">(Error: {lineItemsError.message})</span>}
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">SSS YTD (Same Store Sales Year-to-Date)</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.sssYtd !== undefined ? (
-                      <span className={kpisData.kpis.sssYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.sssYtd.toFixed(2)}%
+                    {calculations?.sssYtd !== undefined ? (
+                      <span className={calculations.sssYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.sssYtd.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -141,9 +162,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SST% (Same Store Transactions)</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.sst !== undefined ? (
-                      <span className={kpisData.kpis.sst >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.sst.toFixed(2)}%
+                    {calculations?.sst !== undefined ? (
+                      <span className={calculations.sst >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.sst.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -153,9 +174,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">SST YTD (Same Store Transactions Year-to-Date)</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.sstYtd !== undefined ? (
-                      <span className={kpisData.kpis.sstYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.sstYtd.toFixed(2)}%
+                    {calculations?.sstYtd !== undefined ? (
+                      <span className={calculations.sstYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.sstYtd.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -165,9 +186,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Cost of Goods Sold Total %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.cogsPercentage !== undefined ? (
-                      <span className={kpisData.kpis.cogsPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.cogsPercentage.toFixed(2)}%
+                    {calculations?.cogsPercentage !== undefined ? (
+                      <span className={calculations.cogsPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.cogsPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -177,9 +198,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">COGS YTD %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.cogsYtdPercentage !== undefined ? (
-                      <span className={kpisData.kpis.cogsYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.cogsYtdPercentage.toFixed(2)}%
+                    {calculations?.cogsYtdPercentage !== undefined ? (
+                      <span className={calculations.cogsYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.cogsYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -189,9 +210,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">TL (Total Labor) Actual %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.laborPercentage !== undefined ? (
-                      <span className={kpisData.kpis.laborPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.laborPercentage.toFixed(2)}%
+                    {calculations?.laborPercentage !== undefined ? (
+                      <span className={calculations.laborPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.laborPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -201,9 +222,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">TL YTD %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.laborYtdPercentage !== undefined ? (
-                      <span className={kpisData.kpis.laborYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.laborYtdPercentage.toFixed(2)}%
+                    {calculations?.laborYtdPercentage !== undefined ? (
+                      <span className={calculations.laborYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.laborYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -213,9 +234,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">CP (Controllable Profit) %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.controllableProfitPercentage !== undefined ? (
-                      <span className={kpisData.kpis.controllableProfitPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.controllableProfitPercentage.toFixed(2)}%
+                    {calculations?.controllableProfitPercentage !== undefined ? (
+                      <span className={calculations.controllableProfitPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.controllableProfitPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -225,9 +246,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">CP YTD %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.controllableProfitYtdPercentage !== undefined ? (
-                      <span className={kpisData.kpis.controllableProfitYtdPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.controllableProfitYtdPercentage.toFixed(2)}%
+                    {calculations?.controllableProfitYtdPercentage !== undefined ? (
+                      <span className={calculations.controllableProfitYtdPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.controllableProfitYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -237,9 +258,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">RC (Restaurant Contribution) YTD %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.restaurantContributionYtdPercentage !== undefined ? (
-                      <span className={kpisData.kpis.restaurantContributionYtdPercentage >= 10 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.restaurantContributionYtdPercentage.toFixed(2)}%
+                    {calculations?.restaurantContributionYtdPercentage !== undefined ? (
+                      <span className={calculations.restaurantContributionYtdPercentage >= 10 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.restaurantContributionYtdPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -249,9 +270,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent Min $</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.rentMin !== undefined ? (
+                    {calculations?.rentMin !== undefined ? (
                       <span className="text-purple-600">
-                        ${kpisData.kpis.rentMin.toLocaleString()}
+                        ${calculations.rentMin.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -261,9 +282,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent %</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.rentPercentage !== undefined ? (
+                    {calculations?.rentPercentage !== undefined ? (
                       <span className="text-purple-600">
-                        {kpisData.kpis.rentPercentage.toFixed(2)}%
+                        {calculations.rentPercentage.toFixed(2)}%
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -273,9 +294,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent Other $</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.rentOther !== undefined ? (
+                    {calculations?.rentOther !== undefined ? (
                       <span className="text-purple-600">
-                        ${kpisData.kpis.rentOther.toLocaleString()}
+                        ${calculations.rentOther.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -285,9 +306,9 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Rent Total $</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.rentTotal !== undefined ? (
+                    {calculations?.rentTotal !== undefined ? (
                       <span className="text-purple-600">
-                        ${kpisData.kpis.rentTotal.toLocaleString()}
+                        ${calculations.rentTotal.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
@@ -297,93 +318,93 @@ function AreaPlContent() {
                 <TableRow>
                   <TableCell className="font-medium">Overtime Hours</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.overtimeHours !== undefined ? (
+                    {calculations?.overtimeHours !== undefined ? (
                       <span className="text-orange-600">
-                        {kpisData.kpis.overtimeHours.toFixed(2)} hours
+                        {calculations.overtimeHours.toFixed(2)} hours
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
+                          </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">Flow Thru</TableCell>
                   <TableCell>
-                    {kpisData?.kpis?.flowThru !== undefined ? (
-                      <span className={kpisData.kpis.flowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {kpisData.kpis.flowThru.toFixed(2)}
+                    {calculations?.flowThru !== undefined ? (
+                      <span className={calculations.flowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {calculations.flowThru.toFixed(2)}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
+                          </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">Adjusted Controllable Profit This Year</TableCell>
-                  <TableCell>
-                    {kpisData?.kpis?.adjustedControllableProfitThisYear !== undefined ? (
+                          <TableCell>
+                    {calculations?.adjustedControllableProfitThisYear !== undefined ? (
                       <span className="text-green-600 font-semibold">
-                        ${kpisData.kpis.adjustedControllableProfitThisYear.toLocaleString()}
+                        ${calculations.adjustedControllableProfitThisYear.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
+                          </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">Adjusted Controllable Profit Last Year</TableCell>
-                  <TableCell>
-                    {kpisData?.kpis?.adjustedControllableProfitLastYear !== undefined ? (
+                          <TableCell>
+                    {calculations?.adjustedControllableProfitLastYear !== undefined ? (
                       <span className="text-blue-600 font-semibold">
-                        ${kpisData.kpis.adjustedControllableProfitLastYear.toLocaleString()}
-                      </span>
+                        ${calculations.adjustedControllableProfitLastYear.toLocaleString()}
+                              </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
+                          </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">GM Bonus</TableCell>
-                  <TableCell>
-                    {kpisData?.kpis?.gmBonus !== undefined ? (
-                      <span className={`font-semibold ${kpisData.kpis.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${kpisData.kpis.gmBonus.toLocaleString()}
-                      </span>
+                          <TableCell>
+                    {calculations?.gmBonus !== undefined ? (
+                      <span className={`font-semibold ${calculations.gmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${calculations.gmBonus.toLocaleString()}
+                              </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
+                          </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">SM Bonus</TableCell>
-                  <TableCell>
-                    {kpisData?.kpis?.smBonus !== undefined ? (
-                      <span className={`font-semibold ${kpisData.kpis.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${kpisData.kpis.smBonus.toLocaleString()}
-                      </span>
+                          <TableCell>
+                    {calculations?.smBonus !== undefined ? (
+                      <span className={`font-semibold ${calculations.smBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${calculations.smBonus.toLocaleString()}
+                              </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
+                          </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">AM/Chef Bonus</TableCell>
-                  <TableCell>
-                    {kpisData?.kpis?.amChefBonus !== undefined ? (
-                      <span className={`font-semibold ${kpisData.kpis.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${kpisData.kpis.amChefBonus.toLocaleString()}
+                          <TableCell>
+                    {calculations?.amChefBonus !== undefined ? (
+                      <span className={`font-semibold ${calculations.amChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${calculations.amChefBonus.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-gray-500">N/A</span>
                     )}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                          </TableCell>
+                        </TableRow>
+                    </TableBody>
+                  </Table>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
   );
 }
 
