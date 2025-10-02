@@ -11,9 +11,9 @@ import { Loader2 } from "lucide-react";
 
 // Default parameters for API calls
 const defaultParams = {
-  restaurantIds: [5], // Default to restaurant ID 5 (PX2475)
+  restaurantIds: [1], // Default to restaurant ID 1 (PX1234)
   year: 2025,
-  periods: ['P06'],
+  periods: ['P01'],
   basis: 'actual',
   ytd: false
 };
@@ -110,7 +110,7 @@ function AreaPlContent() {
                   <TableCell className="font-medium">Store Name</TableCell>
                   <TableCell>
                     <span className="text-blue-600 font-semibold">
-                      {calculations?.storeName || currentRestaurant?.name || 'PX2475'}
+                      {calculations?.storeName || currentRestaurant?.name || 'PX1234'}
                     </span>
                   </TableCell>
                 </TableRow>
