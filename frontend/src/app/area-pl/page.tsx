@@ -202,13 +202,20 @@ function AreaPlContent() {
     return 'text-gray-600';
   };
 
+  const getThresholdColor = (value: number, threshold: number = 30) => {
+    if (value < threshold) return 'text-green-600';
+    return 'text-red-600';
+  };
+
   // Function to render metric row
-  const renderMetricRow = (metricId: string, metricName: string, getValue: (store: StoreMetrics) => string) => {
+  const renderMetricRow = (metricId: string, metricName: string, getValue: (store: StoreMetrics) => string, getColor?: (store: StoreMetrics) => string) => {
     return (
       <TableRow key={metricId}>
         <TableCell className="font-medium sticky left-0 bg-background">{metricName}</TableCell>
         {filteredStoreMetrics.map((store) => (
-          <TableCell key={store.restaurantId}>{getValue(store)}</TableCell>
+          <TableCell key={store.restaurantId} className={getColor ? getColor(store) : ''}>
+            {getValue(store)}
+          </TableCell>
         ))}
       </TableRow>
     );
@@ -522,21 +529,61 @@ function AreaPlContent() {
                         case 'avgWeeklySales':
                           return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.avgWeeklySales));
                         case 'sss':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sss));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.sss),
+                            (store) => getVarianceColor(store.sss)
+                          );
                         case 'sssYtd':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sssYtd));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.sssYtd),
+                            (store) => getVarianceColor(store.sssYtd)
+                          );
                         case 'sst':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sst));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.sst),
+                            (store) => getVarianceColor(store.sst)
+                          );
                         case 'sstYtd':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sstYtd));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.sstYtd),
+                            (store) => getVarianceColor(store.sstYtd)
+                          );
                         case 'cogsPercentage':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.cogsPercentage));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.cogsPercentage),
+                            (store) => getThresholdColor(store.cogsPercentage)
+                          );
                         case 'cogsYtdPercentage':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.cogsYtdPercentage));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.cogsYtdPercentage),
+                            (store) => getThresholdColor(store.cogsYtdPercentage)
+                          );
                         case 'laborPercentage':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.laborPercentage));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.laborPercentage),
+                            (store) => getThresholdColor(store.laborPercentage)
+                          );
                         case 'laborYtdPercentage':
-                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.laborYtdPercentage));
+                          return renderMetricRow(
+                            metric.id, 
+                            metric.name, 
+                            (store) => formatPercentage(store.laborYtdPercentage),
+                            (store) => getThresholdColor(store.laborYtdPercentage)
+                          );
                         case 'controllableProfitPercentage':
                           return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.controllableProfitPercentage));
                         case 'controllableProfitYtdPercentage':
