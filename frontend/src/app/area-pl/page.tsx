@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { usePLReportsBatch, usePLLineItemsBatch, PLUtils } from '@/hooks/useSWRPL';
@@ -43,9 +47,63 @@ interface StoreMetrics {
 function AreaPlContent() {
   const [selectedPeriod, setSelectedPeriod] = useState('P09');
   const [selectedYear, setSelectedYear] = useState(2025);
+  
+  // Filter states
+  const [selectedStores, setSelectedStores] = useState<number[]>([]);
+  const [showStoresWithData, setShowStoresWithData] = useState(true);
+  const [showStoresWithoutData, setShowStoresWithoutData] = useState(true);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [isStorePopoverOpen, setIsStorePopoverOpen] = useState(false);
+  const [isMetricsPopoverOpen, setIsMetricsPopoverOpen] = useState(false);
+  const storeDropdownRef = useRef<HTMLDivElement>(null);
+  const metricsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (storeDropdownRef.current && !storeDropdownRef.current.contains(event.target as Node)) {
+        setIsStorePopoverOpen(false);
+      }
+      if (metricsDropdownRef.current && !metricsDropdownRef.current.contains(event.target as Node)) {
+        setIsMetricsPopoverOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Get available restaurants
   const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
+  
+  // Available metrics
+  const availableMetrics = [
+    { id: 'avgWeeklySales', name: 'Avg Weekly Sales' },
+    { id: 'sss', name: 'SSS (Same Store Sales)' },
+    { id: 'sssYtd', name: 'SSS YTD (Same Store Sales Year-to-Date)' },
+    { id: 'sst', name: 'SST% (Same Store Transactions)' },
+    { id: 'sstYtd', name: 'SST YTD (Same Store Transactions Year-to-Date)' },
+    { id: 'cogsPercentage', name: 'Cost of Goods Sold Total %' },
+    { id: 'cogsYtdPercentage', name: 'COGS YTD %' },
+    { id: 'laborPercentage', name: 'TL (Total Labor) Actual %' },
+    { id: 'laborYtdPercentage', name: 'TL YTD %' },
+    { id: 'controllableProfitPercentage', name: 'CP (Controllable Profit) %' },
+    { id: 'controllableProfitYtdPercentage', name: 'CP YTD %' },
+    { id: 'restaurantContributionYtdPercentage', name: 'RC (Restaurant Contribution) YTD %' },
+    { id: 'rentMin', name: 'Rent Min $' },
+    { id: 'rentPercentage', name: 'Rent %' },
+    { id: 'rentOther', name: 'Rent Other $' },
+    { id: 'rentTotal', name: 'Rent Total $' },
+    { id: 'overtimeHours', name: 'Overtime Hours' },
+    { id: 'flowThru', name: 'Flow Thru' },
+    { id: 'adjustedControllableProfitThisYear', name: 'Adjusted Controllable Profit This Year' },
+    { id: 'adjustedControllableProfitLastYear', name: 'Adjusted Controllable Profit Last Year' },
+    { id: 'gmBonus', name: 'GM Bonus' },
+    { id: 'smBonus', name: 'SM Bonus' },
+    { id: 'amChefBonus', name: 'AM/Chef Bonus' }
+  ];
   
   // Get batch P&L reports
   const restaurantIds = restaurants?.map((r: any) => r.id) || [];
@@ -112,6 +170,29 @@ function AreaPlContent() {
   const isLoading = restaurantsLoading || batchLoading || lineItemsLoading;
   const hasError = batchError;
 
+  // Filter store metrics based on selected filters
+  const filteredStoreMetrics = storeMetrics.filter(store => {
+    // Filter by selected stores (multiple selection)
+    if (selectedStores.length > 0 && !selectedStores.includes(store.restaurantId)) {
+      return false;
+    }
+    
+    // Filter by data availability
+    if (store.hasData && !showStoresWithData) {
+      return false;
+    }
+    if (!store.hasData && !showStoresWithoutData) {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // Filter metrics based on selected metrics
+  const filteredMetrics = selectedMetrics.length === 0 
+    ? availableMetrics 
+    : availableMetrics.filter(metric => selectedMetrics.includes(metric.id));
+
   const formatCurrency = (value: number) => PLUtils.formatCurrency(value);
   const formatPercentage = (value: number) => PLUtils.formatPercentage(value);
 
@@ -121,38 +202,25 @@ function AreaPlContent() {
     return 'text-gray-600';
   };
 
+  // Function to render metric row
+  const renderMetricRow = (metricId: string, metricName: string, getValue: (store: StoreMetrics) => string) => {
+    return (
+      <TableRow key={metricId}>
+        <TableCell className="font-medium sticky left-0 bg-background">{metricName}</TableCell>
+        {filteredStoreMetrics.map((store) => (
+          <TableCell key={store.restaurantId}>{getValue(store)}</TableCell>
+        ))}
+      </TableRow>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Area P&L Dashboard</h1>
-            <p className="text-muted-foreground">Store performance metrics overview</p>
-          </div>
-          
-          {/* Filters */}
-          <div className="flex gap-4">
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="P01">P01</SelectItem>
-                <SelectItem value="P02">P02</SelectItem>
-                <SelectItem value="P03">P03</SelectItem>
-                <SelectItem value="P04">P04</SelectItem>
-                <SelectItem value="P05">P05</SelectItem>
-                <SelectItem value="P06">P06</SelectItem>
-                <SelectItem value="P07">P07</SelectItem>
-                <SelectItem value="P08">P08</SelectItem>
-                <SelectItem value="P09">P09</SelectItem>
-                <SelectItem value="P10">P10</SelectItem>
-                <SelectItem value="P11">P11</SelectItem>
-                <SelectItem value="P12">P12</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">Area P&L Dashboard</h1>
+          <p className="text-muted-foreground">Store performance metrics overview</p>
         </div>
 
         {/* Summary Cards */}
@@ -172,7 +240,7 @@ function AreaPlContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {storeMetrics.filter(m => m.hasData).length}
+                {filteredStoreMetrics.filter(m => m.hasData).length}
               </div>
             </CardContent>
           </Card>
@@ -183,11 +251,240 @@ function AreaPlContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(storeMetrics.reduce((sum, m) => sum + m.avgWeeklySales, 0))}
+                {formatCurrency(filteredStoreMetrics.reduce((sum, m) => sum + m.avgWeeklySales, 0))}
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Filters Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Column 1: Store Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Stores</Label>
+                <div className="relative" ref={storeDropdownRef}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsStorePopoverOpen(!isStorePopoverOpen)}
+                    className="w-full justify-between"
+                  >
+                    {selectedStores.length === 0 
+                      ? "All Stores" 
+                      : selectedStores.length === restaurants?.length 
+                        ? "All Stores" 
+                        : `${selectedStores.length} store${selectedStores.length !== 1 ? 's' : ''} selected`
+                    }
+                    <ChevronDown className={`ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform ${isStorePopoverOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                  
+                  {isStorePopoverOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50">
+                      <div className="p-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                               onClick={() => {
+                                 setSelectedStores([]);
+                                 setIsStorePopoverOpen(false);
+                               }}>
+                            <Checkbox
+                              checked={selectedStores.length === 0}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <span className="text-sm">All Stores ({restaurants?.length || 0})</span>
+                          </div>
+                          {restaurants?.map((restaurant: any) => (
+                            <div 
+                              key={restaurant.id}
+                              className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                              onClick={() => {
+                                if (selectedStores.includes(restaurant.id)) {
+                                  setSelectedStores(selectedStores.filter(id => id !== restaurant.id));
+                                } else {
+                                  setSelectedStores([...selectedStores, restaurant.id]);
+                                }
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedStores.includes(restaurant.id)}
+                                onChange={() => {}}
+                                className="pointer-events-none"
+                              />
+                              <span className="text-sm">{restaurant.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {selectedStores.length > 0 && selectedStores.length < (restaurants?.length || 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedStores.length} store{selectedStores.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </div>
+
+              {/* Column 2: Data Availability Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Show Stores</Label>
+                <Select 
+                  value={
+                    showStoresWithData && showStoresWithoutData ? "all" :
+                    showStoresWithData && !showStoresWithoutData ? "with-data" :
+                    !showStoresWithData && showStoresWithoutData ? "without-data" : "none"
+                  }
+                  onValueChange={(value) => {
+                    switch (value) {
+                      case "all":
+                        setShowStoresWithData(true);
+                        setShowStoresWithoutData(true);
+                        break;
+                      case "with-data":
+                        setShowStoresWithData(true);
+                        setShowStoresWithoutData(false);
+                        break;
+                      case "without-data":
+                        setShowStoresWithData(false);
+                        setShowStoresWithoutData(true);
+                        break;
+                      case "none":
+                        setShowStoresWithData(false);
+                        setShowStoresWithoutData(false);
+                        break;
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select data filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      All Stores ({storeMetrics.length})
+                    </SelectItem>
+                    <SelectItem value="with-data">
+                      With Data ({storeMetrics.filter(m => m.hasData).length})
+                    </SelectItem>
+                    <SelectItem value="without-data">
+                      Without Data ({storeMetrics.filter(m => !m.hasData).length})
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Column 3: Metrics Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Metrics</Label>
+                <div className="relative" ref={metricsDropdownRef}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsMetricsPopoverOpen(!isMetricsPopoverOpen)}
+                    className="w-full justify-between"
+                  >
+                    {selectedMetrics.length === 0 
+                      ? "All Metrics" 
+                      : selectedMetrics.length === availableMetrics.length 
+                        ? "All Metrics" 
+                        : `${selectedMetrics.length} metric${selectedMetrics.length !== 1 ? 's' : ''} selected`
+                    }
+                    <ChevronDown className={`ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform ${isMetricsPopoverOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                  
+                  {isMetricsPopoverOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                      <div className="p-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                               onClick={() => {
+                                 setSelectedMetrics([]);
+                                 setIsMetricsPopoverOpen(false);
+                               }}>
+                            <Checkbox
+                              checked={selectedMetrics.length === 0}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <span className="text-sm">All Metrics ({availableMetrics.length})</span>
+                          </div>
+                          {availableMetrics.map((metric) => (
+                            <div 
+                              key={metric.id}
+                              className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                              onClick={() => {
+                                if (selectedMetrics.includes(metric.id)) {
+                                  setSelectedMetrics(selectedMetrics.filter(id => id !== metric.id));
+                                } else {
+                                  setSelectedMetrics([...selectedMetrics, metric.id]);
+                                }
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedMetrics.includes(metric.id)}
+                                onChange={() => {}}
+                                className="pointer-events-none"
+                              />
+                              <span className="text-sm">{metric.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {selectedMetrics.length > 0 && selectedMetrics.length < availableMetrics.length && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedMetrics.length} metric{selectedMetrics.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </div>
+
+              {/* Column 4: Period Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Period</Label>
+                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="P01">P01</SelectItem>
+                    <SelectItem value="P02">P02</SelectItem>
+                    <SelectItem value="P03">P03</SelectItem>
+                    <SelectItem value="P04">P04</SelectItem>
+                    <SelectItem value="P05">P05</SelectItem>
+                    <SelectItem value="P06">P06</SelectItem>
+                    <SelectItem value="P07">P07</SelectItem>
+                    <SelectItem value="P08">P08</SelectItem>
+                    <SelectItem value="P09">P09</SelectItem>
+                    <SelectItem value="P10">P10</SelectItem>
+                    <SelectItem value="P11">P11</SelectItem>
+                    <SelectItem value="P12">P12</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="mt-4 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedStores([]);
+                  setShowStoresWithData(true);
+                  setShowStoresWithoutData(true);
+                  setSelectedMetrics([]);
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Store Metrics Table */}
         <Card>
@@ -209,7 +506,7 @@ function AreaPlContent() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="sticky left-0 bg-background">Metric</TableHead>
-                      {storeMetrics.map((store) => (
+                      {filteredStoreMetrics.map((store) => (
                         <TableHead key={store.restaurantId} className="min-w-[120px]">
                           <div className="text-center">
                             <div className="font-medium">{store.storeName}</div>
@@ -220,189 +517,58 @@ function AreaPlContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Avg Weekly Sales */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Avg Weekly Sales</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.avgWeeklySales)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* SSS */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">SSS (Same Store Sales)</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.sss)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* SSS YTD */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">SSS YTD (Same Store Sales Year-to-Date)</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.sssYtd)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* SST */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">SST% (Same Store Transactions)</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.sst)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* SST YTD */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">SST YTD (Same Store Transactions Year-to-Date)</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.sstYtd)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* COGS */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Cost of Goods Sold Total %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.cogsPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* COGS YTD */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">COGS YTD %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.cogsYtdPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Total Labor */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">TL (Total Labor) Actual %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.laborPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* TL YTD */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">TL YTD %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.laborYtdPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Controllable Profit */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">CP (Controllable Profit) %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.controllableProfitPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* CP YTD */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">CP YTD %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.controllableProfitYtdPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Restaurant Contribution */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">RC (Restaurant Contribution) YTD %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.restaurantContributionYtdPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Rent Min */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Rent Min $</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.rentMin)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Rent % */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Rent %</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.rentPercentage)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Rent Other */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Rent Other $</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.rentOther)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Rent Total */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Rent Total $</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.rentTotal)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Overtime Hours */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Overtime Hours</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{store.overtimeHours.toFixed(2)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Flow Thru */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Flow Thru</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatPercentage(store.flowThru)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Adjusted Controllable Profit This Year */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Adjusted Controllable Profit This Year</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.adjustedControllableProfitThisYear)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* Adjusted Controllable Profit Last Year */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">Adjusted Controllable Profit Last Year</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.adjustedControllableProfitLastYear)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* GM Bonus */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">GM Bonus</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.gmBonus)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* SM Bonus */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">SM Bonus</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.smBonus)}</TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {/* AM/Chef Bonus */}
-                    <TableRow>
-                      <TableCell className="font-medium sticky left-0 bg-background">AM/Chef Bonus</TableCell>
-                      {storeMetrics.map((store) => (
-                        <TableCell key={store.restaurantId}>{formatCurrency(store.amChefBonus)}</TableCell>
-                      ))}
-                    </TableRow>
+                    {filteredMetrics.map((metric) => {
+                      switch (metric.id) {
+                        case 'avgWeeklySales':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.avgWeeklySales));
+                        case 'sss':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sss));
+                        case 'sssYtd':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sssYtd));
+                        case 'sst':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sst));
+                        case 'sstYtd':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.sstYtd));
+                        case 'cogsPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.cogsPercentage));
+                        case 'cogsYtdPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.cogsYtdPercentage));
+                        case 'laborPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.laborPercentage));
+                        case 'laborYtdPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.laborYtdPercentage));
+                        case 'controllableProfitPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.controllableProfitPercentage));
+                        case 'controllableProfitYtdPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.controllableProfitYtdPercentage));
+                        case 'restaurantContributionYtdPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.restaurantContributionYtdPercentage));
+                        case 'rentMin':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.rentMin));
+                        case 'rentPercentage':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.rentPercentage));
+                        case 'rentOther':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.rentOther));
+                        case 'rentTotal':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.rentTotal));
+                        case 'overtimeHours':
+                          return renderMetricRow(metric.id, metric.name, (store) => store.overtimeHours.toFixed(2));
+                        case 'flowThru':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatPercentage(store.flowThru));
+                        case 'adjustedControllableProfitThisYear':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.adjustedControllableProfitThisYear));
+                        case 'adjustedControllableProfitLastYear':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.adjustedControllableProfitLastYear));
+                        case 'gmBonus':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.gmBonus));
+                        case 'smBonus':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.smBonus));
+                        case 'amChefBonus':
+                          return renderMetricRow(metric.id, metric.name, (store) => formatCurrency(store.amChefBonus));
+                        default:
+                          return null;
+                      }
+                    })}
                   </TableBody>
                 </Table>
               </div>
