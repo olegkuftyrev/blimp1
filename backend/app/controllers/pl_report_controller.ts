@@ -266,6 +266,16 @@ export default class PlReportController {
     // SSS (Same Store Sales) = (Actual Net Sales - Prior Year Net Sales) / Prior Year Net Sales × 100%
     // If actual Net Sales is 0, use plan Net Sales as fallback
     const netSalesItem = findItem('Net Sales')
+    console.log('SSS Debug - netSalesItem found:', !!netSalesItem)
+    if (netSalesItem) {
+      console.log('SSS Debug - netSalesItem data:', {
+        ledgerAccount: netSalesItem.ledgerAccount,
+        actuals: netSalesItem.actuals,
+        plan: netSalesItem.plan,
+        priorYear: netSalesItem.priorYear
+      })
+    }
+    
     if (netSalesItem && netSalesItem.priorYear) {
       let currentNetSales = parseValue(netSalesItem.actuals)
       
@@ -275,9 +285,20 @@ export default class PlReportController {
       }
       
       const priorYearNetSales = parseValue(netSalesItem.priorYear)
+      console.log('SSS Debug - calculation values:', {
+        currentNetSales,
+        priorYearNetSales,
+        willCalculate: priorYearNetSales !== 0 && currentNetSales > 0
+      })
+      
       if (priorYearNetSales !== 0 && currentNetSales > 0) {
         metrics.sss = ((currentNetSales - priorYearNetSales) / priorYearNetSales) * 100
+        console.log('SSS Debug - calculated SSS:', metrics.sss)
+      } else {
+        console.log('SSS Debug - SSS not calculated due to conditions')
       }
+    } else {
+      console.log('SSS Debug - SSS not calculated: netSalesItem missing or no priorYear')
     }
 
     // SST% (Same Store Transactions) = (This Year Transactions - Last Year Transactions) / Last Year Transactions × 100%
