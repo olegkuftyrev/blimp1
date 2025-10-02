@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 const defaultParams = {
   restaurantIds: [1], // Default to restaurant ID 1 (PX1234)
   year: 2025, // Use 2025 year
-  periods: ['P06'], // Use P06 period
+  periods: ['P09'], // Use P09 period
   basis: 'actual',
   ytd: false
 };
