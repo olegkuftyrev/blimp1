@@ -13,6 +13,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
 import { usePLReportsBatch, usePLLineItemsBatch, PLUtils } from '@/hooks/useSWRPL';
 import { ChartBarNegative } from '@/components/ChartBarNegative';
+import { ChartBarLabelCustom } from '@/components/ChartBarLabelCustom';
 
 interface StoreMetrics {
   restaurantId: number;
@@ -504,15 +505,33 @@ function AreaPlContent() {
           </CardContent>
         </Card>
 
-        {/* Chart Component */}
-        {filteredStoreMetrics.filter(store => store.primeCostPercentage > 0).length > 0 && (
-          <ChartBarNegative 
-            data={filteredStoreMetrics.map(store => ({
-              storeName: store.storeName,
-              primeCostPercentage: store.primeCostPercentage
-            })).filter(store => store.primeCostPercentage > 0)} // Only show stores with data
-          />
-        )}
+        {/* Charts in Two Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Prime Cost Performance */}
+          <div>
+            {filteredStoreMetrics.filter(store => store.primeCostPercentage > 0).length > 0 && (
+              <ChartBarNegative 
+                data={filteredStoreMetrics.map(store => ({
+                  storeName: store.storeName,
+                  primeCostPercentage: store.primeCostPercentage
+                })).filter(store => store.primeCostPercentage > 0)} // Only show stores with data
+              />
+            )}
+          </div>
+
+          {/* Right Column - Store Sales Performance */}
+          <div>
+            {filteredStoreMetrics.filter(store => store.avgWeeklySales > 0).length > 0 && (
+              <ChartBarLabelCustom 
+                data={filteredStoreMetrics.map(store => ({
+                  storeName: store.storeName,
+                  netSales: store.avgWeeklySales * 4, // Convert weekly to period sales
+                  avgWeeklySales: store.avgWeeklySales
+                })).filter(store => store.avgWeeklySales > 0)}
+              />
+            )}
+          </div>
+        </div>
 
         {/* Store Metrics Table */}
         <Card>
@@ -609,14 +628,14 @@ function AreaPlContent() {
                           return renderMetricRow(
                             metric.id, 
                             metric.name, 
-                            (store) => formatPercentage(store.primeCostPercentage),
+                            (store) => `${store.primeCostPercentage.toFixed(1)}%`,
                             (store) => getThresholdColor(store.primeCostPercentage, 60)
                           );
                         case 'primeCostYtdPercentage':
                           return renderMetricRow(
                             metric.id, 
                             metric.name, 
-                            (store) => formatPercentage(store.primeCostYtdPercentage),
+                            (store) => `${store.primeCostYtdPercentage.toFixed(1)}%`,
                             (store) => getThresholdColor(store.primeCostYtdPercentage, 60)
                           );
                         case 'controllableProfitPercentage':

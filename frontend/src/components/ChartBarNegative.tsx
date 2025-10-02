@@ -56,6 +56,7 @@ export function ChartBarNegative({ data }: ChartBarNegativeProps) {
               tickLine={false} 
               tickMargin={10} 
               axisLine={false}
+              tickFormatter={(value) => value.slice(0, 6)} // Показываем только первые 6 символов названия
             />
             <YAxis />
             <ChartTooltip
@@ -70,7 +71,12 @@ export function ChartBarNegative({ data }: ChartBarNegativeProps) {
               />}
             />
             <Bar dataKey="primeCost">
-              <LabelList position="top" dataKey="store" fillOpacity={1} />
+              <LabelList 
+                position="top" 
+                dataKey="actualPrimeCost" 
+                formatter={(value) => `${value.toFixed(1)}%`}
+                fillOpacity={1} 
+              />
               {chartData.map((item) => (
                 <Cell
                   key={item.store}
