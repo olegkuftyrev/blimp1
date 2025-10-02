@@ -274,6 +274,8 @@ router
   .group(() => {
       router.post('/upload', '#controllers/pl_report_controller.upload')
       router.get('/', '#controllers/pl_report_controller.index')
+      router.get('/batch', '#controllers/pl_report_controller.batch')
+      router.get('/batch/line-items', '#controllers/pl_report_controller.batchLineItems')
       router.get('/:id', '#controllers/pl_report_controller.show')
       router.get('/:id/line-items', '#controllers/pl_report_controller.lineItems')
       router.get('/:id/raw-data', '#controllers/pl_report_controller.getRawData')

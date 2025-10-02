@@ -610,4 +610,149 @@ export default class PlReportController {
       })
     }
   }
+
+  /**
+   * Get multiple P&L reports in batch
+   */
+  async batch({ request, response }: HttpContext) {
+    try {
+      const qs = request.qs()
+      const restaurantIds = qs['restaurantIds[]'] || qs.restaurantIds
+      const periods = qs['periods[]'] || qs.periods
+      const year = qs.year || new Date().getFullYear()
+      
+      if (!restaurantIds || !Array.isArray(restaurantIds) || restaurantIds.length === 0) {
+        return response.badRequest({ error: 'restaurantIds is required and must be an array' })
+      }
+
+      if (!periods || !Array.isArray(periods) || periods.length === 0) {
+        return response.badRequest({ error: 'periods is required and must be an array' })
+      }
+
+      // Convert restaurantIds to integers
+      const restaurantIdNumbers = restaurantIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+      
+      if (restaurantIdNumbers.length === 0) {
+        return response.badRequest({ error: 'Invalid restaurantIds provided' })
+      }
+
+      // Query for reports
+      let query = PlReport.query()
+        .whereIn('restaurant_id', restaurantIdNumbers)
+        .where('year', parseInt(year))
+      
+      // Filter by periods using LIKE to match format "FY 2025 - P01"
+      if (periods && periods.length > 0) {
+        const periodConditions = periods.map(period => 
+          `period LIKE '%${period}%'`
+        )
+        query = query.whereRaw(`(${periodConditions.join(' OR ')})`)
+      }
+      
+      const reports = await query
+
+      // Format response to match frontend expectations
+      const batchReports = reports.map(report => ({
+        report: {
+          id: report.id,
+          restaurantId: report.restaurantId,
+          storeName: report.storeName,
+          company: report.company,
+          period: report.period,
+          year: report.year,
+          netSales: report.netSales,
+          grossSales: report.grossSales,
+          costOfGoodsSold: report.costOfGoodsSold,
+          totalLabor: report.totalLabor,
+          controllables: report.controllables,
+          controllableProfit: report.controllableProfit,
+          advertising: report.advertising,
+          fixedCosts: report.fixedCosts,
+          restaurantContribution: report.restaurantContribution,
+          cashflow: report.cashflow,
+          createdAt: report.createdAt,
+          updatedAt: report.updatedAt
+        },
+        restaurantId: report.restaurantId,
+        period: report.period
+      }))
+
+      return response.ok({ data: batchReports })
+    } catch (error) {
+      console.error('P&L batch error:', error)
+      return response.internalServerError({ 
+        message: 'Failed to fetch P&L reports batch',
+        error: error.message 
+      })
+    }
+  }
+
+  /**
+   * Get multiple P&L line items with calculations in batch
+   */
+  async batchLineItems({ request, response }: HttpContext) {
+    try {
+      const qs = request.qs()
+      const reportIds = qs['reportIds[]'] || qs.reportIds
+      
+      if (!reportIds || !Array.isArray(reportIds) || reportIds.length === 0) {
+        return response.badRequest({ error: 'reportIds is required and must be an array' })
+      }
+
+      // Convert reportIds to integers
+      const reportIdNumbers = reportIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+      
+      if (reportIdNumbers.length === 0) {
+        return response.badRequest({ error: 'Invalid reportIds provided' })
+      }
+
+      const results = []
+
+      for (const reportId of reportIdNumbers) {
+        try {
+          // Get the report with line items
+          const report = await PlReport.query()
+            .where('id', reportId)
+            .preload('lineItems')
+            .first()
+
+          if (!report) {
+            results.push({
+              reportId,
+              lineItems: [],
+              calculations: null,
+              error: 'Report not found'
+            })
+            continue
+          }
+
+          // Calculate metrics using the same logic as individual reports
+          const calculations = this.calculateMetrics(report.lineItems)
+
+          results.push({
+            reportId,
+            lineItems: report.lineItems,
+            calculations
+          })
+        } catch (error) {
+          console.error(`Error processing report ${reportId}:`, error)
+          results.push({
+            reportId,
+            lineItems: [],
+            calculations: null,
+            error: error.message
+          })
+        }
+      }
+
+      return response.ok({ data: results })
+    } catch (error) {
+      console.error('P&L batch line items error:', error)
+      return response.internalServerError({ 
+        message: 'Failed to fetch P&L line items batch',
+        error: error.message 
+      })
+    }
+  }
+
 }

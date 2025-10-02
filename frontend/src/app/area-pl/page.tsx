@@ -1,423 +1,416 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from '@/contexts/AuthContextSWR';
-import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
-import { useAnalytics } from '@/hooks/useAnalytics';
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Loader2 } from "lucide-react";
+import { useSWRRestaurants } from '@/hooks/useSWRKitchen';
+import { usePLReportsBatch, usePLLineItemsBatch, PLUtils } from '@/hooks/useSWRPL';
 
-// Default parameters for API calls
-const defaultParams = {
-  restaurantIds: [5], // Try restaurant ID 5 (PX2475)
-  year: 2025, // Use 2025 year
-  periods: ['P06'], // Try P06 period instead
-  basis: 'actual',
-  ytd: false
-};
+interface StoreMetrics {
+  restaurantId: number;
+  storeName: string;
+  storePIC: string;
+  avgWeeklySales: number;
+  sss: number;
+  sssYtd: number;
+  sst: number;
+  sstYtd: number;
+  cogsPercentage: number;
+  cogsYtdPercentage: number;
+  laborPercentage: number;
+  laborYtdPercentage: number;
+  controllableProfitPercentage: number;
+  controllableProfitYtdPercentage: number;
+  restaurantContributionYtdPercentage: number;
+  rentMin: number;
+  rentPercentage: number;
+  rentOther: number;
+  rentTotal: number;
+  overtimeHours: number;
+  flowThru: number;
+  adjustedControllableProfitThisYear: number;
+  adjustedControllableProfitLastYear: number;
+  gmBonus: number;
+  smBonus: number;
+  amChefBonus: number;
+  period: string;
+  hasData: boolean;
+}
 
 function AreaPlContent() {
-  const { user } = useAuth();
+  const [selectedPeriod, setSelectedPeriod] = useState('P09');
+  const [selectedYear, setSelectedYear] = useState(2025);
+
+  // Get available restaurants
   const { restaurants, loading: restaurantsLoading } = useSWRRestaurants();
   
-  // Fetch data using useAnalytics hook
-  const { reportData, loading, error } = useAnalytics({
-    storeId: defaultParams.restaurantIds[0],
-    year: defaultParams.year,
-    period: defaultParams.periods[0]
-  });
-  
-  // Extract data from reportData
-  const plReport = reportData;
-  const calculations = null; // PLReportData doesn't have calculations field
-  const lineItems = null; // PLReportData doesn't have lineItems field
-  
-  // Get current restaurant info
-  const currentRestaurant = restaurants?.find((r: any) => r.id === defaultParams.restaurantIds[0]);
-  
-  // Debug logging
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Area PL Debug Info:', {
-        reportData,
-        plReport,
-        lineItems,
-        calculations,
-        loading,
-        error,
-        defaultParams
-      });
-    }
-  }, [reportData, plReport, lineItems, calculations, loading, error]);
-  
-  if (loading) {
-  return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto">
-            <Card>
-            <CardContent className="flex items-center justify-center py-12">
-                  <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Loading Area P&L data...</span>
-                </div>
-              </CardContent>
-            </Card>
-                            </div>
-                          </div>
-                        );
-  }
-  
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto">
-            <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-destructive">Error loading data: {error || 'Unknown error'}</p>
-              <p className="text-sm text-gray-500 mt-2">
-                This might be because there's no P&L data for restaurant ID {defaultParams.restaurantIds[0]} 
-                for period {defaultParams.periods[0]} in {defaultParams.year}. Try different restaurant or period.
-              </p>
-              </CardContent>
-            </Card>
-          </div>
-                  </div>
-    );
-  }
+  // Get batch P&L reports
+  const restaurantIds = restaurants?.map((r: any) => r.id) || [];
+  const { reports: batchReports, loading: batchLoading, error: batchError } = usePLReportsBatch(
+    restaurantIds.length > 0 ? restaurantIds : undefined,
+    [selectedPeriod],
+    selectedYear
+  );
 
-  // Check if we have no data
-  if (!loading && !calculations && !plReport) {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto">
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-gray-500">No P&L data available</p>
-              <p className="text-sm text-gray-500 mt-2">
-                There's no P&L data for restaurant ID {defaultParams.restaurantIds[0]} 
-                for period {defaultParams.periods[0]} in {defaultParams.year}.
-              </p>
-              <p className="text-xs text-gray-400 mt-4">
-                Check console for debug information.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+  // Get batch line items with calculations
+  const reportIds = batchReports?.map((r: any) => r.report?.id).filter(Boolean) || [];
+  const { results: batchLineItems, loading: lineItemsLoading } = usePLLineItemsBatch(
+    reportIds.length > 0 ? reportIds : undefined
+  );
+
+  // Process data directly without state
+  const storeMetrics: StoreMetrics[] = restaurants?.map((restaurant: any) => {
+    // Find corresponding batch report
+    const batchReport = batchReports?.find((br: any) => br.restaurantId === restaurant.id);
+    
+    // Find corresponding line items with calculations
+    const lineItemsResult = batchLineItems?.find((bl: any) => 
+      batchReport?.report?.id && bl.reportId === batchReport.report.id
     );
-  }
+
+    const calculations = lineItemsResult?.calculations;
+    const report = batchReport?.report;
+
+    // Calculate average weekly sales (assuming 4 weeks per period)
+    const avgWeeklySales = report?.netSales ? report.netSales / 4 : 0;
+
+    return {
+      restaurantId: restaurant.id,
+      storeName: restaurant.name,
+      storePIC: restaurant.manager || 'Administrator',
+      avgWeeklySales: avgWeeklySales,
+      sss: calculations?.sss || 0,
+      sssYtd: calculations?.sssYtd || 0,
+      sst: calculations?.sst || 0,
+      sstYtd: calculations?.sstYtd || 0,
+      cogsPercentage: calculations?.cogsPercentage || 0,
+      cogsYtdPercentage: calculations?.cogsYtdPercentage || 0,
+      laborPercentage: calculations?.laborPercentage || 0,
+      laborYtdPercentage: calculations?.laborYtdPercentage || 0,
+      controllableProfitPercentage: calculations?.controllableProfitPercentage || 0,
+      controllableProfitYtdPercentage: calculations?.controllableProfitYtdPercentage || 0,
+      restaurantContributionYtdPercentage: calculations?.restaurantContributionYtdPercentage || 0,
+      rentMin: calculations?.rentMin || 0,
+      rentPercentage: calculations?.rentPercentage || 0,
+      rentOther: calculations?.rentOther || 0,
+      rentTotal: calculations?.rentTotal || 0,
+      overtimeHours: calculations?.overtimeHours || 0,
+      flowThru: calculations?.flowThru || 0,
+      adjustedControllableProfitThisYear: calculations?.adjustedControllableProfitThisYear || 0,
+      adjustedControllableProfitLastYear: calculations?.adjustedControllableProfitLastYear || 0,
+      gmBonus: calculations?.gmBonus || 0,
+      smBonus: calculations?.smBonus || 0,
+      amChefBonus: calculations?.amChefBonus || 0,
+      period: selectedPeriod,
+      hasData: !!report && !!calculations
+    };
+  }) || [];
+
+  const isLoading = restaurantsLoading || batchLoading || lineItemsLoading;
+  const hasError = batchError;
+
+  const formatCurrency = (value: number) => PLUtils.formatCurrency(value);
+  const formatPercentage = (value: number) => PLUtils.formatPercentage(value);
+
+  const getVarianceColor = (value: number) => {
+    if (value > 0) return 'text-green-600';
+    if (value < 0) return 'text-red-600';
+    return 'text-gray-600';
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
-        <Card>
-            <CardHeader>
-            <CardTitle className="text-lg font-semibold">Testing</CardTitle>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Area P&L Dashboard</h1>
+            <p className="text-muted-foreground">Store performance metrics overview</p>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex gap-4">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="P01">P01</SelectItem>
+                <SelectItem value="P02">P02</SelectItem>
+                <SelectItem value="P03">P03</SelectItem>
+                <SelectItem value="P04">P04</SelectItem>
+                <SelectItem value="P05">P05</SelectItem>
+                <SelectItem value="P06">P06</SelectItem>
+                <SelectItem value="P07">P07</SelectItem>
+                <SelectItem value="P08">P08</SelectItem>
+                <SelectItem value="P09">P09</SelectItem>
+                <SelectItem value="P10">P10</SelectItem>
+                <SelectItem value="P11">P11</SelectItem>
+                <SelectItem value="P12">P12</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Stores</CardTitle>
             </CardHeader>
             <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                  <TableHead>Metric</TableHead>
-                  <TableHead>Results</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium">Store Name</TableCell>
-                  <TableCell>
-                    <span className="text-blue-600 font-semibold">
-                      {currentRestaurant?.name || 'PX2475'}
-                    </span>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Store PIC</TableCell>
-                  <TableCell>
-                    <span className="text-green-600 font-semibold">
-                      {user?.fullName || 'Administrator'}
-                    </span>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Avg Weekly Sales</TableCell>
-                  <TableCell>
-                    <span className="text-purple-600 font-semibold">
-                      {plReport?.data?.revenue?.actual ? 
-                        `$${(plReport.data.revenue.actual / 4).toLocaleString()}` : 
-                        'N/A'
-                      }
-                    </span>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">SSS (Same Store Sales)</TableCell>
-                  <TableCell>
-                    <span className="text-gray-500">
-                      N/A {error && <span className="text-xs text-red-500">(Error: {error})</span>}
-                    </span>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">SSS YTD (Same Store Sales Year-to-Date)</TableCell>
-                  <TableCell>
-                    {false.sssYtd !== undefined ? (
-                      <span className={falsesssYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {falsesssYtd.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">SST% (Same Store Transactions)</TableCell>
-                  <TableCell>
-                    {false.sst !== undefined ? (
-                      <span className={falsesst >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {falsesst.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">SST YTD (Same Store Transactions Year-to-Date)</TableCell>
-                  <TableCell>
-                    {false.sstYtd !== undefined ? (
-                      <span className={falsesstYtd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {falsesstYtd.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Cost of Goods Sold Total %</TableCell>
-                  <TableCell>
-                    {false.cogsPercentage !== undefined ? (
-                      <span className={falsecogsPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {falsecogsPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">COGS YTD %</TableCell>
-                  <TableCell>
-                    {false.cogsYtdPercentage !== undefined ? (
-                      <span className={falsecogsYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {falsecogsYtdPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">TL (Total Labor) Actual %</TableCell>
-                  <TableCell>
-                    {false.laborPercentage !== undefined ? (
-                      <span className={falselaborPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {falselaborPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">TL YTD %</TableCell>
-                  <TableCell>
-                    {false.laborYtdPercentage !== undefined ? (
-                      <span className={falselaborYtdPercentage <= 30 ? 'text-green-600' : 'text-red-600'}>
-                        {falselaborYtdPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">CP (Controllable Profit) %</TableCell>
-                  <TableCell>
-                    {false.controllableProfitPercentage !== undefined ? (
-                      <span className={falsecontrollableProfitPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
-                        {falsecontrollableProfitPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">CP YTD %</TableCell>
-                  <TableCell>
-                    {false.controllableProfitYtdPercentage !== undefined ? (
-                      <span className={falsecontrollableProfitYtdPercentage >= 15 ? 'text-green-600' : 'text-red-600'}>
-                        {falsecontrollableProfitYtdPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">RC (Restaurant Contribution) YTD %</TableCell>
-                  <TableCell>
-                    {false.restaurantContributionYtdPercentage !== undefined ? (
-                      <span className={falserestaurantContributionYtdPercentage >= 10 ? 'text-green-600' : 'text-red-600'}>
-                        {falserestaurantContributionYtdPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Rent Min $</TableCell>
-                  <TableCell>
-                    {false.rentMin !== undefined ? (
-                      <span className="text-purple-600">
-                        ${falserentMin.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Rent %</TableCell>
-                  <TableCell>
-                    {false.rentPercentage !== undefined ? (
-                      <span className="text-purple-600">
-                        {falserentPercentage.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Rent Other $</TableCell>
-                  <TableCell>
-                    {false.rentOther !== undefined ? (
-                      <span className="text-purple-600">
-                        ${falserentOther.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Rent Total $</TableCell>
-                  <TableCell>
-                    {false.rentTotal !== undefined ? (
-                      <span className="text-purple-600">
-                        ${falserentTotal.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Overtime Hours</TableCell>
-                  <TableCell>
-                    {false.overtimeHours !== undefined ? (
-                      <span className="text-orange-600">
-                        {falseovertimeHours.toFixed(2)} hours
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Flow Thru</TableCell>
-                  <TableCell>
-                    {false.flowThru !== undefined ? (
-                      <span className={falseflowThru >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {falseflowThru.toFixed(2)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Adjusted Controllable Profit This Year</TableCell>
-                          <TableCell>
-                    {false.adjustedControllableProfitThisYear !== undefined ? (
-                      <span className="text-green-600 font-semibold">
-                        ${falseadjustedControllableProfitThisYear.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Adjusted Controllable Profit Last Year</TableCell>
-                          <TableCell>
-                    {false.adjustedControllableProfitLastYear !== undefined ? (
-                      <span className="text-blue-600 font-semibold">
-                        ${falseadjustedControllableProfitLastYear.toLocaleString()}
-                              </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">GM Bonus</TableCell>
-                          <TableCell>
-                    {false.gmBonus !== undefined ? (
-                      <span className={`font-semibold ${falsegmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${falsegmBonus.toLocaleString()}
-                              </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">SM Bonus</TableCell>
-                          <TableCell>
-                    {false.smBonus !== undefined ? (
-                      <span className={`font-semibold ${falsesmBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${falsesmBonus.toLocaleString()}
-                              </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">AM/Chef Bonus</TableCell>
-                          <TableCell>
-                    {false.amChefBonus !== undefined ? (
-                      <span className={`font-semibold ${falseamChefBonus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${falseamChefBonus.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">N/A</span>
-                    )}
-                          </TableCell>
-                        </TableRow>
-                    </TableBody>
-                  </Table>
+              <div className="text-2xl font-bold">{restaurants?.length || 0}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Stores with Data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {storeMetrics.filter(m => m.hasData).length}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Avg Weekly Sales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(storeMetrics.reduce((sum, m) => sum + m.avgWeeklySales, 0))}
+              </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Store Metrics Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Store Performance Metrics - {selectedPeriod} {selectedYear}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading store metrics...</p>
+              </div>
+            ) : hasError ? (
+              <div className="text-center py-8">
+                <p className="text-red-600">Error loading data. Please try again.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background">Metric</TableHead>
+                      {storeMetrics.map((store) => (
+                        <TableHead key={store.restaurantId} className="min-w-[120px]">
+                          <div className="text-center">
+                            <div className="font-medium">{store.storeName}</div>
+                            <div className="text-xs text-muted-foreground">{store.storePIC}</div>
+                          </div>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Avg Weekly Sales */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Avg Weekly Sales</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.avgWeeklySales)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* SSS */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">SSS (Same Store Sales)</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.sss)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* SSS YTD */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">SSS YTD (Same Store Sales Year-to-Date)</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.sssYtd)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* SST */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">SST% (Same Store Transactions)</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.sst)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* SST YTD */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">SST YTD (Same Store Transactions Year-to-Date)</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.sstYtd)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* COGS */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Cost of Goods Sold Total %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.cogsPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* COGS YTD */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">COGS YTD %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.cogsYtdPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Total Labor */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">TL (Total Labor) Actual %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.laborPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* TL YTD */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">TL YTD %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.laborYtdPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Controllable Profit */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">CP (Controllable Profit) %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.controllableProfitPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* CP YTD */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">CP YTD %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.controllableProfitYtdPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Restaurant Contribution */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">RC (Restaurant Contribution) YTD %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.restaurantContributionYtdPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Rent Min */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Rent Min $</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.rentMin)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Rent % */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Rent %</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.rentPercentage)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Rent Other */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Rent Other $</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.rentOther)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Rent Total */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Rent Total $</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.rentTotal)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Overtime Hours */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Overtime Hours</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{store.overtimeHours.toFixed(2)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Flow Thru */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Flow Thru</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatPercentage(store.flowThru)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Adjusted Controllable Profit This Year */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Adjusted Controllable Profit This Year</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.adjustedControllableProfitThisYear)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* Adjusted Controllable Profit Last Year */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">Adjusted Controllable Profit Last Year</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.adjustedControllableProfitLastYear)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* GM Bonus */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">GM Bonus</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.gmBonus)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* SM Bonus */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">SM Bonus</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.smBonus)}</TableCell>
+                      ))}
+                    </TableRow>
+                    
+                    {/* AM/Chef Bonus */}
+                    <TableRow>
+                      <TableCell className="font-medium sticky left-0 bg-background">AM/Chef Bonus</TableCell>
+                      {storeMetrics.map((store) => (
+                        <TableCell key={store.restaurantId}>{formatCurrency(store.amChefBonus)}</TableCell>
+                      ))}
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+    </div>
   );
 }
 

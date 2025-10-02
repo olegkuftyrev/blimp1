@@ -571,11 +571,50 @@ export default function StoreYearPage({ params }: StorePageProps) {
               return null; // Don't show anything when no periods have data
             }
 
-            // Calculate averages for periods with data
-            // For now, show placeholder averages - in real implementation you'd calculate from line items
-            const avgSSS = periodsWithData > 0 ? 4.2 : 0; // Placeholder average
-            const avgLabor = periodsWithData > 0 ? 28.5 : 0; // Placeholder average  
-            const avgCOGS = periodsWithData > 0 ? 26.8 : 0; // Placeholder average
+            // Calculate real averages from P&L reports data
+            let avgSSS = 0;
+            let avgLabor = 0;
+            let avgCOGS = 0;
+            
+            if (periodsWithData > 0) {
+              // Calculate averages from actual report data
+              let totalSSS = 0;
+              let totalLabor = 0;
+              let totalCOGS = 0;
+              let validReports = 0;
+              
+              for (const reportData of reportsWithData) {
+                const report = reportData.data[0]; // Get the first report from each period
+                if (report) {
+                  // Calculate SSS from Net Sales actual vs prior year
+                  if (report.netSales && report.netSales > 0 && report.netSalesPriorYear && report.netSalesPriorYear > 0) {
+                    const sss = ((report.netSales - report.netSalesPriorYear) / report.netSalesPriorYear) * 100;
+                    totalSSS += sss;
+                  }
+                  
+                  // Calculate Labor % from Total Labor / Net Sales
+                  if (report.totalLabor && report.netSales && report.netSales > 0) {
+                    const laborPct = (report.totalLabor / report.netSales) * 100;
+                    totalLabor += laborPct;
+                  }
+                  
+                  // Calculate COGS % from Cost of Goods Sold / Net Sales
+                  if (report.costOfGoodsSold && report.netSales && report.netSales > 0) {
+                    const cogsPct = (report.costOfGoodsSold / report.netSales) * 100;
+                    totalCOGS += cogsPct;
+                  }
+                  
+                  validReports++;
+                }
+              }
+              
+              // Calculate averages
+              if (validReports > 0) {
+                avgSSS = totalSSS / validReports;
+                avgLabor = totalLabor / validReports;
+                avgCOGS = totalCOGS / validReports;
+              }
+            }
 
             return (
               <div className="flex items-center gap-4 text-sm">

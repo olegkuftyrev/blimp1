@@ -813,4 +813,195 @@ export interface PLCalculations {
     smBonus: number;
     amChefBonus: number;
   };
+  dashboard?: {
+    netSales: number;
+    priorNetSales: number;
+    netSalesChange: number;
+    netSalesChangePercent: number;
+    sssPercentage: number;
+    cogsPercentage: number;
+    laborPercentage: number;
+    controllableProfitPercentage: number;
+    totalTransactions: number;
+    priorTransactions: number;
+    transactionsChange: number;
+    transactionsChangePercent: number;
+    sstPercentage: number;
+    checkAverage: number;
+    priorCheckAverage: number;
+    thirdPartyDigitalSales: number;
+    pandaDigitalSales: number;
+    oloPercentage: number;
+  };
+  keyMetrics?: {
+    cogsPercentage: number;
+    laborPercentage: number;
+    primeCost: number;
+    controllableProfit: number;
+    cogsColor: string;
+    laborColor: string;
+    primeCostColor: string;
+  };
+  charts?: {
+    costOfSales?: {
+      data: Array<{
+        category: string;
+        actual: number;
+        priorYear: number;
+      }>;
+      totalActual: number;
+      totalPriorYear: number;
+      cogsActualPercentage: number;
+      cogsPriorYearPercentage: number;
+    };
+    pieChart?: {
+      data: Array<{
+        category: string;
+        amount: number;
+        percentage: number;
+        fill: string;
+      }>;
+      netSales: number;
+    };
+  };
+}
+
+// Batch interfaces
+export interface PLBatchReportItem {
+  report: PLReport;
+  restaurantId: number;
+  period: string;
+}
+
+export interface PLBatchLineItemResult {
+  reportId: number;
+  lineItems: PLLineItem[];
+  calculations: PLCalculations;
+}
+
+// Hook for fetching multiple P&L reports in batch
+export function usePLReportsBatch(restaurantIds?: number[], periods?: string[], year?: number) {
+  const { 
+    data, 
+    error, 
+    isLoading,
+    mutate
+  } = useSWR<any>(
+    () => {
+      if (typeof window === 'undefined' || !restaurantIds || !periods || 
+          restaurantIds.length === 0 || periods.length === 0) {
+        return null;
+      }
+      
+      const hasToken = window.localStorage.getItem('auth_token');
+      if (!hasToken) return null;
+      
+      // Build query string with multiple parameters
+      const restaurantParams = restaurantIds.map(id => `restaurantIds[]=${id}`).join('&');
+      const periodParams = periods.map(period => `periods[]=${encodeURIComponent(period)}`).join('&');
+      const yearParam = `&year=2025`; // Always 2025
+      
+      return `pl-reports/batch?${restaurantParams}&${periodParams}${yearParam}`;
+    },
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 300000, // 5 minutes - reports don't change often
+      shouldRetryOnError: true,
+      onSuccess: (data: any) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ SWR PL Reports Batch:', { 
+            success: true, 
+            count: data?.data?.length || 0,
+            restaurantIds,
+            periods,
+            reports: data?.data?.map((r: any) => ({ 
+              id: r.report?.id, 
+              period: r.period, 
+              storeName: r.report?.storeName,
+              restaurantId: r.restaurantId 
+            }))
+          });
+        }
+      },
+      onError: (error: any) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ SWR PL Reports Batch Error:', { 
+            error: error.message,
+            restaurantIds,
+            periods
+          });
+        }
+      }
+    }
+  );
+
+  return {
+    reports: data?.data || [],
+    loading: isLoading,
+    error,
+    mutate
+  };
+}
+
+// Hook for fetching multiple P&L line items with calculations in batch
+export function usePLLineItemsBatch(reportIds?: number[]) {
+  const { 
+    data, 
+    error, 
+    isLoading,
+    mutate
+  } = useSWR<any>(
+    () => {
+      if (typeof window === 'undefined' || !reportIds || reportIds.length === 0) {
+        return null;
+      }
+      
+      const hasToken = window.localStorage.getItem('auth_token');
+      if (!hasToken) return null;
+      
+      // Build query string with multiple report IDs
+      const reportParams = reportIds.map(id => `reportIds[]=${id}`).join('&');
+      
+      return `pl-reports/batch/line-items?${reportParams}`;
+    },
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 300000, // 5 minutes - line items don't change often
+      shouldRetryOnError: true,
+      onSuccess: (data: any) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ SWR PL Line Items Batch:', { 
+            success: true, 
+            count: data?.data?.length || 0,
+            reportIds,
+            results: data?.data?.map((r: any) => ({ 
+              reportId: r.reportId,
+              lineItemsCount: r.lineItems?.length || 0,
+              hasCalculations: !!r.calculations,
+              calculationsKeys: r.calculations ? Object.keys(r.calculations) : []
+            }))
+          });
+        }
+      },
+      onError: (error: any) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ SWR PL Line Items Batch Error:', { 
+            error: error.message,
+            reportIds
+          });
+        }
+      }
+    }
+  );
+
+  return {
+    results: data?.data || [],
+    loading: isLoading,
+    error,
+    mutate
+  };
 }
