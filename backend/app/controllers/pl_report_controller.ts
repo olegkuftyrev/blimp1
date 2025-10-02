@@ -264,40 +264,68 @@ export default class PlReportController {
     }
 
     // SSS (Same Store Sales) = (Actual Net Sales - Prior Year Net Sales) / Prior Year Net Sales × 100%
+    // If actual Net Sales is 0, use plan Net Sales as fallback
     const netSalesItem = findItem('Net Sales')
-    if (netSalesItem && netSalesItem.actuals && netSalesItem.priorYear) {
-      const actualNetSales = parseValue(netSalesItem.actuals)
+    if (netSalesItem && netSalesItem.priorYear) {
+      let currentNetSales = parseValue(netSalesItem.actuals)
+      
+      // Use plan Net Sales as fallback if actual is 0
+      if (currentNetSales === 0 && netSalesItem.plan) {
+        currentNetSales = parseValue(netSalesItem.plan)
+      }
+      
       const priorYearNetSales = parseValue(netSalesItem.priorYear)
-      if (priorYearNetSales !== 0) {
-        metrics.sss = ((actualNetSales - priorYearNetSales) / priorYearNetSales) * 100
+      if (priorYearNetSales !== 0 && currentNetSales > 0) {
+        metrics.sss = ((currentNetSales - priorYearNetSales) / priorYearNetSales) * 100
       }
     }
 
     // SST% (Same Store Transactions) = (This Year Transactions - Last Year Transactions) / Last Year Transactions × 100%
+    // If actual Transactions is 0, use plan Transactions as fallback
     const transactionsItem = findItem('Total Transactions')
-    if (transactionsItem && transactionsItem.actuals && transactionsItem.priorYear) {
-      const actualTransactions = parseValue(transactionsItem.actuals)
+    if (transactionsItem && transactionsItem.priorYear) {
+      let currentTransactions = parseValue(transactionsItem.actuals)
+      
+      // Use plan Transactions as fallback if actual is 0
+      if (currentTransactions === 0 && transactionsItem.plan) {
+        currentTransactions = parseValue(transactionsItem.plan)
+      }
+      
       const priorYearTransactions = parseValue(transactionsItem.priorYear)
-      if (priorYearTransactions !== 0) {
-        metrics.sst = ((actualTransactions - priorYearTransactions) / priorYearTransactions) * 100
+      if (priorYearTransactions !== 0 && currentTransactions > 0) {
+        metrics.sst = ((currentTransactions - priorYearTransactions) / priorYearTransactions) * 100
       }
     }
 
     // SSS YTD (Same Store Sales Year-to-Date) = (Actual YTD Net Sales - Prior Year YTD Net Sales) / Prior Year YTD Net Sales × 100%
-    if (netSalesItem && netSalesItem.actualYtd && netSalesItem.priorYearYtd) {
-      const actualYtdNetSales = parseValue(netSalesItem.actualYtd)
+    // If actual YTD Net Sales is 0, use plan YTD Net Sales as fallback
+    if (netSalesItem && netSalesItem.priorYearYtd) {
+      let currentYtdNetSales = parseValue(netSalesItem.actualYtd)
+      
+      // Use plan YTD Net Sales as fallback if actual is 0
+      if (currentYtdNetSales === 0 && netSalesItem.planYtd) {
+        currentYtdNetSales = parseValue(netSalesItem.planYtd)
+      }
+      
       const priorYearYtdNetSales = parseValue(netSalesItem.priorYearYtd)
-      if (priorYearYtdNetSales !== 0) {
-        metrics.sssYtd = ((actualYtdNetSales - priorYearYtdNetSales) / priorYearYtdNetSales) * 100
+      if (priorYearYtdNetSales !== 0 && currentYtdNetSales > 0) {
+        metrics.sssYtd = ((currentYtdNetSales - priorYearYtdNetSales) / priorYearYtdNetSales) * 100
       }
     }
 
     // SST YTD (Same Store Transactions Year-to-Date) = (This Year YTD Transactions - Last Year YTD Transactions) / Last Year YTD Transactions × 100%
-    if (transactionsItem && transactionsItem.actualYtd && transactionsItem.priorYearYtd) {
-      const actualYtdTransactions = parseValue(transactionsItem.actualYtd)
+    // If actual YTD Transactions is 0, use plan YTD Transactions as fallback
+    if (transactionsItem && transactionsItem.priorYearYtd) {
+      let currentYtdTransactions = parseValue(transactionsItem.actualYtd)
+      
+      // Use plan YTD Transactions as fallback if actual is 0
+      if (currentYtdTransactions === 0 && transactionsItem.planYtd) {
+        currentYtdTransactions = parseValue(transactionsItem.planYtd)
+      }
+      
       const priorYearYtdTransactions = parseValue(transactionsItem.priorYearYtd)
-      if (priorYearYtdTransactions !== 0) {
-        metrics.sstYtd = ((actualYtdTransactions - priorYearYtdTransactions) / priorYearYtdTransactions) * 100
+      if (priorYearYtdTransactions !== 0 && currentYtdTransactions > 0) {
+        metrics.sstYtd = ((currentYtdTransactions - priorYearYtdTransactions) / priorYearYtdTransactions) * 100
       }
     }
 
