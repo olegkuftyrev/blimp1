@@ -18,7 +18,7 @@ export const changelogData: ChangelogEntry[] = [
     changes: [
       {
         type: 'improvement',
-        title: 'Changelog Page Enhancement',
+        title: 'Changelog ',
         description: 'Added search, filtering, pagination, and page-based filtering to the changelog for better user experience',
         pages: ['Changelog']
       },

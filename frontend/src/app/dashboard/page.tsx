@@ -31,6 +31,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContextSWR';
 import { getItemsBySection, isItemVisibleForRole, type UserRole, type IconName, navigationItems } from '@/data/navigationItems';
 import { useSWRQuickActions } from '@/hooks/useSWRQuickActions';
+import { getLatestUpdate } from '@/lib/changelog-utils';
 
 // Map IconName to lucide-react components
 const iconMap: Record<IconName, React.ComponentType<any>> = {
@@ -58,6 +59,7 @@ function DashboardContent() {
   const { quickActions, saveQuickActions, isLoading: isLoadingPreferences, isSaving } = useSWRQuickActions();
   
   const role = (user?.role as UserRole | undefined) ?? undefined;
+  const latestUpdate = getLatestUpdate();
 
   // Get available quick actions (filter by role and exclude coming soon)
   const availableQuickActions = navigationItems.filter(item => 
@@ -351,18 +353,20 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Last Update</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">P&L Analytics</div>
-              <p className="text-xs text-muted-foreground">
-                + added Financial Metrics Comparison
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/changelog">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Last Update</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold capitalize">{latestUpdate.primaryChange.type}</div>
+                <p className="text-xs text-muted-foreground">
+                  {latestUpdate.version} - {latestUpdate.primaryChange.description}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
