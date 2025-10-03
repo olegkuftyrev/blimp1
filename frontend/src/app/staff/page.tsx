@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from "next/link";
-import { ArrowLeft, Users, Plus, Edit, Trash2, Building } from "lucide-react";
+import { ArrowLeft, Users, Plus, Edit, Trash2, Building, Search, Filter, SortAsc, SortDesc } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -141,10 +141,87 @@ function StaffManagementContent() {
 
   const ITEMS_PER_PAGE = 10;
 
-  // Search state
+  // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'ops_lead' | 'black_shirt' | 'associate' | 'tablet'>('all');
+  const [filterJobTitle, setFilterJobTitle] = useState<'all' | 'Hourly Associate' | 'AM' | 'Chef' | 'SM/GM/TL' | 'ACO' | 'RDO'>('all');
+  const [filterStore, setFilterStore] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'role' | 'jobTitle' | 'email'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Search function
+  // Get unique restaurants from all users
+  const uniqueRestaurants = useMemo(() => {
+    if (!users) return [];
+    
+    const restaurantMap = new Map();
+    users.forEach((user: User) => {
+      (user.restaurants || []).forEach(restaurant => {
+        restaurantMap.set(restaurant.id, restaurant);
+      });
+    });
+    
+    return Array.from(restaurantMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [users]);
+
+  // Enhanced search, filter, and sort function
+  const searchFilterAndSortUsers = useMemo(() => {
+    if (!users) return [];
+
+    let filtered = users.filter((user: User) => {
+      // Search filter
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        const nameMatch = user.fullName.toLowerCase().includes(searchLower);
+        const emailMatch = user.email.toLowerCase().includes(searchLower);
+        const jobTitleMatch = user.jobTitle.toLowerCase().includes(searchLower);
+        const restaurantMatch = (user.restaurants || []).some(restaurant => 
+          restaurant.name.toLowerCase().includes(searchLower)
+        );
+        if (!nameMatch && !emailMatch && !jobTitleMatch && !restaurantMatch) return false;
+      }
+
+      // Role filter
+      if (filterRole !== 'all' && user.role !== filterRole) return false;
+
+      // Job title filter
+      if (filterJobTitle !== 'all' && user.jobTitle !== filterJobTitle) return false;
+
+      // Store filter
+      if (filterStore !== 'all') {
+        const storeId = parseInt(filterStore);
+        const hasStore = (user.restaurants || []).some(restaurant => restaurant.id === storeId);
+        if (!hasStore) return false;
+      }
+
+      return true;
+    });
+
+    // Sort users
+    filtered.sort((a: User, b: User) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.fullName.localeCompare(b.fullName);
+          break;
+        case 'role':
+          comparison = a.role.localeCompare(b.role);
+          break;
+        case 'jobTitle':
+          comparison = a.jobTitle.localeCompare(b.jobTitle);
+          break;
+        case 'email':
+          comparison = a.email.localeCompare(b.email);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [users, searchQuery, filterRole, filterJobTitle, filterStore, sortBy, sortOrder]);
+
+  // Legacy search function for backward compatibility
   const searchUsers = (users: User[], query: string) => {
     if (!query.trim()) return users;
     
@@ -779,42 +856,110 @@ function StaffManagementContent() {
           </Card>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Input
-              type="text"
-              placeholder="Search users by name, email, job title, or restaurant..."
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-10"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+        {/* Enhanced Search and Filter Controls */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users by name, email, job title, or restaurant..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Select value={filterRole} onValueChange={(value: any) => setFilterRole(value)}>
+                <SelectTrigger className="w-[140px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="ops_lead">Operations Lead</SelectItem>
+                  <SelectItem value="black_shirt">Black Shirt</SelectItem>
+                  <SelectItem value="associate">Associate</SelectItem>
+                  <SelectItem value="tablet">Tablet</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterJobTitle} onValueChange={(value: any) => setFilterJobTitle(value)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Job Title" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Job Titles</SelectItem>
+                  <SelectItem value="Hourly Associate">Hourly Associate</SelectItem>
+                  <SelectItem value="AM">Assistant Manager</SelectItem>
+                  <SelectItem value="Chef">Chef</SelectItem>
+                  <SelectItem value="SM/GM/TL">Store Manager/General Manager/Team Lead</SelectItem>
+                  <SelectItem value="ACO">Area Coach</SelectItem>
+                  <SelectItem value="RDO">Regional Director of Operations</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterStore} onValueChange={(value: any) => setFilterStore(value)}>
+                <SelectTrigger className="w-[160px]">
+                  <Building className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stores</SelectItem>
+                  {uniqueRestaurants.map((restaurant) => (
+                    <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                      {restaurant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="role">Role</SelectItem>
+                  <SelectItem value="jobTitle">Job Title</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-3"
+              >
+                {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
-          {searchQuery && (
-            <div className="mt-2">
+
+          {/* Results Summary */}
+          {(searchQuery || filterRole !== 'all' || filterJobTitle !== 'all' || filterStore !== 'all') && (
+            <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Searching for: "{searchQuery}"
+                Showing {searchFilterAndSortUsers.length} of {users?.length || 0} users
+                {searchQuery && ` matching "${searchQuery}"`}
+                {filterRole !== 'all' && ` filtered by ${roleLabels[filterRole as keyof typeof roleLabels] || filterRole}`}
+                {filterJobTitle !== 'all' && ` filtered by ${jobTitleLabels[filterJobTitle as keyof typeof jobTitleLabels] || filterJobTitle}`}
+                {filterStore !== 'all' && ` filtered by ${uniqueRestaurants.find(r => r.id.toString() === filterStore)?.name || 'Store'}`}
               </p>
-              {(() => {
-                const allSearchedUsers = searchUsers(visibleUsers, searchQuery);
-                if (allSearchedUsers.length === 0) {
-                  return (
-                    <p className="text-sm text-red-600 mt-1">
-                      No users found matching your search criteria.
-                    </p>
-                  );
-                }
-                return (
-                  <p className="text-sm text-green-600 mt-1">
-                    Found {allSearchedUsers.length} user{allSearchedUsers.length !== 1 ? 's' : ''} matching your search.
-                  </p>
-                );
-              })()}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('')
+                  setFilterRole('all')
+                  setFilterJobTitle('all')
+                  setFilterStore('all')
+                }}
+              >
+                Clear filters
+              </Button>
             </div>
           )}
         </div>
@@ -854,7 +999,7 @@ function StaffManagementContent() {
           <div className="space-y-8">
             {/* Regional Director of Operations */}
             {(() => {
-              const rdoUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'RDO'), searchQuery);
+              const rdoUsers = searchFilterAndSortUsers.filter((user: User) => user.jobTitle === 'RDO');
               const paginatedRdoUsers = getPaginatedUsers(rdoUsers, 'rdo');
               const totalPages = getTotalPages(rdoUsers);
               
@@ -942,7 +1087,7 @@ function StaffManagementContent() {
 
             {/* Area Coach */}
             {(() => {
-              const acoUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'ACO'), searchQuery);
+              const acoUsers = searchFilterAndSortUsers.filter((user: User) => user.jobTitle === 'ACO');
               const paginatedAcoUsers = getPaginatedUsers(acoUsers, 'aco');
               const totalPages = getTotalPages(acoUsers);
               
@@ -1030,7 +1175,7 @@ function StaffManagementContent() {
 
             {/* Black Shirts */}
             {(() => {
-              const blackShirtUsers = searchUsers(visibleUsers.filter((user: User) => user.role === 'black_shirt'), searchQuery);
+              const blackShirtUsers = searchFilterAndSortUsers.filter((user: User) => user.role === 'black_shirt');
               const paginatedBlackShirtUsers = getPaginatedUsers(blackShirtUsers, 'blackShirts');
               const totalPages = getTotalPages(blackShirtUsers);
               
@@ -1110,7 +1255,7 @@ function StaffManagementContent() {
 
             {/* Hourly Associates */}
             {(() => {
-              const hourlyAssociateUsers = searchUsers(visibleUsers.filter((user: User) => user.jobTitle === 'Hourly Associate' && user.role !== 'tablet'), searchQuery);
+              const hourlyAssociateUsers = searchFilterAndSortUsers.filter((user: User) => user.jobTitle === 'Hourly Associate' && user.role !== 'tablet');
               const paginatedHourlyAssociateUsers = getPaginatedUsers(hourlyAssociateUsers, 'hourlyAssociates');
               const totalPages = getTotalPages(hourlyAssociateUsers);
               
@@ -1194,7 +1339,7 @@ function StaffManagementContent() {
 
             {/* Tablets */}
             {(() => {
-              const tabletUsers = searchUsers(visibleUsers.filter((user: User) => user.role === 'tablet'), searchQuery);
+              const tabletUsers = searchFilterAndSortUsers.filter((user: User) => user.role === 'tablet');
               const paginatedTabletUsers = getPaginatedUsers(tabletUsers, 'tablets');
               const totalPages = getTotalPages(tabletUsers);
               
@@ -1274,13 +1419,13 @@ function StaffManagementContent() {
 
             {/* Other Users (catch-all for any users that don't fit the above categories) */}
             {(() => {
-              const otherUsers = searchUsers(visibleUsers.filter((user: User) => 
+              const otherUsers = searchFilterAndSortUsers.filter((user: User) => 
                 user.jobTitle !== 'RDO' && 
                 user.jobTitle !== 'ACO' && 
                 user.role !== 'black_shirt' && 
                 user.jobTitle !== 'Hourly Associate' && 
                 user.role !== 'tablet'
-              ), searchQuery);
+              );
               const paginatedOtherUsers = getPaginatedUsers(otherUsers, 'otherStaff');
               const totalPages = getTotalPages(otherUsers);
               
@@ -1367,6 +1512,32 @@ function StaffManagementContent() {
                 </Card>
               );
             })()}
+
+            {/* No Results State */}
+            {searchFilterAndSortUsers.length === 0 && users && users.length > 0 && (
+              <Card className="border-dashed border-2">
+                <CardContent className="p-12 text-center">
+                  <div className="max-w-md mx-auto space-y-4">
+                    <Search className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <h3 className="text-xl font-semibold">No Users Found</h3>
+                    <p className="text-muted-foreground">
+                      No users match your current search and filter criteria.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery('')
+                        setFilterRole('all')
+                        setFilterJobTitle('all')
+                        setFilterStore('all')
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
