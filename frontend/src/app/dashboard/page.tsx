@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -144,47 +143,24 @@ function DashboardContent() {
     'slate-600': 'bg-slate-600',
   };
 
-  // Role hierarchy helpers
-  const roleRank: Record<UserRole, number> = {
-    associate: 0,
-    tablet: 1,
-    black_shirt: 2,
-    ops_lead: 3,
-    admin: 4,
-  };
-  const formatRole = (r: UserRole) => {
-    switch (r) {
-      case 'ops_lead':
-        return 'ACO';
-      case 'black_shirt':
-        return 'Store Manager';
-      case 'admin':
-        return 'Admin';
-      case 'associate':
-        return 'Associate';
-      case 'tablet':
-        return 'Tablet';
-      default:
-        return r;
-    }
-  };
-  const getLowestAllowedRole = (allowed?: UserRole[]) => {
-    if (!allowed || allowed.length === 0) return undefined;
-    const sorted = [...allowed].sort((a, b) => roleRank[a] - roleRank[b]);
-    return sorted[0];
-  };
 
-  // Show all items regardless of permissions; mark restricted visually
-  const managementItems = getItemsBySection('management');
-  const profitLossItems = getItemsBySection('p_and_l');
-  const learningItems = getItemsBySection('learning');
-  const moreItems = getItemsBySection('more');
+  // Filter out restricted and coming soon items
+  const managementItems = getItemsBySection('management', role).filter(item => 
+    !item.comingSoon && isItemVisibleForRole(item, role ?? null)
+  );
+  const profitLossItems = getItemsBySection('p_and_l', role).filter(item => 
+    !item.comingSoon && isItemVisibleForRole(item, role ?? null)
+  );
+  const learningItems = getItemsBySection('learning', role).filter(item => 
+    !item.comingSoon && isItemVisibleForRole(item, role ?? null)
+  );
+  const moreItems = getItemsBySection('more', role).filter(item => 
+    !item.comingSoon && isItemVisibleForRole(item, role ?? null)
+  );
 
   const allVisible = [...managementItems, ...profitLossItems, ...learningItems, ...moreItems];
-  const activeCount = allVisible.filter((i) => !i.comingSoon && isItemVisibleForRole(i, role ?? null)).length;
+  const activeCount = allVisible.length;
   const totalCount = allVisible.length;
-
-  const isKitchenAuthorized = user ? ['admin', 'ops_lead', 'black_shirt'].includes(user.role) : false;
 
   // Get selected quick action items
   const getQuickActionItem = (id: string) => {
@@ -289,7 +265,6 @@ function DashboardContent() {
                         <Select
                           value={selectedId}
                           onValueChange={(value) => handleQuickActionChange(index, value)}
-                          modal={false}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -417,109 +392,69 @@ function DashboardContent() {
         </div>
 
         {/* Management Modules */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-foreground mb-4">Management Modules</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {managementItems.map((item) => {
-              const IconComponent = iconMap[item.icon];
-              const isAllowed = isItemVisibleForRole(item, role ?? null);
-              const isActive = !item.comingSoon && isAllowed;
-              const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
-              const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
-              return (
-                <Card 
-                  key={item.id} 
-                  className={`transition-all hover:shadow-lg ${
-                    isActive 
-                      ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
-                      : 'opacity-75 hover:opacity-100'
-                  }`}
-                >
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
+        {managementItems.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-foreground mb-4">Management Modules</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {managementItems.map((item) => {
+                const IconComponent = iconMap[item.icon];
+                return (
+                  <Card 
+                    key={item.id} 
+                    className="transition-all hover:shadow-lg ring-2 ring-blue-500 hover:ring-blue-600"
+                  >
+                    <CardHeader>
                       <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
                           <IconComponent className="h-6 w-6 text-white" />
                         </div>
                         <CardTitle className="text-lg">{item.title}</CardTitle>
                       </div>
-                      <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
-                        {badgeLabel}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
-                    {isAllowed && !item.comingSoon ? (
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
                       <Link
                         href={item.href}
                         className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
                       >
                         Open Module
                       </Link>
-                    ) : (
-                      <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
-                        {!isAllowed
-                          ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
-                          : 'Coming Soon'}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Profit & Loss */}
-        {(profitLossItems && profitLossItems.length > 0) && (
+        {profitLossItems.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">Profit & Loss</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {profitLossItems?.map((item) => {
+              {profitLossItems.map((item) => {
                 const IconComponent = iconMap[item.icon];
-                const isAllowed = isItemVisibleForRole(item, role ?? null);
-                const isActive = !item.comingSoon && isAllowed;
-                const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
-                const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
                 return (
                   <Card 
                     key={item.id} 
-                    className={`transition-all hover:shadow-lg ${
-                      isActive 
-                        ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
-                        : 'opacity-75 hover:opacity-100'
-                    }`}
+                    className="transition-all hover:shadow-lg ring-2 ring-blue-500 hover:ring-blue-600"
                   >
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
-                            <IconComponent className="h-6 w-6 text-white" />
-                          </div>
-                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
+                          <IconComponent className="h-6 w-6 text-white" />
                         </div>
-                        <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
-                          {badgeLabel}
-                        </Badge>
+                        <CardTitle className="text-lg">{item.title}</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
-                      {isAllowed && !item.comingSoon ? (
-                        <Link
-                          href={item.href}
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
-                        >
-                          Open Module
-                        </Link>
-                      ) : (
-                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
-                          {!isAllowed
-                            ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
-                            : 'Coming Soon'}
-                        </div>
-                      )}
+                      <Link
+                        href={item.href}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                      >
+                        Open Module
+                      </Link>
                     </CardContent>
                   </Card>
                 );
@@ -535,48 +470,27 @@ function DashboardContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {learningItems.map((item) => {
                 const IconComponent = iconMap[item.icon];
-                const isAllowed = isItemVisibleForRole(item, role ?? null);
-                const isActive = !item.comingSoon && isAllowed;
-                const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
-                const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
                 return (
                   <Card 
                     key={item.id} 
-                    className={`transition-all hover:shadow-lg ${
-                      isActive 
-                        ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
-                        : 'opacity-75 hover:opacity-100'
-                    }`}
+                    className="transition-all hover:shadow-lg ring-2 ring-blue-500 hover:ring-blue-600"
                   >
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
-                            <IconComponent className="h-6 w-6 text-white" />
-                          </div>
-                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
+                          <IconComponent className="h-6 w-6 text-white" />
                         </div>
-                        <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
-                          {badgeLabel}
-                        </Badge>
+                        <CardTitle className="text-lg">{item.title}</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
-                      {isAllowed && !item.comingSoon ? (
-                        <Link
-                          href={item.href}
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
-                        >
-                          Access Module
-                        </Link>
-                      ) : (
-                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
-                          {!isAllowed
-                            ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
-                            : 'Coming Soon'}
-                        </div>
-                      )}
+                      <Link
+                        href={item.href}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                      >
+                        Access Module
+                      </Link>
                     </CardContent>
                   </Card>
                 );
@@ -592,48 +506,27 @@ function DashboardContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {moreItems.map((item) => {
                 const IconComponent = iconMap[item.icon];
-                const isAllowed = isItemVisibleForRole(item, role ?? null);
-                const isActive = !item.comingSoon && isAllowed;
-                const lowestAllowed = getLowestAllowedRole(item.rolesAllowed);
-                const badgeLabel = !isAllowed ? 'Restricted' : (item.comingSoon ? 'Coming Soon' : 'Active');
                 return (
                   <Card 
                     key={item.id} 
-                    className={`transition-all hover:shadow-lg ${
-                      isActive 
-                        ? 'ring-2 ring-blue-500 hover:ring-blue-600' 
-                        : 'opacity-75 hover:opacity-100'
-                    }`}
+                    className="transition-all hover:shadow-lg ring-2 ring-blue-500 hover:ring-blue-600"
                   >
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
-                            <IconComponent className="h-6 w-6 text-white" />
-                          </div>
-                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${colorBgClass[item.color] ?? 'bg-primary'}`}>
+                          <IconComponent className="h-6 w-6 text-white" />
                         </div>
-                        <Badge className={isActive ? "bg-green-500" : (!isAllowed ? "bg-yellow-500" : "")} variant={isActive ? "default" : "secondary"}>
-                          {badgeLabel}
-                        </Badge>
+                        <CardTitle className="text-lg">{item.title}</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mb-4 h-10 leading-5 overflow-hidden">{item.description}</p>
-                      {isAllowed && !item.comingSoon ? (
-                        <Link
-                          href={item.href}
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
-                        >
-                          Access Module
-                        </Link>
-                      ) : (
-                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground h-10 px-4 py-2 w-full cursor-not-allowed opacity-80">
-                          {!isAllowed
-                            ? `Allowed for ${lowestAllowed ? formatRole(lowestAllowed) : 'Authorized'} and Above`
-                            : 'Coming Soon'}
-                        </div>
-                      )}
+                      <Link
+                        href={item.href}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                      >
+                        Access Module
+                      </Link>
                     </CardContent>
                   </Card>
                 );

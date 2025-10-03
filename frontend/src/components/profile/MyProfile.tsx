@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Briefcase, Shield, LogOut, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Briefcase, Shield, LogOut, Edit, Save, X, Palette } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AuthAPI } from '@/lib/api';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface UserProfile {
   id: number;
@@ -274,6 +275,17 @@ export default function MyProfile() {
           <div>
             <p className="text-sm font-medium">Role</p>
             <p className="text-muted-foreground">{getRoleDisplayName(user.role)}</p>
+          </div>
+        </div>
+
+        {/* Theme Preference */}
+        <div className="flex items-center space-x-3">
+          <Palette className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Theme</p>
+            <div className="mt-1">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
 

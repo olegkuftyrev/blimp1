@@ -203,6 +203,16 @@ export const navigationItems: NavigationItem[] = [
     comingSoon: true,
     order: 3,
   },
+  {
+    id: 'changelog',
+    section: 'more',
+    title: 'Project Updates',
+    href: '/changelog',
+    description: 'Track all updates, improvements, and new features',
+    icon: 'bookOpen',
+    color: 'lime-600',
+    order: 4,
+  },
 
   // Profile dropdown (right side)
   {
