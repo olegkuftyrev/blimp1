@@ -1,155 +1,14 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, FileText, Settings, BarChart3, Users, BookOpen } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, User, FileText, Settings, BarChart3, Users, BookOpen, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import ProtectedRoute from '@/components/ProtectedRoute';
-
-interface ChangelogEntry {
-  date: string;
-  version: string;
-  author: string;
-  changes: {
-    type: 'feature' | 'improvement' | 'fix' | 'ui' | 'backend';
-    title: string;
-    description: string;
-  }[];
-}
-
-const changelogData: ChangelogEntry[] = [
-  {
-    date: 'December 15, 2024',
-    version: 'v1.4.0',
-    author: 'Oleg',
-    changes: [
-      {
-        type: 'ui',
-        title: 'Dashboard Module Visibility',
-        description: 'Hidden restricted and coming soon modules from dashboard to provide cleaner interface'
-      },
-      {
-        type: 'improvement',
-        title: 'Quick Actions Filtering',
-        description: 'Quick actions now only show modules that users have access to based on their role'
-      },
-      {
-        type: 'ui',
-        title: 'Simplified Module Cards',
-        description: 'Removed badges and complex conditional rendering from module cards'
-      }
-    ]
-  },
-  {
-    date: 'December 10, 2024',
-    version: 'v1.3.2',
-    author: 'Oleg',
-    changes: [
-      {
-        type: 'feature',
-        title: 'P&L Practice Tests',
-        description: 'Added comprehensive practice test system for P&L calculations and financial metrics'
-      },
-      {
-        type: 'improvement',
-        title: 'User Role Management',
-        description: 'Enhanced role-based access control across all modules'
-      },
-      {
-        type: 'fix',
-        title: 'Navigation Bug Fixes',
-        description: 'Fixed issues with navigation state management and user preferences'
-      }
-    ]
-  },
-  {
-    date: 'December 5, 2024',
-    version: 'v1.3.1',
-    author: 'Oleg',
-    changes: [
-      {
-        type: 'feature',
-        title: 'Individual Development Plan',
-        description: 'Launched IDP module for personal and professional development tracking'
-      },
-      {
-        type: 'backend',
-        title: 'Database Optimization',
-        description: 'Improved query performance and added new indexes for better response times'
-      },
-      {
-        type: 'ui',
-        title: 'Profile Page Redesign',
-        description: 'Updated profile interface with better organization and user experience'
-      }
-    ]
-  },
-  {
-    date: 'November 28, 2024',
-    version: 'v1.2.0',
-    author: 'Oleg',
-    changes: [
-      {
-        type: 'feature',
-        title: 'Analytics Dashboard',
-        description: 'Added comprehensive analytics and reporting capabilities for store performance'
-      },
-      {
-        type: 'feature',
-        title: 'Staff Management System',
-        description: 'Implemented user creation, role assignment, and restaurant access management'
-      },
-      {
-        type: 'improvement',
-        title: 'Kitchen Management',
-        description: 'Enhanced order tracking, timers, and kitchen operations workflow'
-      }
-    ]
-  },
-  {
-    date: 'November 20, 2024',
-    version: 'v1.1.0',
-    author: 'Oleg',
-    changes: [
-      {
-        type: 'feature',
-        title: 'Area P&L Analysis',
-        description: 'Launched comprehensive profit and loss analysis tools for area management'
-      },
-      {
-        type: 'backend',
-        title: 'API Improvements',
-        description: 'Enhanced backend API with better error handling and response formatting'
-      },
-      {
-        type: 'ui',
-        title: 'Mobile Responsiveness',
-        description: 'Improved mobile experience across all modules and pages'
-      }
-    ]
-  },
-  {
-    date: 'November 10, 2024',
-    version: 'v1.0.0',
-    author: 'Oleg',
-    changes: [
-      {
-        type: 'feature',
-        title: 'Initial Launch',
-        description: 'Blimp Smart Table platform launched with core restaurant management features'
-      },
-      {
-        type: 'feature',
-        title: 'User Authentication',
-        description: 'Implemented secure user authentication and role-based access control'
-      },
-      {
-        type: 'feature',
-        title: 'Dashboard Overview',
-        description: 'Created central dashboard with quick actions and module overview'
-      }
-    ]
-  }
-];
+import { changelogData, changeTypes, availablePages, ChangelogEntry } from '@/data/changelog';
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -169,23 +28,85 @@ const getTypeIcon = (type: string) => {
 };
 
 const getTypeColor = (type: string) => {
-  switch (type) {
-    case 'feature':
-      return 'bg-green-100 text-green-800 border-green-200';
-    case 'improvement':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'fix':
-      return 'bg-red-100 text-red-800 border-red-200';
-    case 'ui':
-      return 'bg-purple-100 text-purple-800 border-purple-200';
-    case 'backend':
-      return 'bg-orange-100 text-orange-800 border-orange-200';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
-  }
+  const typeConfig = changeTypes.find(t => t.value === type);
+  return typeConfig?.color || 'bg-gray-100 text-gray-800 border-gray-200';
 };
 
 function ChangelogContent() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedPage, setSelectedPage] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'version'>('date');
+  const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
+
+  // Filter and sort data
+  const filteredData = useMemo(() => {
+    let filtered = changelogData.filter(entry => {
+      const matchesSearch = searchTerm === '' || 
+        entry.version.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.changes.some(change => 
+          change.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          change.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      
+      const matchesType = selectedType === 'all' || 
+        entry.changes.some(change => change.type === selectedType);
+      
+      const matchesPage = selectedPage === 'all' || 
+        entry.changes.some(change => 
+          change.pages && change.pages.includes(selectedPage)
+        );
+      
+      return matchesSearch && matchesType && matchesPage;
+    });
+
+    // Sort data
+    filtered.sort((a, b) => {
+      if (sortBy === 'date') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else {
+        // Version sorting (assuming semantic versioning)
+        const aVersion = a.version.replace('v', '').split('.').map(Number);
+        const bVersion = b.version.replace('v', '').split('.').map(Number);
+        for (let i = 0; i < Math.max(aVersion.length, bVersion.length); i++) {
+          const aNum = aVersion[i] || 0;
+          const bNum = bVersion[i] || 0;
+          if (bNum !== aNum) return bNum - aNum;
+        }
+        return 0;
+      }
+    });
+
+    return filtered;
+  }, [searchTerm, selectedType, selectedPage, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const toggleExpanded = (index: number) => {
+    const newExpanded = new Set(expandedEntries);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedEntries(newExpanded);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedType('all');
+    setSelectedPage('all');
+    setSortBy('date');
+    setCurrentPage(1);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
@@ -199,10 +120,89 @@ function ChangelogContent() {
           </p>
         </div>
 
+        {/* Search and Filters */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Filter className="h-5 w-5" />
+              <span>Search & Filter</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="md:col-span-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search versions, features, or descriptions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {changeTypes.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedPage} onValueChange={setSelectedPage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by page" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Pages</SelectItem>
+                  {availablePages.map(page => (
+                    <SelectItem key={page} value={page}>
+                      {page}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex space-x-2">
+                <Select value={sortBy} onValueChange={(value: 'date' | 'version') => setSortBy(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Date (Newest)</SelectItem>
+                    <SelectItem value="version">Version (Latest)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={clearFilters} className="whitespace-nowrap">
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results Summary */}
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {paginatedData.length} of {filteredData.length} entries
+          {(searchTerm || selectedType !== 'all' || selectedPage !== 'all') && (
+            <Button 
+              variant="link" 
+              onClick={clearFilters}
+              className="ml-2 p-0 h-auto text-primary"
+            >
+              Clear filters
+            </Button>
+          )}
+        </div>
+
         {/* Changelog Entries */}
         <div className="space-y-6">
-          {changelogData.map((entry, index) => (
-            <Card key={index} className="transition-all hover:shadow-lg">
+          {paginatedData.map((entry, index) => (
+            <Card key={`${entry.version}-${index}`} className="transition-all hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -213,10 +213,27 @@ function ChangelogContent() {
                     <Badge variant="outline" className="font-medium">
                       {entry.version}
                     </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {entry.changes.length} changes
+                    </Badge>
                   </div>
-                  <div className="flex items-center space-x-2 text-muted-foreground">
-                    <User className="h-4 w-4" />
-                    <span className="text-sm">{entry.author}</span>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <User className="h-4 w-4" />
+                      <span className="text-sm">{entry.author}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleExpanded(index)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {expandedEntries.has(index) ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
                 <CardTitle className="text-xl mt-2">
@@ -242,9 +259,22 @@ function ChangelogContent() {
                             {change.title}
                           </h4>
                         </div>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted-foreground text-sm mb-2">
                           {change.description}
                         </p>
+                        {change.pages && change.pages.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {change.pages.map((page, pageIndex) => (
+                              <Badge 
+                                key={pageIndex} 
+                                variant="secondary" 
+                                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                              >
+                                {page}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -253,6 +283,50 @@ function ChangelogContent() {
             </Card>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-2 mt-8">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Button
+                  key={i + 1}
+                  variant={currentPage === i + 1 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
+        {/* No Results */}
+        {filteredData.length === 0 && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <p className="text-muted-foreground text-lg mb-4">No changelog entries found</p>
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters to see all entries
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Footer */}
         <div className="mt-12 text-center">
