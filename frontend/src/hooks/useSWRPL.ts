@@ -272,16 +272,20 @@ export interface PLQuestion {
 export interface PLTestSet {
   id: number;
   userId: number;
-  status: string;
-  score: number;
-  totalQuestions: number;
-  correctAnswers: number;
-  incorrectAnswers: number;
-  unansweredQuestions: number;
-  completedAt: string | null;
+  name: string;
+  description: string;
+  questionIds: string;
+  isDefault: boolean;
+  isCompleted: boolean;
   createdAt: string;
   updatedAt: string;
   questions?: PLQuestion[];
+  progress: {
+    total: number;
+    answered: number;
+    correct: number;
+    percentage: number;
+  };
 }
 
 export interface PLStats {
