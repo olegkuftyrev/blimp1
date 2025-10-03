@@ -240,6 +240,66 @@ export default class UsersController {
   }
 
   /**
+   * Fix Nacho's restaurant assignment
+   */
+  async fixNachoAssignment({ auth, response }: HttpContext) {
+    try {
+      await auth.authenticate()
+      const currentUser = auth.user!
+      
+      // Only allow admin to run this fix
+      if (currentUser.role !== 'admin') {
+        return response.status(403).json({ error: 'Admin access required' })
+      }
+      
+      // Find Nacho
+      const nacho = await User.query().where('full_name', 'like', '%Nacho%').first()
+      if (!nacho) {
+        return response.status(404).json({ error: 'Nacho not found' })
+      }
+      
+      console.log('👤 Found Nacho:', {id: nacho.id, fullName: nacho.fullName, role: nacho.role})
+      
+      // Check if association already exists
+      const existingAssociation = await UserRestaurant.query()
+        .where('user_id', nacho.id)
+        .where('restaurant_id', 10)
+        .first()
+      
+      if (existingAssociation) {
+        return response.json({ 
+          success: true, 
+          message: 'Nacho already associated with restaurant 10',
+          nacho: {id: nacho.id, fullName: nacho.fullName, role: nacho.role}
+        })
+      }
+      
+      // Create the association (using Tai Doan's ID as addedByUserId)
+      await UserRestaurant.create({
+        userId: nacho.id,
+        restaurantId: 10,
+        addedByUserId: 37 // Tai Doan's ID
+      })
+      
+      console.log('✅ Successfully assigned Nacho to restaurant 10')
+      
+      // Verify the assignment
+      const nachoRestaurants = await UserRestaurant.query().where('user_id', nacho.id)
+      
+      return response.json({
+        success: true,
+        message: 'Successfully assigned Nacho to restaurant 10',
+        nacho: {id: nacho.id, fullName: nacho.fullName, role: nacho.role},
+        restaurantIds: nachoRestaurants.map(r => r.restaurantId)
+      })
+      
+    } catch (error) {
+      console.error('❌ Error:', error.message)
+      return response.status(500).json({ error: error.message })
+    }
+  }
+
+  /**
    * Get all users with their restaurant assignments
    */
   async index({ auth, response }: HttpContext) {

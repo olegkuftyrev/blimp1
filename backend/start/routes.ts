@@ -60,6 +60,9 @@ router.get('/users/team-debug', '#controllers/users_controller.getTeamMembers')
 // Debug users visibility (with auth)
 router.get('/users/debug-users', '#controllers/users_controller.debugUsers').use(middleware.auth())
 
+// Fix Nacho's restaurant assignment (admin only)
+router.post('/users/fix-nacho', '#controllers/users_controller.fixNachoAssignment').use(middleware.auth())
+
 // Protected user routes
 router
   .group(() => {
