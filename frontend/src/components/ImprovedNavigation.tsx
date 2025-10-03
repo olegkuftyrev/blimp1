@@ -347,57 +347,19 @@ const ImprovedNavigation = () => {
           {/* Right side - Profile & Theme Toggle */}
           <div className="flex-1 flex justify-end items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
-              {/* Profile with dropdown */}
-              <NavigationMenu className="blimp-profile-nav-root" onValueChange={onNavChange}>
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger 
-                      className={cn(
-                        "submenu-trigger flex items-center gap-2 px-3 py-2 text-sm font-medium",
-                        isActive('/profile') && "bg-accent text-accent-foreground"
-                      )}
-                    >
-                      <User className="h-4 w-4" />
-                      <span className="hidden lg:inline">
-                        {isLoading ? 'Loading...' : getUserDisplayName()}
-                      </span>
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                    <ul className="grid w-[280px] gap-2 p-4">
-                      {getItemsBySection('profile', user?.role).filter((i) => !i.comingSoon).map((item) => (
-                        <ListItem
-                          key={item.id}
-                          href={item.href}
-                          title={item.title}
-                          icon={iconMap[item.icon]}
-                          className={cn(
-                            item.comingSoon && 'opacity-50',
-                            isActive('/profile') && 'bg-accent text-accent-foreground'
-                          )}
-                        >
-                          {renderDescription(item.description, item.comingSoon)}
-                        </ListItem>
-                      ))}
-                      <li>
-                          <div className="border-t my-2"></div>
-                          <div className="px-1">
-                            <InlineThemeToggle />
-                          </div>
-                          <div className="px-1 mt-2">
-                            <button
-                              onClick={logout}
-                              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent transition-colors text-red-600 hover:text-red-700 w-full"
-                            >
-                              <LogOut className="h-4 w-4" />
-                              <span className="text-sm font-medium">Sign Off</span>
-                            </button>
-                          </div>
-                        </li>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
+              {/* Profile direct link */}
+              <Link
+                href="/profile?tab=my-profile"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  isActive('/profile') && "bg-accent text-accent-foreground"
+                )}
+              >
+                <User className="h-4 w-4" />
+                <span className="hidden lg:inline">
+                  {isLoading ? 'Loading...' : getUserDisplayName()}
+                </span>
+              </Link>
             </div>
           </div>
 
