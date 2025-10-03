@@ -295,24 +295,11 @@ function StaffManagementContent() {
     }
   };
 
-  // Compute visible users based on role and store access
+  // Compute visible users - show all users for now
   const visibleUsers = useMemo(() => {
-    // Until users are loaded or no current user, just return all
-    if (!currentUser) return users;
-    if (currentUser.role === 'admin') return users;
-
-    const selfUser = users.find(
-      (u: User) => u.id === (currentUser as any).id || u.email === currentUser.email
-    );
-    const accessibleRestaurantIds = new Set(
-      (selfUser?.restaurants || []).map((r: Restaurant) => r.id)
-    );
-
-    // Non-admins see associates and black_shirts that belong to any of their stores
-    return users.filter((u: User) =>
-      ['associate', 'black_shirt'].includes(u.role) && (u.restaurants || []).some((r) => accessibleRestaurantIds.has(r.id))
-    );
-  }, [users, currentUser]);
+    console.log('🔍 Showing all users:', users.length);
+    return users;
+  }, [users]);
 
 
   const fetchRestaurants = async () => {
