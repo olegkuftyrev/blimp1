@@ -141,9 +141,9 @@ export default class UserPolicy extends BasePolicy {
       return ['black_shirt', 'associate'].includes(targetRole)
     }
 
-    // Black Shirt can ONLY create associate users (NOT other black_shirt, ops_lead, or admin)
+    // Black Shirt can create black_shirt and associate users (NOT ops_lead or admin)
     if (user.role === 'black_shirt' && targetRole) {
-      return targetRole === 'associate'
+      return ['black_shirt', 'associate'].includes(targetRole)
     }
 
     // Associates and tablets cannot create other users

@@ -28,8 +28,8 @@ export default class InvitePolicy extends BasePolicy {
       return true // Can create invites without specific restaurant
     }
 
-    // Black Shirt can invite associates and tablets to their restaurants
-    if (user.role === 'black_shirt' && ['associate', 'tablet'].includes(role)) {
+    // Black Shirt can invite black_shirt, associates and tablets to their restaurants
+    if (user.role === 'black_shirt' && ['black_shirt', 'associate', 'tablet'].includes(role)) {
       if (restaurantId) {
         return await this.hasRestaurantAccess(user, restaurantId)
       }

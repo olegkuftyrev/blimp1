@@ -81,7 +81,7 @@ function StaffManagementContent() {
       case 'ops_lead':
         return Object.entries(roleLabels).filter(([value]) => ['black_shirt', 'associate'].includes(value));
       case 'black_shirt':
-        return [['associate', 'Associate']]; // Only associate
+        return [['black_shirt', 'Black Shirt'], ['associate', 'Associate']]; // Can create black shirts and associates
       case 'associate':
         return [['associate', 'Associate']]; // Only associate
       default:
@@ -308,9 +308,9 @@ function StaffManagementContent() {
       (selfUser?.restaurants || []).map((r: Restaurant) => r.id)
     );
 
-    // Non-admins see only associates that belong to any of their stores
+    // Non-admins see associates and black_shirts that belong to any of their stores
     return users.filter((u: User) =>
-      u.role === 'associate' && (u.restaurants || []).some((r) => accessibleRestaurantIds.has(r.id))
+      ['associate', 'black_shirt'].includes(u.role) && (u.restaurants || []).some((r) => accessibleRestaurantIds.has(r.id))
     );
   }, [users, currentUser]);
 
