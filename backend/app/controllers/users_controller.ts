@@ -204,6 +204,42 @@ export default class UsersController {
   }
 
   /**
+   * Debug endpoint to check user visibility
+   */
+  async debugUsers({ auth, response }: HttpContext) {
+    try {
+      await auth.authenticate()
+      const currentUser = auth.user!
+      
+      const users = await User.query()
+        .preload('restaurants')
+        .orderBy('id', 'asc')
+      
+      const debugInfo = {
+        currentUser: {
+          id: currentUser.id,
+          fullName: currentUser.fullName,
+          role: currentUser.role,
+          email: currentUser.email
+        },
+        allUsers: users.map(user => ({
+          id: user.id,
+          fullName: user.fullName,
+          role: user.role,
+          email: user.email,
+          restaurantIds: user.restaurants?.map(r => r.id) || []
+        })),
+        taiDoan: users.find(u => u.id === 37),
+        nacho: users.find(u => u.fullName?.toLowerCase().includes('nacho'))
+      }
+      
+      return response.json(debugInfo)
+    } catch (error) {
+      return response.status(500).json({ error: error.message })
+    }
+  }
+
+  /**
    * Get all users with their restaurant assignments
    */
   async index({ auth, response }: HttpContext) {

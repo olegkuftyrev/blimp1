@@ -57,6 +57,9 @@ router.get('/users/test', '#controllers/users_controller.testUsers')
 // Temporary debug endpoint for team members (no auth middleware)
 router.get('/users/team-debug', '#controllers/users_controller.getTeamMembers')
 
+// Debug users visibility (with auth)
+router.get('/users/debug-users', '#controllers/users_controller.debugUsers').use(middleware.auth())
+
 // Protected user routes
 router
   .group(() => {
