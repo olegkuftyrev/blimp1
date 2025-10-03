@@ -267,6 +267,7 @@ router
     
     // Admin routes for viewing other users' data
     router.get('/users/:userId/test-sets', '#controllers/pl_questions_controller.getTestSetsForUser')
+    router.get('/users/:userId/test-sets/:testSetId', '#controllers/pl_questions_controller.getTestSetForUser')
     router.get('/users/:userId/stats', '#controllers/pl_questions_controller.getStatsForUser')
   })
   .prefix('/pl-questions')

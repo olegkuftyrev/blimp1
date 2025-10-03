@@ -506,6 +506,50 @@ export function usePLStatsForUser(userId?: number) {
   };
 }
 
+// Hook for fetching individual PL test set details with questions and answers
+export function usePLTestSetDetails(testSetId?: number, userId?: number) {
+  const { 
+    data, 
+    error, 
+    isLoading,
+    mutate
+  } = useSWR<any>(
+    () => {
+      if (typeof window === 'undefined' || !testSetId || !userId) return null;
+      return window.localStorage.getItem('auth_token') ? `pl-questions/users/${userId}/test-sets/${testSetId}` : null;
+    },
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000, // 1 minute
+      shouldRetryOnError: true,
+      onSuccess: (data: any) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ SWR PL Test Set Details:', { 
+            success: true, 
+            testSetId,
+            userId,
+            questionsCount: data?.data?.questions?.length || 0
+          });
+        }
+      },
+      onError: (error: any) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ SWR PL Test Set Details Error:', error.message);
+        }
+      }
+    }
+  );
+
+  return {
+    testSetDetails: data?.data || null,
+    loading: isLoading,
+    error,
+    mutate
+  };
+}
+
 // Mutation for creating PL test set
 export function useCreatePLTestSet() {
   const { 

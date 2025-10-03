@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, User, Mail, Shield, Briefcase, Calculator, CheckCircle, XCircle, Clock, Trophy } from 'lucide-react';
+import { ArrowLeft, User, Mail, Shield, Briefcase, Calculator, CheckCircle, XCircle, Clock, Trophy, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AuthAPI, TeamMember } from '@/lib/api';
-import { usePLTestSetsForUser, usePLStatsForUser } from '@/hooks/useSWRPL';
+import { usePLTestSetsForUser, usePLStatsForUser, usePLTestSetDetails } from '@/hooks/useSWRPL';
 
 export default function UserPLTests() {
   const searchParams = useSearchParams();
@@ -18,6 +18,7 @@ export default function UserPLTests() {
   const [teamMember, setTeamMember] = useState<TeamMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedTestSet, setExpandedTestSet] = useState<number | null>(null);
 
   // Parse userId to number
   const userIdNumber = userId ? parseInt(userId) : null;
@@ -25,6 +26,9 @@ export default function UserPLTests() {
   // Use user-specific hooks to fetch data for the selected user
   const { testSets, isLoading: testSetsLoading, error: testSetsError } = usePLTestSetsForUser(userIdNumber);
   const { stats, isLoading: statsLoading, error: statsError } = usePLStatsForUser(userIdNumber);
+  
+  // Hook for fetching detailed test set data when expanded
+  const { testSetDetails, loading: detailsLoading, error: detailsError } = usePLTestSetDetails(expandedTestSet, userIdNumber);
 
   useEffect(() => {
     if (userId) {
@@ -88,6 +92,14 @@ export default function UserPLTests() {
 
   const handleBackToTeam = () => {
     router.push('/profile?tab=team');
+  };
+
+  const handleToggleTestSet = (testSetId: number) => {
+    if (expandedTestSet === testSetId) {
+      setExpandedTestSet(null);
+    } else {
+      setExpandedTestSet(testSetId);
+    }
   };
 
   if (loading) {
@@ -238,15 +250,15 @@ export default function UserPLTests() {
                 <div className="text-sm text-muted-foreground">Test Sets</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.correctAnswers}</div>
+                <div className="text-2xl font-bold text-primary">{stats.correctAnswers}</div>
                 <div className="text-sm text-muted-foreground">Correct</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{stats.incorrectAnswers}</div>
+                <div className="text-2xl font-bold text-destructive">{stats.incorrectAnswers}</div>
                 <div className="text-sm text-muted-foreground">Incorrect</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.percentage.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-accent-foreground">{stats.percentage.toFixed(1)}%</div>
                 <div className="text-sm text-muted-foreground">Accuracy</div>
               </div>
             </div>
@@ -292,46 +304,196 @@ export default function UserPLTests() {
                       <h3 className="font-semibold">{testSet.name}</h3>
                       <p className="text-sm text-muted-foreground">{testSet.description}</p>
                     </div>
-                    {getPassFailBadge(testSet)}
+                    <div className="flex items-center gap-2">
+                      {getPassFailBadge(testSet)}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleTestSet(testSet.id)}
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {expandedTestSet === testSet.id ? (
+                          <>
+                            <ChevronUp className="h-4 w-4" />
+                            Hide Details
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4" />
+                            View Details
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">{testSet.progress.correct}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Correct</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                         <span className="text-sm font-medium">{testSet.progress.answered - testSet.progress.correct}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Incorrect</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <Clock className="h-4 w-4 text-blue-600" />
+                        <Clock className="h-4 w-4 text-accent-foreground" />
                         <span className="text-sm font-medium">{testSet.progress.answered}/{testSet.progress.total}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Answered</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <Trophy className="h-4 w-4 text-yellow-600" />
+                        <Trophy className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">{testSet.progress.percentage.toFixed(1)}%</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Complete</div>
                     </div>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-muted rounded-full h-2">
                     <div 
                       className="bg-primary h-2 rounded-full transition-all duration-300" 
                       style={{ width: `${testSet.progress.percentage}%` }}
                     ></div>
                   </div>
+
+                  {/* Expanded Details */}
+                  {expandedTestSet === testSet.id && (
+                    <div className="mt-4 pt-4 border-t">
+                      {detailsLoading ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                          <p className="text-sm text-muted-foreground">Loading questions...</p>
+                        </div>
+                      ) : detailsError ? (
+                        <div className="text-center py-4">
+                          <p className="text-destructive text-sm">Failed to load test details</p>
+                        </div>
+                      ) : testSetDetails?.questions ? (
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-lg">Questions & Answers</h4>
+                          {testSetDetails.questions.map((question: any, index: number) => (
+                            <div key={question.id} className="border rounded-lg p-4 bg-card">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <h5 className="font-medium mb-2">Question {index + 1}</h5>
+                                  <p className="text-sm mb-2">{question.label}</p>
+                                  {question.formula && (
+                                    <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded border">
+                                      Formula: {question.formula}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="ml-4">
+                                  {question.userAnswer ? (
+                                    <Badge variant={question.userAnswer.isCorrect ? "default" : "destructive"}>
+                                      {question.userAnswer.isCorrect ? 'Correct' : 'Incorrect'}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary">Not Answered</Badge>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">Answer Options:</p>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  {(() => {
+                                    const userAnswer = question.userAnswer?.userAnswer;
+                                    const correctAnswer = question.correctAnswer;
+                                    const isUserAnswerCorrect = question.userAnswer?.isCorrect;
+                                    const userName = teamMember?.fullName || 'User';
+                                    
+                                    return (
+                                      <>
+                                        <div className={`p-2 rounded border relative ${
+                                          correctAnswer === 'a1' 
+                                            ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900 dark:border-green-400 dark:text-green-200' 
+                                            : userAnswer === 'a1' && !isUserAnswerCorrect
+                                              ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900 dark:border-red-400 dark:text-red-200'
+                                              : 'bg-card border-border'
+                                        }`}>
+                                          A) {question.a1}
+                                          {userAnswer === 'a1' && (
+                                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                                              {userName} answered
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className={`p-2 rounded border relative ${
+                                          correctAnswer === 'a2' 
+                                            ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900 dark:border-green-400 dark:text-green-200' 
+                                            : userAnswer === 'a2' && !isUserAnswerCorrect
+                                              ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900 dark:border-red-400 dark:text-red-200'
+                                              : 'bg-card border-border'
+                                        }`}>
+                                          B) {question.a2}
+                                          {userAnswer === 'a2' && (
+                                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                                              {userName} answered
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className={`p-2 rounded border relative ${
+                                          correctAnswer === 'a3' 
+                                            ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900 dark:border-green-400 dark:text-green-200' 
+                                            : userAnswer === 'a3' && !isUserAnswerCorrect
+                                              ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900 dark:border-red-400 dark:text-red-200'
+                                              : 'bg-card border-border'
+                                        }`}>
+                                          C) {question.a3}
+                                          {userAnswer === 'a3' && (
+                                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                                              {userName} answered
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className={`p-2 rounded border relative ${
+                                          correctAnswer === 'a4' 
+                                            ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900 dark:border-green-400 dark:text-green-200' 
+                                            : userAnswer === 'a4' && !isUserAnswerCorrect
+                                              ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900 dark:border-red-400 dark:text-red-200'
+                                              : 'bg-card border-border'
+                                        }`}>
+                                          D) {question.a4}
+                                          {userAnswer === 'a4' && (
+                                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                                              {userName} answered
+                                            </div>
+                                          )}
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                              
+                              {question.explanation && (
+                                <div className="mt-3 pt-3 border-t">
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Explanation:</p>
+                                  <p className="text-sm">{question.explanation}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-muted-foreground text-sm">No questions found for this test set</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

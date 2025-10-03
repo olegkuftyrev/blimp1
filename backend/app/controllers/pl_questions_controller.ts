@@ -297,6 +297,69 @@ export default class PlQuestionsController {
     }
   }
 
+  // Get specific test set details for a specific user (admin only)
+  async getTestSetForUser({ params, auth, response }: HttpContext) {
+    try {
+      const currentUser = await auth.authenticate()
+      
+      // Only admins can view other users' test set details
+      if (currentUser.role !== 'admin') {
+        return response.status(403).json({
+          success: false,
+          message: 'Only admin users can view other users\' test set details'
+        })
+      }
+
+      const targetUserId = params.userId
+      const testSetId = params.testSetId
+      
+      const testSet = await PLTestSet.query()
+        .where('id', testSetId)
+        .where('user_id', targetUserId)
+        .firstOrFail()
+
+      const questionIds = testSet.questionIdsArray
+      const questions = await PLQuestion.query()
+        .whereIn('id', questionIds)
+        .orderBy('id')
+
+      const userAnswers = await PLUserAnswer.query()
+        .where('user_id', targetUserId)
+        .where('pl_test_set_id', testSet.id)
+        .preload('plQuestion')
+
+      const answersMap = new Map()
+      userAnswers.forEach(answer => {
+        answersMap.set(answer.plQuestionId, answer)
+      })
+
+      const questionsWithAnswers = questions.map(question => ({
+        ...question.toJSON(),
+        userAnswer: answersMap.get(question.id) || null
+      }))
+
+      return response.json({
+        success: true,
+        data: {
+          ...testSet.toJSON(),
+          questions: questionsWithAnswers,
+          progress: {
+            total: questions.length,
+            answered: userAnswers.length,
+            correct: userAnswers.filter(a => a.isCorrect).length,
+            percentage: questions.length > 0 ? (userAnswers.length / questions.length) * 100 : 0
+          }
+        }
+      })
+    } catch (error) {
+      return response.status(404).json({
+        success: false,
+        message: 'Test set not found for user',
+        error: error.message
+      })
+    }
+  }
+
   // Get stats for a specific user (admin only)
   async getStatsForUser({ params, auth, response }: HttpContext) {
     try {
