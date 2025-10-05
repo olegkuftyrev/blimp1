@@ -44,6 +44,9 @@ export type Restaurant = {
   phone: string;
   isActive: boolean;
   ownerUserId?: number | null;
+  acoId?: number | null;
+  acoName?: string | null;
+  acoEmail?: string | null;
   createdAt: string;
   updatedAt: string;
 };

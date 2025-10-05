@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Restaurant from '#models/restaurant'
 import User from '#models/user'
 import UserRestaurant from '#models/user_restaurant'
+import Database from '@adonisjs/lucid/services/db'
 import { manageRestaurants } from '#abilities/main'
 
 export default class RestaurantsController {
@@ -18,15 +19,20 @@ export default class RestaurantsController {
       // Admins see all restaurants
       if (user && user.role === 'admin') {
         if (includeInactive) {
-          const [active, inactive] = await Promise.all([
+          const [activeRestaurants, inactiveRestaurants] = await Promise.all([
             Restaurant.query().where('isActive', true),
             Restaurant.query().where('isActive', false),
           ])
-          return response.ok({ data: { active, inactive } })
+          const [activeWithACO, inactiveWithACO] = await Promise.all([
+            this.addACODataToRestaurants(activeRestaurants),
+            this.addACODataToRestaurants(inactiveRestaurants)
+          ])
+          return response.ok({ data: { active: activeWithACO, inactive: inactiveWithACO } })
         }
 
         const restaurants = await Restaurant.query().where('isActive', true)
-        return response.ok({ data: restaurants })
+        const restaurantsWithACO = await this.addACODataToRestaurants(restaurants)
+        return response.ok({ data: restaurantsWithACO })
       }
 
       // Non-admins: scope to restaurants assigned to the authenticated user
@@ -43,18 +49,23 @@ export default class RestaurantsController {
       const userRestaurantIds = userRestaurantRecords.map((ur) => ur.restaurantId)
 
       if (includeInactive) {
-        const [active, inactive] = await Promise.all([
+        const [activeRestaurants, inactiveRestaurants] = await Promise.all([
           Restaurant.query().whereIn('id', userRestaurantIds).andWhere('isActive', true),
           Restaurant.query().whereIn('id', userRestaurantIds).andWhere('isActive', false),
         ])
-        return response.ok({ data: { active, inactive } })
+        const [activeWithACO, inactiveWithACO] = await Promise.all([
+          this.addACODataToRestaurants(activeRestaurants),
+          this.addACODataToRestaurants(inactiveRestaurants)
+        ])
+        return response.ok({ data: { active: activeWithACO, inactive: inactiveWithACO } })
       }
 
       const restaurants = userRestaurantIds.length > 0
         ? await Restaurant.query().whereIn('id', userRestaurantIds).andWhere('isActive', true)
         : []
+      const restaurantsWithACO = await this.addACODataToRestaurants(restaurants)
 
-      return response.ok({ data: restaurants })
+      return response.ok({ data: restaurantsWithACO })
     } catch (error) {
       return response.badRequest({ error: 'Failed to fetch restaurants' })
     }
@@ -94,6 +105,65 @@ export default class RestaurantsController {
         return response.badRequest({ error: 'Restaurant name must be unique' })
       }
       return response.badRequest({ error: 'Failed to create restaurant' })
+    }
+  }
+
+  /**
+   * Add ACO information to restaurants
+   */
+  private async addACODataToRestaurants(restaurants: any[]) {
+    if (restaurants.length === 0) return []
+    
+    try {
+      // Get all ACO users first
+      const acoUsers = await User.query().where('jobTitle', 'ACO')
+      
+      // Get all user-restaurant relationships for ACO users
+      const acoRelations = []
+      for (const acoUser of acoUsers) {
+        const userRestaurants = await UserRestaurant.query()
+          .where('userId', acoUser.id)
+          .select('restaurantId')
+        
+        for (const ur of userRestaurants) {
+          acoRelations.push({
+            restaurant_id: ur.restaurantId,
+            aco_id: acoUser.id,
+            aco_name: acoUser.fullName,
+            aco_email: acoUser.email
+          })
+        }
+      }
+      
+      // Map ACO data to restaurants
+      const acoMap = new Map()
+      acoRelations.forEach(relation => {
+        acoMap.set(relation.restaurant_id, {
+          acoId: relation.aco_id,
+          acoName: relation.aco_name,
+          acoEmail: relation.aco_email
+        })
+      })
+      
+      // Add ACO data to restaurants
+      return restaurants.map(restaurant => {
+        const acoData = acoMap.get(restaurant.id)
+        return {
+          ...restaurant.toJSON(),
+          acoId: acoData?.acoId || null,
+          acoName: acoData?.acoName || null,
+          acoEmail: acoData?.acoEmail || null
+        }
+      })
+    } catch (error) {
+      // If ACO data fetching fails, return restaurants without ACO data
+      console.error('Error fetching ACO data:', error)
+      return restaurants.map(restaurant => ({
+        ...restaurant.toJSON(),
+        acoId: null,
+        acoName: null,
+        acoEmail: null
+      }))
     }
   }
 

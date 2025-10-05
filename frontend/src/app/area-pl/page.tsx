@@ -57,10 +57,13 @@ function AreaPlContent() {
   const [showStoresWithData, setShowStoresWithData] = useState(true);
   const [showStoresWithoutData, setShowStoresWithoutData] = useState(true);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [selectedACOs, setSelectedACOs] = useState<number[]>([]);
   const [isStorePopoverOpen, setIsStorePopoverOpen] = useState(false);
   const [isMetricsPopoverOpen, setIsMetricsPopoverOpen] = useState(false);
+  const [isACOPopoverOpen, setIsACOPopoverOpen] = useState(false);
   const storeDropdownRef = useRef<HTMLDivElement>(null);
   const metricsDropdownRef = useRef<HTMLDivElement>(null);
+  const acoDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -70,6 +73,9 @@ function AreaPlContent() {
       }
       if (metricsDropdownRef.current && !metricsDropdownRef.current.contains(event.target as Node)) {
         setIsMetricsPopoverOpen(false);
+      }
+      if (acoDropdownRef.current && !acoDropdownRef.current.contains(event.target as Node)) {
+        setIsACOPopoverOpen(false);
       }
     };
 
@@ -182,11 +188,33 @@ function AreaPlContent() {
   const isLoading = restaurantsLoading || batchLoading || lineItemsLoading;
   const hasError = batchError;
 
+  // Get unique ACOs from restaurants
+  const availableACOs = restaurants?.filter((restaurant: any) => restaurant.acoId && restaurant.acoName)
+    .reduce((acc: any[], restaurant: any) => {
+      const existingACO = acc.find(aco => aco.id === restaurant.acoId);
+      if (!existingACO) {
+        acc.push({
+          id: restaurant.acoId,
+          name: restaurant.acoName,
+          email: restaurant.acoEmail
+        });
+      }
+      return acc;
+    }, []) || [];
+
   // Filter store metrics based on selected filters
   const filteredStoreMetrics = storeMetrics.filter(store => {
     // Filter by selected stores (multiple selection)
     if (selectedStores.length > 0 && !selectedStores.includes(store.restaurantId)) {
       return false;
+    }
+    
+    // Filter by ACO selection
+    if (selectedACOs.length > 0) {
+      const restaurant = restaurants?.find((r: any) => r.id === store.restaurantId);
+      if (!restaurant || !restaurant.acoId || !selectedACOs.includes(restaurant.acoId)) {
+        return false;
+      }
     }
     
     // Filter by data availability
@@ -282,7 +310,7 @@ function AreaPlContent() {
             <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* Column 1: Store Selection */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Select Stores</Label>
@@ -462,7 +490,73 @@ function AreaPlContent() {
                 )}
               </div>
 
-              {/* Column 4: Period Selection */}
+              {/* Column 4: ACO Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select ACO</Label>
+                <div className="relative" ref={acoDropdownRef}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsACOPopoverOpen(!isACOPopoverOpen)}
+                    className="w-full justify-between"
+                  >
+                    {selectedACOs.length === 0 
+                      ? "All ACOs" 
+                      : selectedACOs.length === availableACOs.length 
+                        ? "All ACOs" 
+                        : `${selectedACOs.length} ACO${selectedACOs.length !== 1 ? 's' : ''} selected`
+                    }
+                    <ChevronDown className={`ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform ${isACOPopoverOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                  
+                  {isACOPopoverOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                      <div className="p-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                               onClick={() => {
+                                 setSelectedACOs([]);
+                                 setIsACOPopoverOpen(false);
+                               }}>
+                            <Checkbox
+                              checked={selectedACOs.length === 0}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <span className="text-sm">All ACOs ({availableACOs.length})</span>
+                          </div>
+                          {availableACOs.map((aco) => (
+                            <div 
+                              key={aco.id}
+                              className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                              onClick={() => {
+                                if (selectedACOs.includes(aco.id)) {
+                                  setSelectedACOs(selectedACOs.filter(id => id !== aco.id));
+                                } else {
+                                  setSelectedACOs([...selectedACOs, aco.id]);
+                                }
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedACOs.includes(aco.id)}
+                                onChange={() => {}}
+                                className="pointer-events-none"
+                              />
+                              <span className="text-sm">{aco.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {selectedACOs.length > 0 && selectedACOs.length < availableACOs.length && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedACOs.length} ACO{selectedACOs.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </div>
+
+              {/* Column 5: Period Selection */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Select Period</Label>
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -497,6 +591,7 @@ function AreaPlContent() {
                   setShowStoresWithData(true);
                   setShowStoresWithoutData(true);
                   setSelectedMetrics([]);
+                  setSelectedACOs([]);
                 }}
               >
                 Clear Filters
