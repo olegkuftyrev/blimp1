@@ -5,10 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     // Build absolute URL for server-side fetch
     const endpoint = getApiUrl('auth/me')
-    const isAbsolute = /^https?:\/\//.test(endpoint)
-    const url = isAbsolute 
-      ? endpoint 
-      : `${req.nextUrl.origin}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`
+    const url = endpoint
     const incomingAuth = req.headers.get('authorization')
 
     const res = await fetch(url, {
@@ -32,10 +29,7 @@ export async function GET(req: NextRequest) {
     const currentIds: unknown = data?.restaurant_ids
     const isArray = Array.isArray(currentIds)
     if (userRole === 'admin' && isArray && (currentIds as any[]).length === 0) {
-      const restaurantsEndpoint = getApiUrl('restaurants')
-      const restaurantsUrl = /^https?:\/\//.test(restaurantsEndpoint)
-        ? restaurantsEndpoint
-        : `${req.nextUrl.origin}${restaurantsEndpoint.startsWith('/') ? '' : '/'}${restaurantsEndpoint}`
+      const restaurantsUrl = getApiUrl('restaurants')
       const rRes = await fetch(restaurantsUrl, {
         headers: {
           'Content-Type': 'application/json',
