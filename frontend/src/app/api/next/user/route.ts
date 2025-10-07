@@ -7,6 +7,13 @@ export async function GET(req: NextRequest) {
     const endpoint = getApiUrl('auth/me')
     const url = endpoint
     const incomingAuth = req.headers.get('authorization')
+    
+    console.log('API Route Debug:', {
+      endpoint,
+      url,
+      nodeEnv: process.env.NODE_ENV,
+      apiUrl: process.env.NEXT_PUBLIC_API_URL
+    })
 
     const res = await fetch(url, {
       headers: {
